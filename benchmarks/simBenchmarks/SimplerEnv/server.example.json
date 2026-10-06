@@ -1,0 +1,9 @@
+{
+  "task": "google_robot_pick_horizontal_coke_can",
+  "device": "cuda:0",
+  "proprioception": false,
+  "interaction_mode": "agent_method",
+  "action_rejection_feedback": true,
+  "budget_mode": "horizon",
+  "horizon_multiplier": 1
+}

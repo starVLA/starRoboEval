@@ -1,0 +1,41 @@
+{
+  "schema_version": "starvla-rsi.sample-audit-summary/v1",
+  "run_id": "2026-09-20-libero_spatial-task0-init0-black-bowl-on-plate-bench-server-native-v1-sample",
+  "record_consistency": "passed",
+  "auditor": {
+    "path": "harness/audits/closed_run.py",
+    "sha256": "9a7c4020095ba6a6534c73ba869190aaa647e04cabc4a512d887590fa27b8141"
+  },
+  "source_files_verified": 131,
+  "model_source_files_verified": 29,
+  "episodes": [
+    {
+      "episode_id": "libero_spatial-task00-init00",
+      "status": "error",
+      "success": null,
+      "controls": 0,
+      "decisions_started": 0,
+      "decisions_returned": 0,
+      "action_chunks": 0,
+      "stop_decisions": 0,
+      "termination_reason": "error:infrastructure",
+      "action_decisions": 0,
+      "rejected_actions": 0
+    }
+  ],
+  "media_checks": {
+    "video_count": 0,
+    "frames_per_video": null,
+    "fps": null,
+    "resolution": null,
+    "decode_verified": null,
+    "increasing_pts": null,
+    "original_server_local_client_exported_client_hashes_match": null
+  },
+  "limitations": [
+    "Read-only runner-record consistency, not native benchmark parity or execution attestation.",
+    "Does not follow mailbox, video or native asset paths; independent artifact audit is separate.",
+    "No OS isolation or trusted model/provider/usage attestation.",
+    "A consistent error or failed task is not a successful task."
+  ]
+}

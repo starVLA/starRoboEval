@@ -1,0 +1,31 @@
+{
+  "schema_version": "starvla-rsi.sample-episodes/v1",
+  "run_id": "2026-09-20-G1WholebodyTabletopGraspMP-v0-tabletop-grasp-bench-server-native-v1-sample",
+  "episodes": [
+    {
+      "episode_id": "G1WholebodyTabletopGraspMP-v0/dr0/ep0",
+      "task": "G1WholebodyTabletopGraspMP-v0",
+      "seed": 20260907,
+      "dr_level": 0,
+      "released_episode_index": 0,
+      "status": "completed",
+      "success": true,
+      "error": null,
+      "policy_calls": 5,
+      "action_decisions": 5,
+      "environment_steps": 21,
+      "rejected_actions": 0,
+      "first_success_policy_call": 5,
+      "first_success_control": 21,
+      "termination_reason": "environment:terminated",
+      "raw_result": {
+        "paths": [
+          "raw/2026-09-20-G1WholebodyTabletopGraspMP-v0-tabletop-grasp-bench-server-native-v1-sample/episodes/G1WholebodyTabletopGraspMP-v0_dr0_ep0/result.json",
+          "raw/2026-09-20-G1WholebodyTabletopGraspMP-v0-tabletop-grasp-bench-server-native-v1-sample/client/episodes/G1WholebodyTabletopGraspMP-v0_dr0_ep0/result.json"
+        ],
+        "bytes": 2225,
+        "sha256": "ae167252978469d5d89cf55a7f3c3d2d8a69ecb0661cc120b94521d078bb1bc1"
+      }
+    }
+  ]
+}

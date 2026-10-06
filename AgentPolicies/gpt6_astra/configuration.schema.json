@@ -1,0 +1,75 @@
+{
+  "schema_version": "starvla-rsi.configuration-schema/v1",
+  "profile_id": "gpt6_astra",
+  "execution": "direct",
+  "runtime_preflight": true,
+  "fields": {
+    "schema_version": {
+      "type": "string",
+      "const": "starvla-rsi.model-config/v1"
+    },
+    "profile_id": {
+      "type": "string",
+      "const": "gpt6_astra"
+    },
+    "transport": {
+      "type": "string",
+      "const": "codex-exec/v1"
+    },
+    "control_method": {
+      "type": "string",
+      "enum": [
+        "codex-native/v1",
+        "codex-direct/v3",
+        "codex-planned/v1"
+      ]
+    },
+    "provider": {
+      "type": "string",
+      "const": "openai"
+    },
+    "model": {
+      "type": "string",
+      "const": "gpt-6-astra"
+    },
+    "reasoning_effort": {
+      "type": "string",
+      "const": "xhigh"
+    },
+    "timeout_s": {
+      "type": "number",
+      "minimum": 0.001,
+      "maximum": 900
+    },
+    "max_chunk_length": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 32
+    },
+    "image_max_edge": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 4096
+    },
+    "safety_stop": {
+      "type": "boolean"
+    },
+    "policy_stop_rule_version": {
+      "type": "string",
+      "const": "minimum-action-decisions/v2"
+    },
+    "min_action_decisions_before_give_up": {
+      "type": "integer",
+      "minimum": 0
+    }
+  },
+  "factory_parameters": [
+    "prompt",
+    "timeout_s",
+    "max_chunk_length",
+    "min_action_decisions_before_give_up",
+    "control_method",
+    "image_max_edge",
+    "safety_stop"
+  ]
+}

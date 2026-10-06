@@ -1,0 +1,170 @@
+{
+  "benchmark": "robodojo",
+  "latest_accepted_run": "2026-09-20-classify_objects-category-sorting-direct-v2-network-recovery-reference-layouts0-4-panel5",
+  "latest_completed_sample": "2026-10-05-classify_objects-object-sorting-layout0-planned-v1-once",
+  "runs": [
+    {
+      "accepted": true,
+      "episodes": 5,
+      "protocol": "robodojo-rgb-proprio28-eef16-dls-native1100-reference-panel5-v2-robot-feedback-v1",
+      "report": "reports/2026-09-20-classify_objects-category-sorting-direct-v2-network-recovery-reference-layouts0-4-panel5/result.json",
+      "run_id": "2026-09-20-classify_objects-category-sorting-direct-v2-network-recovery-reference-layouts0-4-panel5",
+      "success_rate": 0.6,
+      "successes": 3
+    },
+    {
+      "accepted": false,
+      "kind": "single_layout_development_sample_not_a_panel",
+      "publication_status": "published_single_layout_sample",
+      "run_id": "2026-10-04-classify_objects-object-sorting-layout0-post-convergence-once",
+      "report": "reports/2026-10-04-classify_objects-object-sorting-layout0-post-convergence-once/result.json",
+      "html_report": "reports/2026-10-04-classify_objects-object-sorting-layout0-post-convergence-once/index.html",
+      "status": "completed",
+      "protocol": "robodojo-direct-v2-rgb-proprio28-eef16-robot-feedback-v1",
+      "method": "codex-direct/v2",
+      "requested_model": "gpt-6-astra",
+      "requested_reasoning_effort": "xhigh",
+      "identity_evidence": "participant_declaration_not_provider_attestation",
+      "provider_requests": null,
+      "provider_internal_retries": null,
+      "task": "classify_objects",
+      "episode_id": "classify_objects/arx_x5/eval-seed0/layout0",
+      "native_seed": 0,
+      "layout": 0,
+      "client_seed": 20260907,
+      "planned": 1,
+      "attempted": 1,
+      "completed": 1,
+      "successes": 1,
+      "errors": 0,
+      "unattempted": 0,
+      "policy_calls": 154,
+      "action_decisions": 152,
+      "environment_steps": 758,
+      "rejected_actions": 2,
+      "termination_reason": "environment:terminated",
+      "native_success": true,
+      "native_metrics": {
+        "native_benchmark_score": 100.0,
+        "native_process_score": 100.0,
+        "control_targets": 758,
+        "native_horizon": 1100,
+        "physics_ticks": 7580,
+        "reset_physics_ticks": 842,
+        "first_native_success_control_target": 758
+      },
+      "budget": {
+        "max_steps": 1100,
+        "max_policy_calls": 1100,
+        "method_replan_interval": 5
+      },
+      "server_fast_layouts": 5,
+      "unattempted_server_layouts": [1, 2, 3, 4],
+      "panel_success_rate": null,
+      "native_full_evaluation": false,
+      "automatic_retry": false,
+      "source_commit": "1afb5d7ba9b2928de839f9112fb944dd83e7f6ff",
+      "official_native_pixel_parity_claimed": false,
+      "full_asset_closure": false,
+      "offline_original_material_files": 9,
+      "known_asset_limitation": "stand texture warning retained",
+      "final_export_and_cleanup_audit": "verified",
+      "media_status": "three_verified_original_videos_optional",
+      "videos": [
+        {
+          "camera": "cam_head",
+          "path": "../media/2026-10-04-service-validation/robodojo/2026-10-04-classify_objects-object-sorting-layout0-post-convergence-once/cam_head.mp4"
+        },
+        {
+          "camera": "cam_left_wrist",
+          "path": "../media/2026-10-04-service-validation/robodojo/2026-10-04-classify_objects-object-sorting-layout0-post-convergence-once/cam_left_wrist.mp4"
+        },
+        {
+          "camera": "cam_right_wrist",
+          "path": "../media/2026-10-04-service-validation/robodojo/2026-10-04-classify_objects-object-sorting-layout0-post-convergence-once/cam_right_wrist.mp4"
+        }
+      ]
+    },
+    {
+      "accepted": false,
+      "kind": "additional_single_layout_policy_experiment_not_a_panel",
+      "primary_seven_service_cohort": false,
+      "publication_status": "published_single_layout_sample",
+      "run_id": "2026-10-05-classify_objects-object-sorting-layout0-planned-v1-once",
+      "report": "reports/2026-10-05-classify_objects-object-sorting-layout0-planned-v1-once/result.json",
+      "html_report": "reports/2026-10-05-classify_objects-object-sorting-layout0-planned-v1-once/index.html",
+      "status": "completed",
+      "protocol": "robodojo-direct-v2-rgb-proprio28-eef16-robot-feedback-v1",
+      "method": "codex-planned/v1",
+      "requested_model": "gpt-6-astra",
+      "requested_reasoning_effort": "xhigh",
+      "identity_evidence": "participant_declaration_not_provider_attestation",
+      "provider_requests": null,
+      "provider_internal_retries": null,
+      "task": "classify_objects",
+      "episode_id": "classify_objects/arx_x5/eval-seed0/layout0",
+      "native_seed": 0,
+      "layout": 0,
+      "client_seed": 20260907,
+      "planned": 1,
+      "attempted": 1,
+      "completed": 1,
+      "successes": 0,
+      "errors": 0,
+      "unattempted": 0,
+      "policy_calls": 237,
+      "action_decisions": 236,
+      "environment_steps": 1053,
+      "rejected_actions": 0,
+      "termination_reason": "policy:safety_stop",
+      "remaining_controls_at_stop": 47,
+      "stop_rationale_authority": "model_authored_unverified",
+      "native_success": false,
+      "native_metrics": {
+        "native_benchmark_score": 40.0,
+        "native_process_score": 40.0,
+        "control_targets": 1053,
+        "native_horizon": 1100,
+        "physics_ticks": 10530,
+        "reset_physics_ticks": 842,
+        "first_native_success_control_target": null
+      },
+      "budget": {
+        "max_steps": 1100,
+        "max_policy_calls": 1100,
+        "method_replan_interval": 5
+      },
+      "server_fast_layouts": 5,
+      "unattempted_server_layouts": [1, 2, 3, 4],
+      "panel_success_rate": null,
+      "native_full_evaluation": false,
+      "automatic_retry": false,
+      "source_commit": "33b4edb5a81422fddea32d36bab1e197b8da2d39",
+      "comparison_scope": "single_case_multiple_method_changes_not_a_planning_ablation_or_overall_regression_claim",
+      "official_native_pixel_parity_claimed": false,
+      "full_asset_closure": false,
+      "known_asset_limitation": "stand texture warning retained",
+      "client_native_and_media_audit": "passed",
+      "final_export_and_cleanup_audit": "verified",
+      "retained_cleanup_warning": "nonterminal group_kill_failed; errno unknown",
+      "media_status": "three_verified_original_videos_optional",
+      "video_frames_each": 1054,
+      "video_fps": 25,
+      "videos": [
+        {
+          "camera": "cam_head",
+          "path": "../media/2026-10-04-service-validation/robodojo/2026-10-05-classify_objects-object-sorting-layout0-planned-v1-once/cam_head.mp4"
+        },
+        {
+          "camera": "cam_left_wrist",
+          "path": "../media/2026-10-04-service-validation/robodojo/2026-10-05-classify_objects-object-sorting-layout0-planned-v1-once/cam_left_wrist.mp4"
+        },
+        {
+          "camera": "cam_right_wrist",
+          "path": "../media/2026-10-04-service-validation/robodojo/2026-10-05-classify_objects-object-sorting-layout0-planned-v1-once/cam_right_wrist.mp4"
+        }
+      ]
+    }
+  ],
+  "schema_version": "starvla-rsi.result-index/v1"
+}

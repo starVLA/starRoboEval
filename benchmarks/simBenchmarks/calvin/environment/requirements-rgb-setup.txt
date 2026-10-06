@@ -1,0 +1,26 @@
+# Python 3.10: minimal native RGB setup/import track, not historical model parity.
+# calvin_env is imported from the separately pinned native source tree.
+# No Torch, learned policy, tactile renderer or IKFast compilation is required
+# for the verified debug configuration with the retained tactile-camera removal.
+antlr4-python3-runtime==4.9.3
+cloudpickle==3.1.2
+GitPython==3.1.45
+gitdb==4.0.12
+gym==0.26.2
+gym-notices==0.1.0
+hydra-core==1.3.2
+llvmlite==0.44.0
+markdown-it-py==4.2.0
+mdurl==0.1.2
+numba==0.61.2
+numpy==1.26.4
+numpy-quaternion==2024.0.13
+omegaconf==2.3.0
+opencv-python-headless==4.11.0.86
+packaging==26.2
+pybullet==3.2.7
+Pygments==2.21.0
+PyYAML==6.0.3
+rich==14.2.0
+scipy==1.15.3
+smmap==5.0.3

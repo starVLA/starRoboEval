@@ -1,0 +1,52 @@
+{
+  "schema_version": "starvla-rsi.sample-result-index/v1",
+  "benchmark": "libero",
+  "latest_completed_sample": "2026-10-04-libero_spatial-task0-black-bowl-on-plate-post-convergence-once",
+  "runs": [
+    {
+      "run_id": "2026-09-20-libero_spatial-task0-init0-black-bowl-on-plate-bench-server-native-v1-sample",
+      "report": "reports/2026-09-20-libero_spatial-task0-init0-black-bowl-on-plate-bench-server-native-v1-sample/result.json",
+      "kind": "single_fixed_sample_launch_error",
+      "attempted": 1,
+      "successes": 0,
+      "errors": 1,
+      "native_full_evaluation": false
+    },
+    {
+      "run_id": "2026-09-20-libero_spatial-task0-init0-black-bowl-on-plate-bench-server-native-v1-sample-launch-env-fixed",
+      "report": "reports/2026-09-20-libero_spatial-task0-init0-black-bowl-on-plate-bench-server-native-v1-sample-launch-env-fixed/result.json",
+      "kind": "single_fixed_native_sample",
+      "attempted": 1,
+      "successes": 0,
+      "errors": 0,
+      "native_full_evaluation": false
+    },
+    {
+      "run_id": "2026-10-04-libero_spatial-task0-black-bowl-on-plate-post-convergence-once",
+      "report": "reports/2026-10-04-libero_spatial-task0-black-bowl-on-plate-post-convergence-once-independent-audit/result.json",
+      "html_report": "reports/2026-10-04-libero_spatial-task0-black-bowl-on-plate-post-convergence-once-independent-audit/index.html",
+      "kind": "single_preselected_model_sample",
+      "status": "completed",
+      "protocol_version": "libero-task-coverage/libero_spatial/rgb/v1",
+      "method": "codex-native/v1",
+      "requested_model": "gpt-6-astra",
+      "identity_evidence": "participant_declaration_not_provider_attestation",
+      "provider_requests": null,
+      "seed": 20260907,
+      "planned": 1,
+      "attempted": 1,
+      "completed": 1,
+      "successes": 0,
+      "errors": 0,
+      "unattempted": 0,
+      "policy_calls": 54,
+      "action_decisions": 53,
+      "environment_steps": 215,
+      "rejected_actions": 0,
+      "termination_reason": "policy:give_up",
+      "budget": {"max_steps": 220, "max_policy_calls": 220, "method_replan_interval": 5},
+      "automatic_retry": false,
+      "native_full_evaluation": false
+    }
+  ]
+}

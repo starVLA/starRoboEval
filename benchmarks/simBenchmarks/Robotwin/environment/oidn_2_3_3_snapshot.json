@@ -1,0 +1,40 @@
+{
+  "schema": "robotwin-oidn-compatibility/v1",
+  "renderer_runtime": "oidn_2_3_3_cuda_v1",
+  "oidn_version": "2.3.3",
+  "base_runtime_snapshot_sha256": "b1b7ecba4723d9fecdcdf79e0323817ccd05cc58cb12cd7af56ad2e4fefd4d28",
+  "release_url": "https://github.com/RenderKit/oidn/releases/download/v2.3.3/oidn-2.3.3.x86_64.linux.tar.gz",
+  "release_size_bytes": 64809031,
+  "release_sha256": "3c385230d9e6f63527ba72f2229594dbac5051674219d72e0044b5d0b841796f",
+  "archive_prefix": "oidn-2.3.3.x86_64.linux/",
+  "license": "Apache-2.0 with retained bundled third-party notices; no binary redistribution in this repository",
+  "source_references": [
+    "https://github.com/RenderKit/oidn/releases/tag/v2.3.3",
+    "https://github.com/RenderKit/oidn/blob/v2.3.3/devices/cuda/cuda_device.cpp",
+    "https://github.com/RenderKit/oidn/blob/v2.3.3/include/OpenImageDenoise/oidn.h"
+  ],
+  "derived_loader": {
+    "path": "sapien/_oidn_tricks.py",
+    "size_bytes": 1038,
+    "sha256": "f33855ef1148432183323e86037ed58b638dc40721134a96065b3982bf7cb0b1"
+  },
+  "release_files": [
+    {"archive_path": "lib/libOpenImageDenoise.so.2.3.3", "path": "sapien/oidn_library/libOpenImageDenoise.so.2.3.3", "size_bytes": 115336, "sha256": "9ac9dcd18318cae879efb01c14cff72c2c4275428a15e5ab6e94c8ff8a43c4dc"},
+    {"archive_path": "lib/libOpenImageDenoise_core.so.2.3.3", "path": "sapien/oidn_library/libOpenImageDenoise_core.so.2.3.3", "size_bytes": 50631472, "sha256": "eadb2437d6ac4a88e5746980495ba1091f7d14745e3000b82a9382093d22f351"},
+    {"archive_path": "lib/libOpenImageDenoise_device_cuda.so.2.3.3", "path": "sapien/oidn_library/libOpenImageDenoise_device_cuda.so.2.3.3", "size_bytes": 4156088, "sha256": "12b3ff87cfa4b6a90481b757f5a56ee69380a45e3dcaeadf8dd22cb73d4f714a"},
+    {"archive_path": "doc/LICENSE.txt", "path": "sapien/oidn_library/doc/LICENSE.txt", "size_bytes": 11358, "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"},
+    {"archive_path": "doc/third-party-programs.txt", "path": "sapien/oidn_library/doc/third-party-programs.txt", "size_bytes": 34783, "sha256": "9480e41542b3dabe6a7df2ed4d55bfd5eb7f5d5cc66fdceb63965849233a42ef"},
+    {"archive_path": "doc/third-party-programs-DPCPP.txt", "path": "sapien/oidn_library/doc/third-party-programs-DPCPP.txt", "size_bytes": 6006, "sha256": "9063626e7d3dfff306d6033d84b51adadbe459c7482f0296e92f597190ad33ea"},
+    {"archive_path": "doc/third-party-programs-oneDNN.txt", "path": "sapien/oidn_library/doc/third-party-programs-oneDNN.txt", "size_bytes": 29825, "sha256": "9117585dfc6b5cd0fafc063312f28a86ec82eb97bf68316dcefcaaa7fc11428e"},
+    {"archive_path": "doc/third-party-programs-oneTBB.txt", "path": "sapien/oidn_library/doc/third-party-programs-oneTBB.txt", "size_bytes": 46979, "sha256": "b10997cc50652ba6ab365e3bc43e13057681cd4a56533b46171529bd249749f3"}
+  ],
+  "unchanged_sapien_distribution_files": [
+    {"path": "sapien.libs/libsapien.so", "size_bytes": 8841584, "sha256": "2941d67f23a0955d80f5808d47aa9b65d4a9d974626183c3c6b42d77794a099d"},
+    {"path": "sapien.libs/libsimsense-aecfe673.so", "size_bytes": 8798553, "sha256": "2c63e4851767d77cc459fdc26994bd96dcd33ac23f39144ba34b3ad5abac2f72"},
+    {"path": "sapien.libs/libsvulkan2.so", "size_bytes": 31999240, "sha256": "685c7e733b1385bf2c5385ddac0c1ff43b62692dd39bbefb0e14a9a0aec561dc"},
+    {"path": "sapien-3.0.0b1.dist-info/METADATA", "size_bytes": 10692, "sha256": "579f754c76fcb7a1e77af9c2c05cec6a986e5e8c48eacf85e7b07c208bfbd906"},
+    {"path": "sapien-3.0.0b1.dist-info/WHEEL", "size_bytes": 113, "sha256": "04352b3c522668c6e142dbe578916072b748c5c33b81b30a9ef71b0532e7d368"},
+    {"path": "sapien-3.0.0b1.dist-info/LICENSE", "size_bytes": 1069, "sha256": "a568e6bcdf7098e44bcade1a8975fc016a2a7f6900033cbd30c74bc84cc4923d"},
+    {"path": "sapien-3.0.0b1.dist-info/top_level.txt", "size_bytes": 7, "sha256": "1f7a567b497dc1eba2bc532174c2a4fab05d74f1a919057a4021797abae77abb"}
+  ]
+}

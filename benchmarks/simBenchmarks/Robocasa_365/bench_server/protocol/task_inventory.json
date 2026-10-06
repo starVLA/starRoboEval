@@ -1,0 +1,25 @@
+{
+  "robocasa_revision": "b4684e6ee37d377cc392e98302a6b916d588b415",
+  "inventory_method": "AST of robocasa/__init__.py imports, KitchenEnvMeta exclusions, and dataset_registry.py",
+  "task_classes": {"atomic": 65, "composite": 300, "total": 365},
+  "dataset_entries": {"atomic": 65, "composite": 252, "all_tasks_registry": 317},
+  "target50": {"atomic_seen": 18, "composite_seen": 16, "composite_unseen": 16},
+  "pilot": [
+    {"task": "OpenDrawer", "seed": 20260907, "attempts": 1, "split": "target", "native_horizon": 750},
+    {"task": "NavigateKitchen", "seed": 20260907, "attempts": 1, "split": "target", "native_horizon": 450}
+  ],
+  "composite_classes_without_dataset_or_horizon_metadata": [
+    "AddToSoupPot", "ArrangeCuttingFruits", "ArrangeSinkSanitization", "BeginSlowCooking",
+    "BlendSalsaMix", "BlendVegetableSauce", "BoilCorn", "BoilEggs", "BoilPot",
+    "CheeseMixing", "CleanBlenderJug", "ClusterItemsForClearing", "ClusterUtensilsInDrawer",
+    "CoolBakedCookies", "CountertopCleanup", "DistributeSteakOnPans", "DrawerUtensilSort",
+    "EmptyDishRack", "GarnishCake", "GatherProduceWashing", "MakeBananaMilkshake",
+    "MakeCheesecakeFilling", "MakeChocolateMilk", "OrganizeMeasuringCups", "PJSandwichPrep",
+    "PackSnack", "PlaceBreakfastItemsAway", "PlaceLidToBoil", "PrepareSandwichStation",
+    "PrepareVegetableRoasting", "PrepareVeggieDip", "PrepareVeggiesForSteaming",
+    "ReheatMeatOnStove", "RemoveSteamedVegetables", "RinseFragileItem", "SanitizeSink",
+    "SeparateRawIngredients", "ServeMealJuice", "SortBreakfastIngredients", "SteamFish",
+    "SteamVeggiesWithWater", "StopSlowCooking", "ToastHeatableIngredients", "ToastOneSlotPair",
+    "ToasterOvenBroilFish", "UtensilShuffle", "WashInSaucepan", "WipeTable"
+  ]
+}

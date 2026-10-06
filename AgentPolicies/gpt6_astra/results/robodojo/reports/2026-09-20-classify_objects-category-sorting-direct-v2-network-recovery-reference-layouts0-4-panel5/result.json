@@ -1,0 +1,195 @@
+{
+  "accepted": true,
+  "benchmark": "robodojo",
+  "caveats": [
+    "Policy failures remain in the planned denominator.",
+    "Infrastructure-error case counts may overlap primary policy-failure counts; neither is dropped.",
+    "Missing closed results do not establish whether a case was attempted or executed.",
+    "Completed-native SR excludes error/missing-result rows and is only a secondary statistic.",
+    "Reference values and plan timing are declarations; this reporter does not verify equivalent conditions or statistical equivalence."
+  ],
+  "created_at": "2026-09-19T18:07:51.036Z",
+  "episodes_file": "episodes.json",
+  "media_manifest_file": "media.json",
+  "model": {
+    "config_sha256": "429e81f18ce7fa0630af9e50b5fcb1640313f1ec5d57335658de2f5e6b695143",
+    "identity_evidence": "requested and app-server-reported; not independent provider attestation",
+    "method": "codex-direct/v2",
+    "model": "gpt-6-astra",
+    "policy": "gpt6-astra-direct",
+    "profile": "gpt6_astra",
+    "profile_sha256": "84a8e9a28f1963d19d8aba32d397b2dd542f4fbaeb1d5162f154843134f00cd1",
+    "provider": "openai"
+  },
+  "outcome": {
+    "completed": 5,
+    "infrastructure_errors": 0,
+    "native_failures": 2,
+    "planned": 5,
+    "policy_calls": 970,
+    "policy_failures": 0,
+    "recorded": 5,
+    "rejected_actions": 1,
+    "success_rate": 0.6,
+    "successes": 3,
+    "successful_over_planned": {
+      "episodes": 5,
+      "interpretation": "full_panel_success_rate",
+      "rate": 0.6,
+      "successes": 3
+    }
+  },
+  "protocol": {
+    "attempts_per_layout": 1,
+    "automatic_retry": false,
+    "benchmark_source_revision": "ee67a1468510da7624a089164402359f2afc72c8",
+    "benchmark_version": "ee67a146-native",
+    "control_method": "codex-direct/v2",
+    "image_max_edge": 480,
+    "native_control_limit": 1100,
+    "official_full_protocol": false,
+    "selected_layouts": [
+      0,
+      1,
+      2,
+      3,
+      4
+    ],
+    "version": "robodojo-rgb-proprio28-eef16-dls-native1100-reference-panel5-v2-robot-feedback-v1"
+  },
+  "reference": {
+    "declaration": {
+      "episodes": 5,
+      "successes": 5
+    },
+    "same_conditions_verified": false,
+    "statistical_equivalence_established": false,
+    "url": "https://github.com/anonymous-report-421/GPT-as-Policy/blob/8f3d362b077d8efb77e2a7274d5b2c20e2243846/public_results/evaluation_cases.json"
+  },
+  "run_id": "2026-09-20-classify_objects-category-sorting-direct-v2-network-recovery-reference-layouts0-4-panel5",
+  "schema_version": "starvla-rsi.result-publication/v1",
+  "source": {
+    "client_commit": "cb36d09af6d4509e29ea18d09f759cd8a4f3885b",
+    "raw_evidence": {
+      "client/episodes.jsonl": {
+        "bytes": 12533,
+        "sha256": "a07d074e5946791a3226a1722e9dcdcd3a74cfbb0af9b3a762c3c412d916a0e9"
+      },
+      "client/episodes/classify_objects_arx_x5_eval-seed0_layout0/artifacts/sim_server_receipt.json": {
+        "bytes": 460197,
+        "sha256": "820af8f85151da04edf2f8d47948c105e23de155ffcdbe255a103393a3210235"
+      },
+      "client/episodes/classify_objects_arx_x5_eval-seed0_layout1/artifacts/sim_server_receipt.json": {
+        "bytes": 526369,
+        "sha256": "47f9806d3467b9364391ecb21d95fed2f15d76f6df80c8e60f6cf7059c2e457d"
+      },
+      "client/episodes/classify_objects_arx_x5_eval-seed0_layout2/artifacts/sim_server_receipt.json": {
+        "bytes": 468259,
+        "sha256": "30b4c394929b4a6dcf468e1304ec1a052c0b09a728d1a6f3caf1f95d63d0f7e1"
+      },
+      "client/episodes/classify_objects_arx_x5_eval-seed0_layout3/artifacts/sim_server_receipt.json": {
+        "bytes": 603838,
+        "sha256": "8ccc71d447fadf298858b1db60947dd431052834d3368482f058602dff8826c3"
+      },
+      "client/episodes/classify_objects_arx_x5_eval-seed0_layout4/artifacts/sim_server_receipt.json": {
+        "bytes": 603832,
+        "sha256": "38106a9485420cbd1ab2c24272f7d76f6c34e78490cbba76b37e64e27059e413"
+      },
+      "client/manifest.json": {
+        "bytes": 17763,
+        "sha256": "8a9c7c86a8477a24a4b9127d266e09e2dd2a15814f5fc1546bf2a03ef5ac424d"
+      },
+      "client/panel_declaration.json": {
+        "bytes": 1506,
+        "sha256": "7f1864a3bc12c049c9906a114bef6fac860673b2bbd31213124ef7fb0750b444"
+      },
+      "client/panel_plan.json": {
+        "bytes": 922,
+        "sha256": "959bcacd932ef2349f904d150aa765a3f7d25cfa9789c9d8b81ef064831eeeb3"
+      },
+      "client/panel_report.json": {
+        "bytes": 21450,
+        "sha256": "19446f0330bf7b97b39b387504f04d2892c85a7e842a831470a1ff876e587d67"
+      },
+      "client/status.json": {
+        "bytes": 97,
+        "sha256": "6e830b96780e4bb6c5acc72b9a532cfd943079ce63ccd3ee6a1d7b63bc1ff935"
+      },
+      "client/summary.json": {
+        "bytes": 875,
+        "sha256": "5b3505713a33cb70e6fb0fc20fa539e244f8505d56736aa4cdabd3dc585d377c"
+      },
+      "server/episodes/2458d50e3d8b49adad913a44bc82e986/claim.json": {
+        "bytes": 117,
+        "sha256": "6af91a7db64dc84ac558cf3915c87cd45fb1515e4fc0a73874c4dfce71ffcdfd"
+      },
+      "server/episodes/2ff6e11efdf544a68c15d103a418ee15/claim.json": {
+        "bytes": 117,
+        "sha256": "c8007dd4b50cbd350c927401e03435e0bab1579faf341b41a0079abc16006c0f"
+      },
+      "server/episodes/6d459e7851ed4b068479e3ab15c7dd08/claim.json": {
+        "bytes": 117,
+        "sha256": "f361d830f8cf5fc7abd37db7f113ccd2501f5b6d11db1828606c06815e102c37"
+      },
+      "server/episodes/8e0fa9789faf45e8af35915f13b4c995/claim.json": {
+        "bytes": 117,
+        "sha256": "f07e50c2a1e4ea300c6b7396b8dc6680d0ed1f868667984fd98b791f99fc243d"
+      },
+      "server/episodes/ebe2625a04c64a4c9aadac2b6d6fbfaa/claim.json": {
+        "bytes": 117,
+        "sha256": "826ffb0283e784de7bce095d5cd7900f782f8bdf2854f9ad7a995ab8ab7d8679"
+      },
+      "server/service.json": {
+        "bytes": 8962,
+        "sha256": "db41414f666fc18294ea962bc8cf5d38313e0343f70bf316a6635d9af39c2ce7"
+      }
+    },
+    "raw_evidence_location": "local barks archive; not part of the public result",
+    "server_binding": {
+      "episodes": [
+        {
+          "case_id": "classify_objects/arx_x5/eval-seed0/layout0",
+          "claim": "server/episodes/2458d50e3d8b49adad913a44bc82e986/claim.json",
+          "receipt": "client/episodes/classify_objects_arx_x5_eval-seed0_layout0/artifacts/sim_server_receipt.json",
+          "session_id_sha256": "1ec858341ced5a404bbad4c64f51968e42bfaf9c4fe3bb804d20ca476ea4714c"
+        },
+        {
+          "case_id": "classify_objects/arx_x5/eval-seed0/layout1",
+          "claim": "server/episodes/8e0fa9789faf45e8af35915f13b4c995/claim.json",
+          "receipt": "client/episodes/classify_objects_arx_x5_eval-seed0_layout1/artifacts/sim_server_receipt.json",
+          "session_id_sha256": "b7a1dd056be038a90f3e10d9fc13def684b18ff45d7908467a14371a77bd5a43"
+        },
+        {
+          "case_id": "classify_objects/arx_x5/eval-seed0/layout2",
+          "claim": "server/episodes/ebe2625a04c64a4c9aadac2b6d6fbfaa/claim.json",
+          "receipt": "client/episodes/classify_objects_arx_x5_eval-seed0_layout2/artifacts/sim_server_receipt.json",
+          "session_id_sha256": "0666408b123fd5bac74dde7b93be6ed2975d425bc28a660ea8c11f549a86233f"
+        },
+        {
+          "case_id": "classify_objects/arx_x5/eval-seed0/layout3",
+          "claim": "server/episodes/2ff6e11efdf544a68c15d103a418ee15/claim.json",
+          "receipt": "client/episodes/classify_objects_arx_x5_eval-seed0_layout3/artifacts/sim_server_receipt.json",
+          "session_id_sha256": "de19cf6398c1989247594ba86b6cf56c75cb9e02d5dbf4de0f56d25d2070f75a"
+        },
+        {
+          "case_id": "classify_objects/arx_x5/eval-seed0/layout4",
+          "claim": "server/episodes/6d459e7851ed4b068479e3ab15c7dd08/claim.json",
+          "receipt": "client/episodes/classify_objects_arx_x5_eval-seed0_layout4/artifacts/sim_server_receipt.json",
+          "session_id_sha256": "a20677b9d303c6e78040c31e01f1c263562236e11a778ce461e8f1274302adbe"
+        }
+      ],
+      "server_id_sha256": "f92516c3aca5ec7cdf90ddaf3f98ef6635661fa1b14728b3bfdfbcdec8b6fd8a",
+      "status": "outcome_bound"
+    },
+    "server_commit": "e4709b25058906dfb6ff283cf4110b38ddeea93d",
+    "tree": "29c2f54d3ebef80f35770bd0d43f78de4092257c"
+  },
+  "usage": {
+    "cached_input_tokens": 118361856,
+    "calls": null,
+    "estimated_cost_usd": null,
+    "input_tokens": 120438394,
+    "latency_s": 23177.091216917237,
+    "output_tokens": 247125
+  }
+}

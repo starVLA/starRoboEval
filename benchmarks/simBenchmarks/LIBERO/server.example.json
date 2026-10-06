@@ -1,0 +1,10 @@
+{
+  "suite": "libero_10",
+  "scope": "task_coverage",
+  "task_ids": [0],
+  "proprioception": false,
+  "render_gpu_device_id": 0,
+  "budget_mode": "decisions",
+  "max_policy_calls": 200,
+  "replan_interval": 5
+}

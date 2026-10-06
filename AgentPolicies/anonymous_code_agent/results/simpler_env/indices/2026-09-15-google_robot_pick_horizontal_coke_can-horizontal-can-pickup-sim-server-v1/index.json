@@ -1,0 +1,290 @@
+{
+  "created_at": "2026-09-15T10:16:17.628020+00:00",
+  "limitations": [
+    "Index of the explicit closed source list, not full benchmark coverage or a merged model score.",
+    "Original manifests, results, source packages and paths remain unchanged.",
+    "Hashes cover the listed records and selected videos, not all source/assets/wire artifacts.",
+    "Native first success is read from existing step logs; incomplete evidence remains null.",
+    "Diagnostic runs retain native outcomes as infrastructure evidence, not model capability scores.",
+    "Model/provider identity, accounting and isolation are not retroactively verified."
+  ],
+  "model": null,
+  "namespace": "anonymous_code_agent",
+  "provider": null,
+  "runs": [
+    {
+      "action_spec": {
+        "control_hz": 3.0,
+        "frame": "ee_align (measured-pose delta)",
+        "gripper": "+1 close; -1 open; 0 hold (target delta)",
+        "high": [
+          1.0,
+          1.0,
+          1.0,
+          1.5707963267948966,
+          1.5707963267948966,
+          1.5707963267948966,
+          1.0
+        ],
+        "low": [
+          -1.0,
+          -1.0,
+          -1.0,
+          -1.5707963267948966,
+          -1.5707963267948966,
+          -1.5707963267948966,
+          -1.0
+        ],
+        "mode": "ee_delta_pose",
+        "names": [
+          "dx_m",
+          "dy_m",
+          "dz_m",
+          "rx_rad",
+          "ry_rad",
+          "rz_rad",
+          "gripper"
+        ],
+        "rotation": "axis-angle rotation vector, radians",
+        "size": 7
+      },
+      "benchmark": {
+        "name": "simpler_env",
+        "protocol_version": "simpler-prepackaged-development/rgb/decision-200-prefix-5/v1",
+        "source_revision": "c701ea271b16b80616d6fed9713c4a50a0adea3b:ef7a4d4fdf4b69f2c2154db5b15b9ac8dfe10682",
+        "version": "0.0.1"
+      },
+      "diagnostic": false,
+      "episodes": [
+        {
+          "action_decisions": 48,
+          "duration_s": 1755.7406908739358,
+          "environment_steps": 109,
+          "episode": {
+            "id": "google_robot_pick_horizontal_coke_can-000000",
+            "instruction": "Follow the current instruction in the camera observation.",
+            "metadata": {
+              "budget_mode": "decisions",
+              "environment_step_cap": 1000,
+              "evaluation_horizon": 1000,
+              "horizon_multiplier": null,
+              "max_policy_calls": 200,
+              "native_horizon": 80,
+              "native_horizon_source": "pinned_gym_registration",
+              "replan_interval": 5,
+              "selection": "prepackaged_seeded_reset"
+            },
+            "seed": 20260907,
+            "task": "google_robot_pick_horizontal_coke_can"
+          },
+          "error": null,
+          "metrics": {
+            "budget_mode": "decisions",
+            "consec_grasp": false,
+            "environment_step_cap": 1000,
+            "evaluation_horizon": 1000,
+            "grasped": false,
+            "horizon_multiplier": null,
+            "max_policy_calls": 200,
+            "n_lift_significant": 0,
+            "native_horizon": 80,
+            "native_horizon_source": "pinned_gym_registration",
+            "native_steps": 109,
+            "replan_interval": 5,
+            "success": false,
+            "success_at_evaluation_horizon": null,
+            "success_at_native_horizon": false,
+            "success_ever": false
+          },
+          "policy_calls": 49,
+          "progress": {
+            "complete_step_coverage": true,
+            "first_native_success_step": null,
+            "first_native_success_timestamp": null,
+            "native_success_field": "success",
+            "policy_call_at_first_native_success": null
+          },
+          "source_result": "/mnt/workspace/users/jinhuiye/Projects/starVLA-RSI/starVLA/anonymous_code_agent/results/simpler_env/raw/2026-09-15-google_robot_pick_horizontal_coke_can-horizontal-can-pickup-sim-server-v1/evaluator/google_robot_pick_horizontal_coke_can-horizontal-can-pickup-direct-control/episodes/google_robot_pick_horizontal_coke_can-000000/result.json",
+          "status": "completed",
+          "success": false,
+          "termination_reason": "policy:I could not establish a stable grasp after repeated visual approach and lift attempts. The can has moved near the table edge; I am stopping with the gripper withdrawn.",
+          "usage": {
+            "cached_input_tokens": null,
+            "calls": null,
+            "estimated_cost_usd": null,
+            "input_tokens": null,
+            "latency_s": 1646.9960447489284,
+            "output_tokens": null
+          }
+        }
+      ],
+      "harness_source": {
+        "file_count": 72,
+        "files_root": "harness_source/files",
+        "index_sha256": "2abb4fba510fce41e2595edb47a9393733374f927a61f4ef3e60ecb801ad4f76",
+        "inventory_sha256": "0cca33b672be2d1c459a1054df18b9c5dca08b3eda610a73fe36ad0fabe55995",
+        "limitations": "Not an external-policy, prompt, simulator, asset, dependency, or loaded-memory snapshot.",
+        "path": "harness_source/index.json",
+        "scope": "harness and explicit benchmark runtime source; repository-relative layout/v2",
+        "source_root": "/mnt/workspace/users/jinhuiye/Projects/rsi-sim-server-check.Wt9Ont/source-final",
+        "total_bytes": 729880
+      },
+      "model_profile": {
+        "config_sha256": "ed8cc0195c356e4d7b76f5713023cfd8a2d8bd7d71a01ffcd530078ba975f31f",
+        "dependencies_sha256": "6bcd7b1e466af925f48a675be813d59068781511a7dfcaf7078735fe44edc217",
+        "factory": "starVLA.anonymous_code_agent.policy:create_policy",
+        "id": "anonymous_code_agent",
+        "profile_sha256": "a3837d382bfc0a487fbf8d6152cd32d1b9e4bf38f38ec9ca64a3c1bf2f463e09",
+        "prompt_sha256": "f163e3dce972d84edfecf20ad858aaa8f25d758be7b36debdbd26e1b3ba62f44",
+        "schema_version": "starvla-rsi.model-profile/v1",
+        "source_inventory_sha256": "46b696e04c1da28654ecbc1761ab041f109e164bd45f779aba0bda751117f30a"
+      },
+      "model_source": {
+        "file_count": 14,
+        "index_sha256": "7cc9823963f1826b3532c0e9c8a643c513bd224814032d88649425232b62afeb",
+        "inventory_sha256": "0a2c1ee4b87d30971173a5795edc1734de22e48568fea7697c150d48516f3e61",
+        "path": "model_source/index.json",
+        "schema_version": "starvla-rsi.model-source/v2",
+        "total_bytes": 40847
+      },
+      "observation_spec": {
+        "cameras": [
+          "overhead_camera"
+        ],
+        "modalities": [
+          "language",
+          "rgb"
+        ],
+        "privileged": false,
+        "state_names": []
+      },
+      "policy": {
+        "kind": "external-code-agent",
+        "model": null,
+        "name": "code-agent-development",
+        "parameters": {
+          "absolute_paths_exported": false,
+          "directory": "/mnt/workspace/users/jinhuiye/policy-endpoints/mbx-ead63f154c6f2c5fba7eceb7b98e65ca",
+          "endpoint_blinding": "operator_must_supply_seed_independent_root_and_opaque_endpoint",
+          "evaluation_status": "experimental",
+          "history": "current_observation_only",
+          "max_chunk_length": 5,
+          "max_response_bytes": 65536,
+          "model_profile": {
+            "config_sha256": "ed8cc0195c356e4d7b76f5713023cfd8a2d8bd7d71a01ffcd530078ba975f31f",
+            "dependencies_sha256": "6bcd7b1e466af925f48a675be813d59068781511a7dfcaf7078735fe44edc217",
+            "factory": "starVLA.anonymous_code_agent.policy:create_policy",
+            "id": "anonymous_code_agent",
+            "profile_sha256": "a3837d382bfc0a487fbf8d6152cd32d1b9e4bf38f38ec9ca64a3c1bf2f463e09",
+            "prompt_sha256": "f163e3dce972d84edfecf20ad858aaa8f25d758be7b36debdbd26e1b3ba62f44",
+            "schema_version": "starvla-rsi.model-profile/v1",
+            "source_inventory_sha256": "46b696e04c1da28654ecbc1761ab041f109e164bd45f779aba0bda751117f30a"
+          },
+          "policy_stop_rule": {
+            "early_policy_stop_exception": "safety_stop_with_nonempty_note",
+            "min_action_decisions_before_give_up": 0,
+            "scope": "policy",
+            "stop_constraint_version": "minimum-action-decisions/v2"
+          },
+          "prompt_sha256": "57b566ed0ec8da2055633a71ce4b66f9010bcdc627f50e86fe93d179cd44ddce",
+          "provider_call_limit_verified": false,
+          "public_path_base": "mailbox_root",
+          "timeout_s": 900.0,
+          "usage_source": "client_reported_or_unavailable"
+        },
+        "provider": null,
+        "version": "starvla-rsi.mailbox/v3"
+      },
+      "protocol": {
+        "budget_mode": "decisions",
+        "episode_ids": [
+          "google_robot_pick_horizontal_coke_can-000000"
+        ],
+        "episode_limit": 1,
+        "execution_feedback_version": "starvla-rsi.execution-feedback/v1",
+        "fail_fast": false,
+        "max_policy_calls": 200,
+        "max_steps": 1000,
+        "primary_budget": "policy_decisions",
+        "replan_interval": 5,
+        "seed": 20260907
+      },
+      "run_id": "google_robot_pick_horizontal_coke_can-horizontal-can-pickup-direct-control",
+      "runtime": {
+        "executable": "/mnt/workspace/users/jinhuiye/Projects/rsi-direct-policy-check.0PcRrG/venv/bin/python",
+        "git": {
+          "dirty": null,
+          "evaluation_package_diff": {
+            "includes_untracked_files": false,
+            "reason": "git_checkout_unavailable",
+            "scope": "installed harness package",
+            "sha256": null,
+            "status": "unavailable"
+          },
+          "revision": null
+        },
+        "hostname": "nb-tspyxddl7i-0",
+        "platform": "Linux-5.10.0-1.oe.jd_702.x86_64-x86_64-with-glibc2.39",
+        "python": "3.10.21"
+      },
+      "source_files_sha256": {
+        "episodes.jsonl": "2c23eaa372dedbeb8f84f00ed841e18ac705d4a85f9415b6ebd7fbf53b1af667",
+        "episodes/google_robot_pick_horizontal_coke_can-000000/artifacts/sim_server_files/video.mp4": "fee3d0b9caf5ff36741e62ddea17242f151c7e1399dd46b6e425ea85daf6cda2",
+        "episodes/google_robot_pick_horizontal_coke_can-000000/events.jsonl": "43baae60eb2b29226eaad6d4b2d56fe314cba6510a2532addf8a22a556cdf333",
+        "episodes/google_robot_pick_horizontal_coke_can-000000/result.json": "1be0adbbb594b693584f932306b1161534688efba2200d1a285f27b241495ccc",
+        "manifest.json": "6ed64d95c0ad8cb5a4bd6300da30ac924ea2f71404f23788ecfec2b822d63be7",
+        "status.json": "3a19e0fdd3ed932a76571ac2ecb61ae6e012740c325ae7595f3d7960595bd9a6",
+        "summary.json": "94fce7651be9b4b258b36fd206f35e38446ae29911835a096af29185c6b12e6f"
+      },
+      "source_run": "/mnt/workspace/users/jinhuiye/Projects/starVLA-RSI/starVLA/anonymous_code_agent/results/simpler_env/raw/2026-09-15-google_robot_pick_horizontal_coke_can-horizontal-can-pickup-sim-server-v1/evaluator/google_robot_pick_horizontal_coke_can-horizontal-can-pickup-direct-control",
+      "status": "completed",
+      "summary": {
+        "attempt_success_rate": 0.0,
+        "attempted": 1,
+        "benchmark": "simpler_env",
+        "by_task": {
+          "google_robot_pick_horizontal_coke_can": {
+            "attempt_success_rate": 0.0,
+            "attempted": 1,
+            "completed": 1,
+            "errors": 0,
+            "policy_calls": 49,
+            "success_rate": 0.0,
+            "successes": 0
+          }
+        },
+        "completed": 1,
+        "completion_rate": 1.0,
+        "errors": 0,
+        "policy": "code-agent-development",
+        "policy_calls": 49,
+        "run_id": "google_robot_pick_horizontal_coke_can-horizontal-can-pickup-direct-control",
+        "schema_version": "starvla-rsi.eval/v1",
+        "success_rate": 0.0,
+        "successes": 0,
+        "usage": {
+          "cached_input_tokens": null,
+          "calls": null,
+          "estimated_cost_usd": null,
+          "input_tokens": null,
+          "latency_s": 1646.9960447489284,
+          "output_tokens": null
+        }
+      },
+      "videos": [
+        {
+          "archive_reasons": [],
+          "camera": "overhead_camera",
+          "diagnostic": false,
+          "episode_id": "google_robot_pick_horizontal_coke_can-000000",
+          "path": "media/simpler_env/2026-09-15-google_robot_pick_horizontal_coke_can-horizontal-can-pickup-google_robot_pick_horizontal_coke_can-horizontal-can-pickup-direct-control-3f2e7610a668-evaluator-120cf31f/overhead_camera-video.mp4",
+          "sha256": "fee3d0b9caf5ff36741e62ddea17242f151c7e1399dd46b6e425ea85daf6cda2",
+          "size_bytes": 314098,
+          "source": "/mnt/workspace/users/jinhuiye/Projects/starVLA-RSI/starVLA/anonymous_code_agent/results/simpler_env/raw/2026-09-15-google_robot_pick_horizontal_coke_can-horizontal-can-pickup-sim-server-v1/evaluator/google_robot_pick_horizontal_coke_can-horizontal-can-pickup-direct-control/episodes/google_robot_pick_horizontal_coke_can-000000/artifacts/sim_server_files/video.mp4",
+          "source_relative": "episodes/google_robot_pick_horizontal_coke_can-000000/artifacts/sim_server_files/video.mp4"
+        }
+      ]
+    }
+  ],
+  "schema_version": "starvla-rsi.result-index/v1"
+}

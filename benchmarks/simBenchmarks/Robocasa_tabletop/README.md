@@ -1,0 +1,129 @@
+# RoboCasa GR1 Tabletop
+
+## Directory responsibilities
+
+```text
+Robocasa_tabletop/
+├── server.py, server.example.json   # public launcher and operator configuration
+├── bench_server/
+│   ├── adapter.py                  # public observations/actions and native scorer
+│   └── protocol/
+│       ├── plan.py                 # predeclared fast selection
+│       ├── robocasa_tabletop_contract.json # pinned sensor/action/source contract
+│       └── POLICY_GUIDE.md           # public robot interface, not a model prompt
+├── environment/                    # native readiness, runtime pins and helpers
+└── checks/                         # dependency-light conformance regressions
+```
+
+Protocol catalogs are benchmark definitions, not datasets or deployment settings.
+Source/asset locations and GPU selection remain operator configuration.
+There is no root adapter alias or separate `evaluation/` package; current callers
+use `bench_server.adapter` and `bench_server.protocol.plan`. The public server
+module name is unchanged. This directory migration changes no native controls,
+observations, scoring, budgets, selected cases or historical evidence.
+Model behavior and results belong under `AgentPolicies/<agent>/`; shared
+communication belongs in `benchkit/sim_server/`. Structure and offline checks
+do not establish native service readiness or native-full evaluation support.
+
+The `robocasa_tabletop` adapter evaluates GR1 whole-upper-body manipulation using native [RoboCasa GR1 Tabletop](https://github.com/robocasa/robocasa-gr1-tabletop-tasks) tasks and success predicates. This is distinct from PandaOmron RoboCasa365.
+
+The official set contains 24 tasks. The implemented fast selections are two explicit pairs: indices 0/19 or 1/2. Other task identities and native-aligned full evaluation are not implemented. See [EVALUATION_PROTOCOL.md](EVALUATION_PROTOCOL.md) for task names, variants, sensors, physical joint actions and scoring.
+
+## Prepare and verify
+
+Follow [environment/README.md](environment/README.md) for source/runtime/asset requirements and a parameterized native diagnostic. Required source pins are:
+
+- RoboCasa GR1: `4840e671596f93ca03651524b9f72ffb1aadfeff`.
+- Robosuite: `51cc01785bab80ffeed20da15e67d7dd4140e76a`.
+
+Launch Python with `PYTHONHASHSEED=0` before process startup. The pinned contract includes the complete provisioned object inventory and compiled controller/encoder identities; arbitrary newer source or asset snapshots are not interchangeable. A portable all-assets bootstrap is not yet available.
+
+CPU checks do not launch a native simulator:
+
+```sh
+python -B -m unittest discover -s benchmarks/simBenchmarks/Robocasa_tabletop/checks -v
+```
+
+## Run as an independent SIM server
+
+[server.py](server.py) owns the native Tabletop adapter. The evaluator connects
+through the shared SIM client; the policy receives only the one allowed RGB
+view, native language and 29 measured encoders. No server handle, private
+metadata, scorer or diagnostic hold is a policy interface.
+
+Copy [server.example.json](server.example.json) to an operator-owned file and
+replace all three source/inventory placeholders and the GPU before launch.
+These paths must still satisfy the exact source/asset contract; the example
+does not provision or certify a fresh installation. It selects task 0
+`PnPCupToDrawerClose`, one seeded reset and the explicit `budget_mode: "horizon"`,
+`control_step_cap: 1000` development track. This server track limits total
+controls, not policy calls or controls per decision. The policy/method owns its
+chunk size and any replan/call limits. It is not native-full evaluation.
+
+Follow [SERVER_PROTOCOL.md](../SERVER_PROTOCOL.md) to set the same strong
+`RSI_SIM_SERVER_TOKEN` only in server/evaluator process environments and to
+forward loopback over SSH when using separate nodes. Start the server from a
+stable source snapshot using the pinned native **Python 3.10.21** environment:
+
+```sh
+PYTHONHASHSEED=0 python -B -m benchmarks.simBenchmarks.Robocasa_tabletop.server \
+  --parameters /absolute/path/to/tabletop-server.json \
+  --seed 20260907 --episodes 1 --port 8768 \
+  --output-dir AgentPolicies/anonymous_code_agent/results/robocasa_tabletop/raw/PnPCupToDrawerClose-cup-in-drawer/server
+```
+
+`PYTHONHASHSEED=0` must be present before the server interpreter starts; changing
+it inside Python cannot satisfy the native hash sentinel. The chosen GPU must
+be idle at reset. Do not stop another user's process to pass the GPU check.
+In a separate evaluator environment with NumPy and an unused opaque
+[mailbox actor endpoint](../../../AgentPolicies/anonymous_code_agent/README.md):
+
+```sh
+python -B -m benchkit run \
+  --benchmark robocasa_tabletop --sim-server http://127.0.0.1:8768 \
+  --model-profile anonymous_code_agent \
+  --policy-args '{"directory":"/absolute/opaque-mailbox","timeout_s":900,"max_chunk_length":5}' \
+  --seed 20260907 --episodes 1 --budget-mode horizon \
+  --max-policy-calls 200 --max-steps 1000 \
+  --output-dir AgentPolicies/anonymous_code_agent/results/robocasa_tabletop/raw/PnPCupToDrawerClose-cup-in-drawer/evaluator
+```
+
+In this example the mailbox method chooses its own five-action maximum and
+200-call allowance; neither is a server constraint. Omitting the generic
+runner's `--replan-interval` executes the submitted chunk until native end or
+the remaining total control limit. A method may instead declare its own prefix.
+The service accepts `control_step_cap` integers from 1 to 1000; a smaller cap
+has a distinct `control-N/v2` protocol identity. Do not mix that parameter with
+the legacy service-side `max_policy_calls` or `replan_interval` parameters.
+
+Do not pass `--benchmark-args` remotely; only the service constructs native
+environments. Use new output directories. Service launch/`describe` freezes
+the selection without resetting the SIM and is not native readiness evidence.
+Source, inventory, renderer, compiled controller and encoder checks remain in
+the adapter's one reset. Failure retains the attempt; no automatic retry or
+asset substitution is enabled. Keep original service/client records and videos
+under the model result namespace and verify source integrity before and after.
+The evaluator does not need the native Python version or renderer settings.
+Native-free service checks do not establish native service-mode validation,
+full 24-task support or object-library completeness. The frozen campaign path
+and legacy artifact auditors do not yet support remote service records.
+
+## In-process compatibility
+
+The adapter default and existing frozen campaigns retain the separately named
+`decisions` track, including its 200-call/prefix-5 defaults and D × K total cap.
+This legacy example is not the recommended independent-control server track.
+After provisioning compatible sources/assets and connecting a [mailbox actor](../../../AgentPolicies/anonymous_code_agent/README.md):
+
+```sh
+PYTHONHASHSEED=0 python -m benchkit run \
+  --benchmark robocasa_tabletop --model-profile anonymous_code_agent \
+  --benchmark-args '{"task_ids":[0],"casa_source":"/path/to/robocasa-gr1","suite_source":"/path/to/robosuite-gr1","object_inventory":"/path/to/object-inventory.json","render_gpu_device_id":0,"budget_mode":"decisions","max_policy_calls":200,"replan_interval":5}' \
+  --policy-args '{"directory":"/path/to/opaque-mailbox"}' \
+  --seed 20260907 --episodes 1 --budget-mode decisions \
+  --max-policy-calls 200 --replan-interval 5 --max-steps 1000
+```
+
+Explicit paths avoid the adapter's site-specific defaults; the files must still match the pinned manifest. Use `task_scope="tabletop-next-pair-v1"` with `task_ids=[1]` or `[2]` for the second pair. The [campaign plan](bench_server/protocol/plan.py) supports either pair and requires compatible deployment paths.
+
+Fast mode keeps one outcome for every preselected task, including failure and environment error, without automatic retry. Only the evaluator operates the simulator and reads native scoring state. Model behavior/results belong under [AgentPolicies](../../../AgentPolicies/README.md); anonymous transport is not proof of a named model/provider identity.

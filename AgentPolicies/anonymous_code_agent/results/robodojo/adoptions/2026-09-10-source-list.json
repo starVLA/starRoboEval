@@ -1,0 +1,94 @@
+[
+  {
+    "run_dir": "/mnt/workspace/users/jinhuiye/Projects/starVLA-RSI/runs/robodojo-user-reference-pilot-20260907-002/case-001/run",
+    "videos": [
+      {
+        "episode_id": "push_T/arx_x5/eval-seed0/layout0",
+        "artifact": "video_cam_head",
+        "camera": "cam_head",
+        "description": "push-the-t-shaped-block-to-align-it-precisely-with"
+      },
+      {
+        "episode_id": "push_T/arx_x5/eval-seed0/layout0",
+        "artifact": "video_cam_left_wrist",
+        "camera": "cam_left_wrist",
+        "description": "push-the-t-shaped-block-to-align-it-precisely-with"
+      },
+      {
+        "episode_id": "push_T/arx_x5/eval-seed0/layout0",
+        "artifact": "video_cam_right_wrist",
+        "camera": "cam_right_wrist",
+        "description": "push-the-t-shaped-block-to-align-it-precisely-with"
+      }
+    ]
+  },
+  {
+    "run_dir": "/mnt/workspace/users/jinhuiye/Projects/starVLA-RSI/runs/robodojo-user-reference-round2-20260907-001/case-000/run",
+    "videos": [
+      {
+        "episode_id": "stack_bowls/arx_x5/eval-seed0/layout0",
+        "artifact": "video_cam_head",
+        "camera": "cam_head",
+        "description": "stack-the-three-bowls-together"
+      },
+      {
+        "episode_id": "stack_bowls/arx_x5/eval-seed0/layout0",
+        "artifact": "video_cam_left_wrist",
+        "camera": "cam_left_wrist",
+        "description": "stack-the-three-bowls-together"
+      },
+      {
+        "episode_id": "stack_bowls/arx_x5/eval-seed0/layout0",
+        "artifact": "video_cam_right_wrist",
+        "camera": "cam_right_wrist",
+        "description": "stack-the-three-bowls-together"
+      }
+    ]
+  },
+  {
+    "run_dir": "/mnt/workspace/users/jinhuiye/Projects/starVLA-RSI/runs/robodojo-user-reference-round2-20260907-001/case-001/run",
+    "videos": [
+      {
+        "episode_id": "push_T/arx_x5/eval-seed0/layout0",
+        "artifact": "video_cam_head",
+        "camera": "cam_head",
+        "description": "push-the-t-shaped-block-to-align-it-precisely-with"
+      },
+      {
+        "episode_id": "push_T/arx_x5/eval-seed0/layout0",
+        "artifact": "video_cam_left_wrist",
+        "camera": "cam_left_wrist",
+        "description": "push-the-t-shaped-block-to-align-it-precisely-with"
+      },
+      {
+        "episode_id": "push_T/arx_x5/eval-seed0/layout0",
+        "artifact": "video_cam_right_wrist",
+        "camera": "cam_right_wrist",
+        "description": "push-the-t-shaped-block-to-align-it-precisely-with"
+      }
+    ]
+  },
+  {
+    "run_dir": "/mnt/workspace/users/jinhuiye/Projects/starVLA-RSI/runs/robodojo-next-pair-20260908-001/case-000/run",
+    "videos": [
+      {
+        "episode_id": "pack_objects_into_box/arx_x5/eval-seed0/layout0",
+        "artifact": "video_cam_head",
+        "camera": "cam_head",
+        "description": "place-all-the-objects-into-the-box-with-their-front"
+      },
+      {
+        "episode_id": "pack_objects_into_box/arx_x5/eval-seed0/layout0",
+        "artifact": "video_cam_left_wrist",
+        "camera": "cam_left_wrist",
+        "description": "place-all-the-objects-into-the-box-with-their-front"
+      },
+      {
+        "episode_id": "pack_objects_into_box/arx_x5/eval-seed0/layout0",
+        "artifact": "video_cam_right_wrist",
+        "camera": "cam_right_wrist",
+        "description": "place-all-the-objects-into-the-box-with-their-front"
+      }
+    ]
+  }
+]

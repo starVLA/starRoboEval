@@ -1,0 +1,1092 @@
+{
+  "schema_version": "starvla-rsi.robocasa-tabletop-contract/v1",
+  "derivation": "Compiled MuJoCo contract from tabletop-infra-20260907-02; zero policy calls, one infrastructure hold; no task/reset state in this packaged policy contract.",
+  "upstream_documented_task_count": 24,
+  "pilot_native_indices": [
+    0,
+    19
+  ],
+  "action": {
+    "bounds": "joint limits; hands intersect coupled joint and actuator position limits",
+    "control_hz": 20,
+    "generic_gym_bounds_are_not_authoritative": true,
+    "hand_mapping": "native Fourier format_action and compiled actuator order",
+    "mode": "absolute_joint_position",
+    "parts": [
+      {
+        "components": [
+          {
+            "high": 3,
+            "index": 0,
+            "joint_names": [
+              "robot0_l_shoulder_pitch"
+            ],
+            "low": -3
+          },
+          {
+            "high": 3,
+            "index": 1,
+            "joint_names": [
+              "robot0_l_shoulder_roll"
+            ],
+            "low": 0
+          },
+          {
+            "high": 3,
+            "index": 2,
+            "joint_names": [
+              "robot0_l_shoulder_yaw"
+            ],
+            "low": -3
+          },
+          {
+            "high": 0,
+            "index": 3,
+            "joint_names": [
+              "robot0_l_elbow_pitch"
+            ],
+            "low": -3
+          },
+          {
+            "high": 3,
+            "index": 4,
+            "joint_names": [
+              "robot0_l_wrist_yaw"
+            ],
+            "low": -3
+          },
+          {
+            "high": 1.5,
+            "index": 5,
+            "joint_names": [
+              "robot0_l_wrist_roll"
+            ],
+            "low": -1.5
+          },
+          {
+            "high": 1.5,
+            "index": 6,
+            "joint_names": [
+              "robot0_l_wrist_pitch"
+            ],
+            "low": -1.5
+          }
+        ],
+        "controller": "JointPositionController",
+        "name": "left_arm",
+        "native_part": "left",
+        "size": 7
+      },
+      {
+        "components": [
+          {
+            "high": 3,
+            "index": 0,
+            "joint_names": [
+              "robot0_r_shoulder_pitch"
+            ],
+            "low": -3
+          },
+          {
+            "high": 0,
+            "index": 1,
+            "joint_names": [
+              "robot0_r_shoulder_roll"
+            ],
+            "low": -3
+          },
+          {
+            "high": 3,
+            "index": 2,
+            "joint_names": [
+              "robot0_r_shoulder_yaw"
+            ],
+            "low": -3
+          },
+          {
+            "high": 0,
+            "index": 3,
+            "joint_names": [
+              "robot0_r_elbow_pitch"
+            ],
+            "low": -3
+          },
+          {
+            "high": 3,
+            "index": 4,
+            "joint_names": [
+              "robot0_r_wrist_yaw"
+            ],
+            "low": -3
+          },
+          {
+            "high": 1.5,
+            "index": 5,
+            "joint_names": [
+              "robot0_r_wrist_roll"
+            ],
+            "low": -1.5
+          },
+          {
+            "high": 1.5,
+            "index": 6,
+            "joint_names": [
+              "robot0_r_wrist_pitch"
+            ],
+            "low": -1.5
+          }
+        ],
+        "controller": "JointPositionController",
+        "name": "right_arm",
+        "native_part": "right",
+        "size": 7
+      },
+      {
+        "components": [
+          {
+            "actuator_names": [
+              "gripper0_left_L_pinky_intermediate_joint_drive",
+              "gripper0_left_L_pinky_proximal_joint_drive"
+            ],
+            "high": 1.57,
+            "index": 0,
+            "joint_names": [
+              "gripper0_left_L_pinky_intermediate_joint",
+              "gripper0_left_L_pinky_proximal_joint"
+            ],
+            "low": 0
+          },
+          {
+            "actuator_names": [
+              "gripper0_left_L_ring_intermediate_joint_drive",
+              "gripper0_left_L_ring_proximal_joint_drive"
+            ],
+            "high": 1.57,
+            "index": 1,
+            "joint_names": [
+              "gripper0_left_L_ring_intermediate_joint",
+              "gripper0_left_L_ring_proximal_joint"
+            ],
+            "low": 0
+          },
+          {
+            "actuator_names": [
+              "gripper0_left_L_middle_intermediate_joint_drive",
+              "gripper0_left_L_middle_proximal_joint_drive"
+            ],
+            "high": 1.57,
+            "index": 2,
+            "joint_names": [
+              "gripper0_left_L_middle_intermediate_joint",
+              "gripper0_left_L_middle_proximal_joint"
+            ],
+            "low": 0
+          },
+          {
+            "actuator_names": [
+              "gripper0_left_L_index_intermediate_joint_drive",
+              "gripper0_left_L_index_proximal_joint_drive"
+            ],
+            "high": 1.57,
+            "index": 3,
+            "joint_names": [
+              "gripper0_left_L_index_intermediate_joint",
+              "gripper0_left_L_index_proximal_joint"
+            ],
+            "low": 0
+          },
+          {
+            "actuator_names": [
+              "gripper0_left_L_thumb_distal_joint_drive",
+              "gripper0_left_L_thumb_proximal_pitch_joint_drive"
+            ],
+            "high": 1.22,
+            "index": 4,
+            "joint_names": [
+              "gripper0_left_L_thumb_distal_joint",
+              "gripper0_left_L_thumb_proximal_pitch_joint"
+            ],
+            "low": 0
+          },
+          {
+            "actuator_names": [
+              "gripper0_left_L_thumb_proximal_yaw_joint_drive"
+            ],
+            "high": 1.74,
+            "index": 5,
+            "joint_names": [
+              "gripper0_left_L_thumb_proximal_yaw_joint"
+            ],
+            "low": 0
+          }
+        ],
+        "controller": "SimpleGripController",
+        "name": "left_hand",
+        "native_part": "left_gripper",
+        "size": 6
+      },
+      {
+        "components": [
+          {
+            "actuator_names": [
+              "gripper0_right_R_pinky_intermediate_joint_drive",
+              "gripper0_right_R_pinky_proximal_joint_drive"
+            ],
+            "high": 1.57,
+            "index": 0,
+            "joint_names": [
+              "gripper0_right_R_pinky_intermediate_joint",
+              "gripper0_right_R_pinky_proximal_joint"
+            ],
+            "low": 0
+          },
+          {
+            "actuator_names": [
+              "gripper0_right_R_ring_intermediate_joint_drive",
+              "gripper0_right_R_ring_proximal_joint_drive"
+            ],
+            "high": 1.57,
+            "index": 1,
+            "joint_names": [
+              "gripper0_right_R_ring_intermediate_joint",
+              "gripper0_right_R_ring_proximal_joint"
+            ],
+            "low": 0
+          },
+          {
+            "actuator_names": [
+              "gripper0_right_R_middle_intermediate_joint_drive",
+              "gripper0_right_R_middle_proximal_joint_drive"
+            ],
+            "high": 1.57,
+            "index": 2,
+            "joint_names": [
+              "gripper0_right_R_middle_intermediate_joint",
+              "gripper0_right_R_middle_proximal_joint"
+            ],
+            "low": 0
+          },
+          {
+            "actuator_names": [
+              "gripper0_right_R_index_intermediate_joint_drive",
+              "gripper0_right_R_index_proximal_joint_drive"
+            ],
+            "high": 1.57,
+            "index": 3,
+            "joint_names": [
+              "gripper0_right_R_index_intermediate_joint",
+              "gripper0_right_R_index_proximal_joint"
+            ],
+            "low": 0
+          },
+          {
+            "actuator_names": [
+              "gripper0_right_R_thumb_distal_joint_drive",
+              "gripper0_right_R_thumb_proximal_pitch_joint_drive"
+            ],
+            "high": 1.22,
+            "index": 4,
+            "joint_names": [
+              "gripper0_right_R_thumb_distal_joint",
+              "gripper0_right_R_thumb_proximal_pitch_joint"
+            ],
+            "low": 0
+          },
+          {
+            "actuator_names": [
+              "gripper0_right_R_thumb_proximal_yaw_joint_drive"
+            ],
+            "high": 1.74,
+            "index": 5,
+            "joint_names": [
+              "gripper0_right_R_thumb_proximal_yaw_joint"
+            ],
+            "low": 0
+          }
+        ],
+        "controller": "SimpleGripController",
+        "name": "right_hand",
+        "native_part": "right_gripper",
+        "size": 6
+      },
+      {
+        "components": [
+          {
+            "high": 1.05,
+            "index": 0,
+            "joint_names": [
+              "robot0_torso_waist_yaw"
+            ],
+            "low": -1.05
+          },
+          {
+            "high": 1.22,
+            "index": 1,
+            "joint_names": [
+              "robot0_torso_waist_pitch"
+            ],
+            "low": -0.52
+          },
+          {
+            "high": 0.7,
+            "index": 2,
+            "joint_names": [
+              "robot0_torso_waist_roll"
+            ],
+            "low": -0.7
+          }
+        ],
+        "controller": "JointPositionController",
+        "name": "waist",
+        "native_part": "torso",
+        "size": 3
+      }
+    ],
+    "size": 29,
+    "units": "radians"
+  },
+  "state": {
+    "excluded": [
+      "object state",
+      "EEF pose",
+      "world root pose",
+      "native metadata",
+      "success"
+    ],
+    "parts": [
+      {
+        "joint_limits": [
+          [
+            -3,
+            3
+          ],
+          [
+            0,
+            3
+          ],
+          [
+            -3,
+            3
+          ],
+          [
+            -3,
+            0
+          ],
+          [
+            -3,
+            3
+          ],
+          [
+            -1.5,
+            1.5
+          ],
+          [
+            -1.5,
+            1.5
+          ]
+        ],
+        "joint_names": [
+          "robot0_l_shoulder_pitch",
+          "robot0_l_shoulder_roll",
+          "robot0_l_shoulder_yaw",
+          "robot0_l_elbow_pitch",
+          "robot0_l_wrist_yaw",
+          "robot0_l_wrist_roll",
+          "robot0_l_wrist_pitch"
+        ],
+        "name": "left_arm",
+        "native_key": "state.left_arm",
+        "size": 7
+      },
+      {
+        "joint_limits": [
+          [
+            -3,
+            3
+          ],
+          [
+            -3,
+            0
+          ],
+          [
+            -3,
+            3
+          ],
+          [
+            -3,
+            0
+          ],
+          [
+            -3,
+            3
+          ],
+          [
+            -1.5,
+            1.5
+          ],
+          [
+            -1.5,
+            1.5
+          ]
+        ],
+        "joint_names": [
+          "robot0_r_shoulder_pitch",
+          "robot0_r_shoulder_roll",
+          "robot0_r_shoulder_yaw",
+          "robot0_r_elbow_pitch",
+          "robot0_r_wrist_yaw",
+          "robot0_r_wrist_roll",
+          "robot0_r_wrist_pitch"
+        ],
+        "name": "right_arm",
+        "native_key": "state.right_arm",
+        "size": 7
+      },
+      {
+        "joint_limits": [
+          [
+            0,
+            1.74
+          ],
+          [
+            0,
+            1.74
+          ],
+          [
+            0,
+            1.74
+          ],
+          [
+            0,
+            1.74
+          ],
+          [
+            0,
+            1.22
+          ],
+          [
+            0,
+            1.74
+          ]
+        ],
+        "joint_names": [
+          "gripper0_left_L_pinky_intermediate_joint",
+          "gripper0_left_L_ring_intermediate_joint",
+          "gripper0_left_L_middle_intermediate_joint",
+          "gripper0_left_L_index_intermediate_joint",
+          "gripper0_left_L_thumb_proximal_pitch_joint",
+          "gripper0_left_L_thumb_proximal_yaw_joint"
+        ],
+        "name": "left_hand",
+        "native_key": "state.left_hand",
+        "size": 6
+      },
+      {
+        "joint_limits": [
+          [
+            0,
+            1.74
+          ],
+          [
+            0,
+            1.74
+          ],
+          [
+            0,
+            1.74
+          ],
+          [
+            0,
+            1.74
+          ],
+          [
+            0,
+            1.22
+          ],
+          [
+            0,
+            1.74
+          ]
+        ],
+        "joint_names": [
+          "gripper0_right_R_pinky_intermediate_joint",
+          "gripper0_right_R_ring_intermediate_joint",
+          "gripper0_right_R_middle_intermediate_joint",
+          "gripper0_right_R_index_intermediate_joint",
+          "gripper0_right_R_thumb_proximal_pitch_joint",
+          "gripper0_right_R_thumb_proximal_yaw_joint"
+        ],
+        "name": "right_hand",
+        "native_key": "state.right_hand",
+        "size": 6
+      },
+      {
+        "joint_limits": [
+          [
+            -1.05,
+            1.05
+          ],
+          [
+            -0.52,
+            1.22
+          ],
+          [
+            -0.7,
+            0.7
+          ]
+        ],
+        "joint_names": [
+          "robot0_torso_waist_yaw",
+          "robot0_torso_waist_pitch",
+          "robot0_torso_waist_roll"
+        ],
+        "name": "waist",
+        "native_key": "state.waist",
+        "size": 3
+      }
+    ],
+    "semantics": "native robot joint encoders; hands use native unformat then reverse ordering",
+    "size": 29,
+    "units": "radians"
+  },
+  "sources": {
+    "robocasa": {
+      "revision": "4840e671596f93ca03651524b9f72ffb1aadfeff",
+      "source_layout": "pinned sparse code checkout with explicit external assets overlay",
+      "files": {
+        ".gitattributes": "e4caf875c85ec9e0b1f5ec95f50612c9a304a9a18909df9030b1eb7e49df57fb",
+        ".gitignore": "e20f2e59ca19d1d1e7b3c1160965f2ca17f7482a72c96de01f244e4ad4bafee4",
+        "LICENSE": "a832faef6a872bf805dfea10e064610e244b84ec31036be7c04f00696072f823",
+        "README.md": "56b48f9e70369ab7c28e4786066d7b313d53ef71b2e19b4f70fcba3b173c0331",
+        "images/fig_task_v6.pdf": "15d02d0610cb71cd3fe50519bd9fada09ba8276a7b52d41e34abea30a8a4cd4e",
+        "images/fig_task_v6.png": "966b02ca751829951ce7d5587b3c4c78acffde3c9e290822f25f8d3bdad8f27e",
+        "requirements.txt": "0cac0e472eba3359aa79e9674ff11a5fd0484b9c465fc1cb774c30938edcc5d7",
+        "robocasa/__init__.py": "5730ee4161bcf6ca8e0339792c0e81af587a0735526206773c544d5c4cc47e6c",
+        "robocasa/environments/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "robocasa/environments/tabletop/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "robocasa/environments/tabletop/tabletop.py": "028e168561bb6a2b3b49c6c6fba12d33c009ef8e9c1dfd5eb64913866a9218c2",
+        "robocasa/environments/tabletop/tabletop_24dc.py": "fc50ff3b685d87bf62f073d7b4f64d47d7785b69f487099c2169572fafc3b3fc",
+        "robocasa/environments/tabletop/tabletop_5dc.py": "4651c7d3e9ebb9596a3c9ae38665c3dd9842548ecd28efec2bb870ca63a17562",
+        "robocasa/environments/tabletop/tabletop_cabinet_door.py": "d0987d1f7b2d802d58eaf3fc8f2e7f5d0f86090c3df7342b7922a39c6793ec79",
+        "robocasa/environments/tabletop/tabletop_cabinet_pnp.py": "13d8d429c9741ab3753cbfe5903502ae8511575ee1e62c04335de9de8f5737d4",
+        "robocasa/environments/tabletop/tabletop_drawer_door.py": "3e3f91cdaf39f8b883a9bfbce3950e96cfefd21406f2004d3322303578a56fc3",
+        "robocasa/environments/tabletop/tabletop_drawer_pnp.py": "55938759be490d9697d5b91fe6d6db445afd0ce1407433ee7fb42d10c42aef1d",
+        "robocasa/environments/tabletop/tabletop_laptop.py": "ed080fcc4ad980ebac7898257f374a97f098515f435124dca06dd76cb197239e",
+        "robocasa/environments/tabletop/tabletop_microwave.py": "1fcecc8c2b5b3d09740e9bd5c1c298c6aae4df9234b8ccd6f3f856aebb5309c4",
+        "robocasa/environments/tabletop/tabletop_microwave_door.py": "feca5dd658edc43a54f7e3a2d6f206b6dbfcf07536a5341f649b0ff6b7aadecf",
+        "robocasa/environments/tabletop/tabletop_microwave_pnp.py": "45be063c870f676a14a29fbb9f8138e0fd85acd6d4488a1c3db6a13e61f25abc",
+        "robocasa/environments/tabletop/tabletop_multi_pnp.py": "285dc750af0dfe73bdd8de381fe6ad06f283993885464e14f46cb85191d421ee",
+        "robocasa/environments/tabletop/tabletop_object_showcase.py": "ca096fdb58a502c8b4edf26ce3b93d535319f271cd73e019bf38a8d90c9fed0c",
+        "robocasa/environments/tabletop/tabletop_pnp.py": "fc818ebbbc03ffe012ac1e8ae0f00313ee4ee5ff8be53b9bc03b80fee38dcccc",
+        "robocasa/macros.py": "0fc3554f2e6e031e592e2d0352188154f19ecb3f0145309be96c4cf9cc0412af",
+        "robocasa/models/__init__.py": "85cc4f1811e8a6129106a306d8ae90db425a33bd2eb30a16e99a0cfdec8791d9",
+        "robocasa/models/fixtures/__init__.py": "ed9d7667d75e5d62a7d349d515c8351a7f42d012a75294c01ac1e96c7eadcac9",
+        "robocasa/models/fixtures/accessories.py": "44afaa7f156bcd6014b9ea72df11a954ce2bd4cc713329e2c20fccde6274e36a",
+        "robocasa/models/fixtures/cabinet_panels.py": "944bf15065819a1a15f0f4293eca6e050e33c899dfb46e62a657d4bce168798d",
+        "robocasa/models/fixtures/cabinets.py": "5ac82dc8b8dbcc0753011a72b55f29ee5598d2156055dd7eec2347ce51479f68",
+        "robocasa/models/fixtures/counter.py": "d4377c118d21a76b6ce7daaf355ae439df8308ee19433316d627bb12080277e5",
+        "robocasa/models/fixtures/fixture.py": "b147d0e74445c1a69dd64bed28feee92203c95310c11e2aa9c59ea31eb645164",
+        "robocasa/models/fixtures/fixture_stack.py": "6605dd7dfb83e4afc147ecf62e248594298b7e8eaa1fe4070ebc6cf77404705d",
+        "robocasa/models/fixtures/fixture_utils.py": "a0e916b8bbd35b1edd4e2842e19ee899cc44061ef423c9e80e968b408fb55a40",
+        "robocasa/models/fixtures/handles.py": "52b7bc0722382a8bfd3878d18da621322af1711d979cabef9956a2da18797229",
+        "robocasa/models/fixtures/microwave.py": "a657413b30034365faf63c4a177c1014b6fb19fcc341aa7381828efbe1bab992",
+        "robocasa/models/fixtures/others.py": "6de4a5e0bbe6519aab1e8017ee7067447945304124fdd3d8541defce18f13843",
+        "robocasa/models/objects/__init__.py": "f6f65efab8facccb3e093d755a5508d2902eca89d90b5a802f5d32aba7660bfa",
+        "robocasa/models/objects/composite/__init__.py": "73894d625f97cf7c166e8ede80bdfdca1673a3a95f75859d48703ee2fbac3b09",
+        "robocasa/models/objects/composite/bin.py": "8cd69b64ef4cce19d0840cdd9412d14dcd9231f53e32052f13a4580a4e3b0087",
+        "robocasa/models/objects/composite/box_pattern_object.py": "82c13ee5f922b39cfa59df9a72e5ccf6ac5538c9f3d5f0a6ed193a866609a59c",
+        "robocasa/models/objects/composite/lid.py": "56fe44445c23f81d104d8c2c97c2191b1d1a5a94df4aa5ebef244ef34e5ef6a7",
+        "robocasa/models/objects/composite/needle.py": "e97a901bd627589386fc0a4e740824e91b2237982c591806e30e0cd8ccbe660d",
+        "robocasa/models/objects/composite/pot_with_handles.py": "811a8270475c6a24f302a51e530e1e5e2f08b186466bfa570919090a0bef25ac",
+        "robocasa/models/objects/composite/ring_tripod.py": "357349d1f0fb1826152f11c0ada8b760e021e1a5a47ba2e2b4a4838d22d3d193",
+        "robocasa/models/objects/composite_body/__init__.py": "b01dcb559252bc03311bfea8799ad36ade5d8ecd7ba8c580a07e24f2645665d9",
+        "robocasa/models/objects/composite_body/bin_with_handles.py": "18c94a4cf127d030a436f99579ff78ba7f2372cd6c3e2cf505ef095ccbfad05a",
+        "robocasa/models/objects/composite_body/coffee_machine.py": "6c1ec9d45e94f7285f249e8fafadc8b1f4910010a004d9e0f869103319107c24",
+        "robocasa/models/objects/composite_body/cup.py": "388774a0956194a0fa1f8d8f6bc9c8df640b55391ffcb24d2f37c4655f33a0f4",
+        "robocasa/models/objects/composite_body/inverse_stacked_cylinder.py": "8893f9e7f8c0031bd231068b26805d794086738e440c5c841bb73abdeed470f5",
+        "robocasa/models/objects/composite_body/lightbulb.py": "f0889fa7e5dafb837dba1988105e1ac9ca46a4e8ee62994971e03295e20e03f3",
+        "robocasa/models/objects/composite_body/sliding_box.py": "c9e7c673a1071599df741a43af97268aa45254deafee5e3f3bc65f52820f4756",
+        "robocasa/models/objects/composite_body/socket.py": "6cd43a3b5f5a0626334279e0954f9d9d7d5d19b4d6f79115a6849eec32c3ed9f",
+        "robocasa/models/objects/composite_body/spray_bottle.py": "dce811cf1afea6cb1efd9ffbc89cbfb137f340b163005bfbcec21aa01ddf708d",
+        "robocasa/models/objects/composite_body/stacked_box.py": "fa15faf0b4d195e5be5236144868717a9c34a230cc0d777ec38dc96cbfe8d77c",
+        "robocasa/models/objects/composite_body/stacked_cylinder.py": "8f4223393f421bf0d43074364c23c714a1d4e049b2c572ad12873bcbb137a50e",
+        "robocasa/models/objects/composite_body/stove_plug.py": "16f06ced43a97b33af947c10c85d55a9986ec36a4a5365f7265c670c016e9924",
+        "robocasa/models/objects/kitchen_object_utils.py": "2f776c78f67c13d5a01a87dc51f83d8aab960556cc37a40e584abf8f6e60ee77",
+        "robocasa/models/objects/kitchen_objects.py": "094772d6432cf11036edab4212f3c2f4c6692e224d9e8a7b884ec58a2ba4e598",
+        "robocasa/models/objects/objects.py": "58d76c6711b4c62fe51f2b9f98ad81cf5d7ecf6184f3e9604f001533a007a133",
+        "robocasa/models/objects/xml_objects.py": "2712cefa54a2813e2fd018035b9a68d7ff32be7cc6d3e573f5bf344723893a2b",
+        "robocasa/models/robots/__init__.py": "5d6a03dbec5d6de10a6cf947ac0693e16d01c0c6507a77164eeb39712f1e0c60",
+        "robocasa/models/robots/manipulators/README.md": "442769f5d5ba8842ab04ae354761feb1d48a0c6c9774d8867632745b40196f06",
+        "robocasa/models/robots/manipulators/__init__.py": "da9dabdf430fc7da93a1812f04a2f7628815cefbd60cc70c3d8b27a905262649",
+        "robocasa/models/robots/manipulators/gr1_robot.py": "d4eb4272d532fc0e941dcef4939b13684cb56e047f66e26667bc5f92610f5e62",
+        "robocasa/models/scenes/__init__.py": "24b985ddfbb167472e5d8304f658ff3d691e302abdb3c917edc85f08538ce011",
+        "robocasa/models/scenes/scene_builder.py": "b4267cf50c003dffdcfd73318edac12f47a0b9e305f9872caf7cf8be2bb42270",
+        "robocasa/models/scenes/scene_registry.py": "e5bce7dcecfcc37e2e74b3c32457466d9da107a7ed831e47f3ed4c5fa495003b",
+        "robocasa/models/scenes/scene_utils.py": "877c4c72e79e16c1c289b25721a12b141928f6504b914c278714b5c7cc1a7066",
+        "robocasa/models/scenes/tabletop_arena.py": "416995afe7ab39b5b0ad927ff7563146891fd2a6cf81bb4ddddce6252bf6598d",
+        "robocasa/scripts/demo_task.py": "e7a005ab65102e009b3d02b6eef70417f1490c77adaea5b151ee1098ad129b76",
+        "robocasa/scripts/download_groot_assets.py": "7a1f9e8bb438ddaadb627909a26d46a556ce7d1493899e07d4a65e13db805703",
+        "robocasa/scripts/download_kitchen_assets.py": "f8a7bee82ce653130fae163113251940e9da6c36de6a93891483ab2b60c0bd1a",
+        "robocasa/scripts/download_tabletop_assets.py": "41bbed15c73a762553c72e6d60c66f5fd34b58dc66220e6a5bf7b037125610d3",
+        "robocasa/scripts/playback_dataset.py": "674c09b21ed75c9e3a2b6c7b62838e53ac9c908431036f4dd8b30bfee7b77e16",
+        "robocasa/utils/camera_utils.py": "3d54a21aa4743ebc12cb48fb89cd6ae29e1da674ded9074b3cbce3a60e0c0404",
+        "robocasa/utils/config_utils.py": "2088ee777257e598a5eb7336bf093b5521ac2d2aad3789eff52e55f9751d85d4",
+        "robocasa/utils/cotrain_utils.py": "8cbd5107125871ca37e69605ed8d7fa3ad6571feaff4db3492de7ec2c2e1e4fb",
+        "robocasa/utils/dexmg_utils.py": "61f52e26ee4bef2cc77a1a5d43f030c3936ed140903968d262df9584ede4271c",
+        "robocasa/utils/gym_utils/__init__.py": "ecca715bb483f890206d3b25579896fd358b886c141f2e1a8be61da376b2ae57",
+        "robocasa/utils/gym_utils/gymnasium_basic.py": "637707002866e3432555ab13db744970780be757c1f26f09454ad5899d2f0bea",
+        "robocasa/utils/gym_utils/gymnasium_gearbc.py": "56819a729056c014543603eec184eff8f63a4e0570078dd4c562ee7b06251f45",
+        "robocasa/utils/gym_utils/gymnasium_groot.py": "b5b0dedaf051dff21e85e72635150cc8e5c9fcd6c203d8260a1bc9f76a687e5f",
+        "robocasa/utils/object_utils.py": "e948f0659a136539f3237d03cc0c9b65586d79e03e6eb214a0d997de95df812a",
+        "robocasa/utils/placement_samplers.py": "ab782cf211e7d6dfc3795224628e1f554630b36ea879b3704890d3f28e7c43c4",
+        "robocasa/utils/texture_swap.py": "4282bef4d3c3fdae6019a6640e8b188fb8237e03de0f5202b691534788c4e7c0",
+        "setup.py": "3cd7ca69e33342c1e36f2fbcb6218cd756eafdf528738436548dc0ca2bd2b832"
+      }
+    },
+    "robosuite": {
+      "revision": "51cc01785bab80ffeed20da15e67d7dd4140e76a",
+      "source_layout": "full non-asset git archive, every file verified against pinned upstream git blob IDs",
+      "files": {
+        ".github/ISSUE_TEMPLATE/bug-report.yml": "d852be2e172b02d82a0a062aaf72d49bb96884efffe54463246f8d25208d1343",
+        ".github/ISSUE_TEMPLATE/feature-request.yml": "e34fabadfbbfb93e62a21edfdba9cf3d2191dfa898bc2d15a66f602761ce4d47",
+        ".github/PULL_REQUEST_TEMPLATE.md": "5cb35ee6750e4851e33c988ecb649872c020d85db4553e97e56edec97bf4cc7c",
+        ".github/workflows/pre-commit.yaml": "e08b50b51af0c257ecdcb9c7054ae3070fc670f6fa6a10a13a928684fcd7ac5a",
+        ".github/workflows/run-tests.yaml": "0e2c094f7c90c060109d8f007e9793b0177f4ec9d34d6f37aea494baa0b67b2a",
+        ".github/workflows/update-docs.yaml": "425bf92c37cdae9c5c7675b59716534a580baa354baf6c0e6c0096a51d72dfc7",
+        ".github/workflows/update-pypi.yaml": "37e286b2485f49bba42ffadadcb633f29ab4715758ac6742af3e09b060b0bcca",
+        ".gitignore": "237dd5037622cc430e9da8d874e5e388c8907af68b7e473046996824e04e7ce1",
+        ".pre-commit-config.yaml": "ec65719f403b3c231d1173bf9cce53b2cad8be118c5bcba329552e8aa5d878a5",
+        "AUTHORS": "f976ae6ad68fea99981c933bb63e4ac33cc5b49495c10c507aacd8a8bfbfacb1",
+        "CONTRIBUTING.md": "73b27cf99472e8b808484fcdaee59916bde7ecf9aefa0c8b00a0c499c9f58844",
+        "LICENSE": "177978cbece0a4c454c2aaec5b3f145b39270814874c43109da9e829c39d9cba",
+        "MANIFEST.in": "ade6aba00ffc091b8657c6be62bd9b193efe78933e2a341dc367d0fa7e86795a",
+        "README.md": "598d8346889d54454a89c164bdb2551aef416f806af3327e0e81e1168d00b767",
+        "docs/.gitignore": "fde6e46547307ef7e718427de6b7e3d65c6804d77a104f59bed39cec5b1b7c51",
+        "docs/Makefile": "92d4e6241a28d5e673ce27430b9cded254b5a0657ab1e7b5adbe5db796289891",
+        "docs/_static/css/theme.css": "73d65df06bf9d8a908576f037339133f7bb34601dc735923ff82f54ac83a9c3d",
+        "docs/_static/js/custom.js": "0685a99ec647eb2b866486ba2cb79e2a4029a42774d95628d09d757d78a64111",
+        "docs/_static/theme_overrides.css": "0eb68802fec8e0adf8b15ff15ac40c68c3b0adb9429c555dd30587c7df1fa994",
+        "docs/acknowledgement.md": "a72abb3acea344b8c231041f6bb9eae883445e71ebcf784539524decfa7959bf",
+        "docs/algorithms/benchmarking.md": "fc86c1cc54f533a92e2abffb2f6175f31825eee79157cafe4a92fb6b6cdfdb5f",
+        "docs/algorithms/demonstrations.md": "9c6cc0b6ff7cdea6379316532da20e588bc91229d4e743027d4670f70955b93c",
+        "docs/algorithms/sim2real.md": "37d912c82e0997dab263043d3737e7be652b005b0e94d3f3781e95b90f788a8f",
+        "docs/basicusage.md": "6dcf9c400968ff3d2ac0f470ccc655cca5dd297b4960302ecedad981b34c393e",
+        "docs/changelog.md": "451671d31d4d57f2a628ceb1e767375121ccc1f8c564b18988ba9701f01e1ec7",
+        "docs/conf.py": "476b0d29f516e22af44ae48b39b3a35c4e2af614b04e14fadbb1109645d6ccc1",
+        "docs/demos.md": "fb81c23e1542a945c073d6f99645180eb75f96c083070c3dfa8e3198583931a6",
+        "docs/images/benchmarking/benchmarking_results.png": "419acf2433b2d3418bb63d66365be7ab805d35d1213197d4ec8f5418573195dc",
+        "docs/images/controller_table.png": "48810d8d7a2d96eeee583e62962fd20c2b823b25952baaa67dc871825058503c",
+        "docs/images/domain_randomization.png": "7a14a9302f673581dbb249ad341baca05a0ac6681de1c8e7cb64a32bc2e65ea7",
+        "docs/images/env_door.png": "af68f1f58c006421bbf8a1745deab71c76fac9d5f49cd2539fccc9bc0721b433",
+        "docs/images/env_lift.png": "a0b435942a3d6ebcaee46adcc4ba0b2651c29b86c3f107ebec729e62cef4dc4e",
+        "docs/images/env_nut_assembly.png": "0dce5a22490d275567257dbd013c2be98b97b0de9b549057c3978c10ced05d52",
+        "docs/images/env_pick_place.png": "3a756c55ad21823c8e7af63fedb724c3549c6c6c517d4a8c5f5615144427dce1",
+        "docs/images/env_stack.png": "3ff6d6bf0c903bef7a39de529e922e80f4cb79a7230eb367c74f8da92cf51558",
+        "docs/images/env_two_arm_handover.png": "2b389c70c8e80afc252a8fa9584f0fa51107730e87efa01f5386d04c98fb8de3",
+        "docs/images/env_two_arm_lift.png": "7231702e3622b32dae0c5c9dd3b3cdeddd9b3b26f138a5399a542c578820c3f0",
+        "docs/images/env_two_arm_peg_in_hole.png": "13bd4515a168cc97b8ed5919b8be6035c11b0a2665760dfc1e4ad42b09f81153",
+        "docs/images/env_wipe.png": "251ab2a41f46b3f36e6fa86aeb78f06558c8a2b69904e0e86a47429c51602dc7",
+        "docs/images/figures.pptx": "a51c69f821842c81963df2ca0a4c491f6132c958d4cdb783262da7ed7e63c376",
+        "docs/images/gallery.png": "98a6c9dc7fdc994ae3497852d0efb21d26fc351a8a9d6fcae84c5f71f68f8da7",
+        "docs/images/gr1_cereal_mujoco.png": "9dea7b59e24aa781a2e1780da275af6234c4c7883381992d5bc8b7f86e0a24bb",
+        "docs/images/gr1_cereal_path_tracing.png": "4304d027bdc961fe43575d0f1bb6f2c9c8562f9bc80cca3668046e8d4b1fce2b",
+        "docs/images/gr1_cereal_ray_tracing.png": "c2f59429f6808cf4a1e625112def897a61d56b30bd2f88f13f61060694c45f73",
+        "docs/images/gripper_collection.png": "b66a34d85a9019c6b0d8418d49add7334d9339e7910748cb73024e19633776d5",
+        "docs/images/models/bd_gripper.png": "1ac1205a1f12dbef39863e57dfca2cf751c670b48b98dc1bdd9c7cca3040be2a",
+        "docs/images/models/inspire_hands.png": "f395cec1235409abd1cfbb5777004115117594f8c0fcc631dd9a2c00c95f7f66",
+        "docs/images/models/jaco_gripper.png": "7cd56d08bcd6429c92932caf72e9f9d1c787ca5745e05064a4ade10072750478",
+        "docs/images/models/omron_base.png": "7be74d692161a035b22c1e93370ea6ef8d721175f232a355fa03f843b8f6f0a1",
+        "docs/images/models/panda_gripper.png": "57089727eb4c6d3eade05ac2b12deaca258f2e83dcce3dbf336924b7afac6d03",
+        "docs/images/models/rethink_base.png": "43bab78f520009f77ea981e31c5acc634a6acbfbe402616be9f4a0f16cdaa9c1",
+        "docs/images/models/rethink_gripper.png": "72fc5c25cabbd92669738ed2e0276b00b1259f7f9e339d7465715000f32342bf",
+        "docs/images/models/rethink_minimal_base.png": "82b872ec55767dbd3ffe8bedd4d44f250c77f38f4167fc22384ce791de768e23",
+        "docs/images/models/robot_model_Baxter.png": "5eb583a4c5a4821f05e06b233bd4fa4e3706c5449171e499bf54da171796ded6",
+        "docs/images/models/robot_model_Baxter_isaac.png": "89ca3df798aa9ffc978b9f2fbd019afc0606b85e788e10ae4d101cf0687b38e5",
+        "docs/images/models/robot_model_GR1_isaac.png": "0617efd9efa13f0e7d812bc52b6c525a46ae61bd0fd8b6a9962f7cf8015b8741",
+        "docs/images/models/robot_model_IIWA.png": "55af0f6ad4a18e7b7a9e9be5f7e1fd62ea9c4f258e6db358c503c096ce3bfaff",
+        "docs/images/models/robot_model_IIWA_isaac.png": "bc9f73e9d2b8663f8dbefddeb5b65b6d5738f58c54b3768830e4f66bfccf8d04",
+        "docs/images/models/robot_model_Jaco.png": "7dd0ff4a6b49838e17dc173e5bbbd291af00d443d1a56655fb8327b36a3da8c5",
+        "docs/images/models/robot_model_Jaco_isaac.png": "200d25450668c444c6e04260c7da16742f658ca9f363ded95c40877efec56413",
+        "docs/images/models/robot_model_Kinova3.png": "03759e63392d0e41feb4cb06fffa324c571cd8c9be6b1be3c83ee5f7597611d2",
+        "docs/images/models/robot_model_Kinova3_isaac.png": "d5a7eec6766cfc3700da2d3af1d84edac52d66c0412892e95a5cd66f471e5772",
+        "docs/images/models/robot_model_Panda.png": "1a017329abc683eb8386971e77e1e498001abf458c575413872bb8652bf00fa5",
+        "docs/images/models/robot_model_Panda_isaac.png": "1c2ade5293f19b7bbc6517f8214e4d1c16e56f3198341ccf32b53782bfab4509",
+        "docs/images/models/robot_model_Sawyer.png": "8c37f1267b63b46a513be56504d3ba0cc3d744a67f30e9defb44690011388382",
+        "docs/images/models/robot_model_Sawyer_isaac.png": "1c6a7b089d092565da75eb63243498fefbc38840081990ca97daebd03e53be03",
+        "docs/images/models/robot_model_Spot_isaac.png": "204844eb3f8d2611b9a7182d21d88ce1700aa3039ac139fc39c9fa098d7089a6",
+        "docs/images/models/robot_model_Tiago_isaac.png": "f130284699676118c7fe54ac0301e77bc22ba28b57bdf95bbb2f9c2bf5814cec",
+        "docs/images/models/robot_model_UR5e.png": "6827261e05adda5ffdbb8e4803a648a1508ec5b2bbd61f93ae7da504b3d0b75e",
+        "docs/images/models/robot_model_UR5e_isaac.png": "df98467587e4c54d88c2c34e113c9979a9ce37b4dca88c591500472d364f316e",
+        "docs/images/models/robotiq140_gripper.png": "9874d743633154979312f56c6e752762e0603f1cfad6784880882ea1a4266add",
+        "docs/images/models/robotiq85_gripper.png": "0c356432d6e668da386f3fbc85a70fc2373fd2eab8c4cf3513a35e1d24ad717b",
+        "docs/images/models/robotiq_three_gripper.png": "dc2c67e316557d10d083cd3cd9d5c7ac9df2c6db4093bd5eb9da3715c78f1911",
+        "docs/images/models/spot_base.png": "beab85ccca0986e63127615d96015f3de7159baee74d7a8ca238eadab24e4542",
+        "docs/images/models/wiping_gripper.png": "49b975c57010b3377177830528c055d5072ffeb233dcfbb414c5e6b115b3b26d",
+        "docs/images/module_overview.png": "72d1748cf80907c953b1b75779094351f88eca2a679bd38d2992b0928554d44a",
+        "docs/images/renderers/renderers.png": "103a755d245e34cc63ad8b6ae7c0306bad03c9232f0fcb83a711fd2d147715e1",
+        "docs/images/renderers/vision_modalities_igibson.png": "9cacbb9751622d1e799640f4003779ad7027d4f1e7f2c2c34f3f12a22b65b72f",
+        "docs/images/renderers/vision_modalities_nvisii.png": "59c0dfa9f01c4074a5b4298a5ec47fb3091d2460039c67d521c2ecfda5223b82",
+        "docs/images/robot_module.png": "28ed87f46c3d04372751f6a87b7afee4e52b85aebc010596fd693b3fce1c237f",
+        "docs/images/robots_module_v15.png": "34c7c77c59c13579242969638ce79240dedd7a44ba0e88c0564c33d3bfd54189",
+        "docs/index.rst": "f7bef7bea84c0644555fdce25da20dc3b7ae5b745623de18bb8110abc2574b37",
+        "docs/installation.md": "a973c657d29512b3ab75df0e3a20c53ab882e916568c23ef18538243949e6033",
+        "docs/modeling/arena.rst": "a5da6770f5ea18d9c04d956a9544e6f254dd51962624836d8e345917554aa7eb",
+        "docs/modeling/mujoco_model.rst": "5c37270e08e0358abf9d994afd27daa28530e38789c0540b91ed14e81c2ff2e9",
+        "docs/modeling/object_model.rst": "51298c879d90b964779aad1580d98a4da01ab39a94fdb7770a136ee2025263e8",
+        "docs/modeling/robot_model.rst": "a6cdb740ebfa0849f3fe0ce61c7127314d6c2f3fc5e69aae8ae8faa9ff857d59",
+        "docs/modeling/task.rst": "5f0b75877047f121a2c8636284ee9f1feb7e7dcb5398f7bb192adad76a9fd3c7",
+        "docs/modules/controllers.rst": "843563fe23a8e65714dce61b850b3f1f38330216201fa4f83d153c73207b2314",
+        "docs/modules/devices.md": "1ac7409a7efaf5d4c1458685c8dc518adbf1b7d6b8a4ed765773906082fb2c76",
+        "docs/modules/environments.md": "3133dc0f034f631e39d12c98be0537f1b4ebc0f421eadb7b6883f7b94fa4103c",
+        "docs/modules/objects.md": "1ad1e228ae940376ef16213a0150daf82dc34eb4271dfe0e24592c1aeaba3358",
+        "docs/modules/overview.md": "fa8f3b28d000536becf5740603551b762c582bd33fb80a47d9a6ae57f14c7792",
+        "docs/modules/renderers.md": "b4428c3e3b0e80587e6fbe4dbf44195cbbe3ed76e9c584859131e79de677a2bd",
+        "docs/modules/robots.rst": "70a43192b8c94ce8f3890107dd2314a7f994a58ee9d590b86508ecef4a06aabd",
+        "docs/modules/sensors.md": "bb97c2777ee1d1aa5ef16ad11fd1cb0520832ed7a01e0d6601a749984ec43d7e",
+        "docs/overview.md": "8d698c452f2b5ea4aafb49d5e48a165045fe84807ac987116d0b4ba52fbc0621",
+        "docs/references.md": "46f71eb20a405b2bddd96cabae19a66c949cc9d75bb764b7de304dbddc286356",
+        "docs/robosuite_color.png": "cddd9d995a44347a9a993bfb3ae66e76cc12f490b67c250d10b5839b0e3a6dd5",
+        "docs/simulation/controller.rst": "c5fd748e04c925d0a31d8ca54a9e6b6fbd41368dcd0ea07c700c174dabc9ae2f",
+        "docs/simulation/device.rst": "afa24ad6fc89e8ba178cb7f323936bb1166e49d053a3b85f000fdfef00d792a2",
+        "docs/simulation/environment.rst": "023f29c6e5cce20d7854b7ca7ca3beb428076a6d751af5819352760fe5130136",
+        "docs/simulation/robot.rst": "4c2e61c390b76e29afb87cdb40d01d560efe0a7784c701b1e37ce23363d7b3a2",
+        "docs/source/robosuite.controllers.composite.rst": "6398a3fdc6931a86040a6b48252d3850626780dcb00a382aafc7b7663b56abb1",
+        "docs/source/robosuite.controllers.interpolators.rst": "65379cd39375427b7d6e302af22218995fbe2ff34c994429df8c3d11b111ab1c",
+        "docs/source/robosuite.controllers.parts.arm.rst": "f53996fa048c15bc2b86b701a06a5a5ecde6a02ae1b63f674a728b26e7af7e78",
+        "docs/source/robosuite.controllers.parts.generic.rst": "99653e45aa1565fe9e3f977e798caace48a875e832590cde27a9ab3888615324",
+        "docs/source/robosuite.controllers.parts.gripper.rst": "ab3ca357f4a94333373a4d5ff1d1c9bf905958377bdf975d37e8b18edb38b51b",
+        "docs/source/robosuite.controllers.parts.mobile_base.rst": "b5f567606822333a3e5680243c7e58d0eda3907477ea5ffab5a713ccf0828667",
+        "docs/source/robosuite.controllers.parts.rst": "50c428ec62ef6fc52d60f3f34372f554b39af3e5efc2eb53e5a83be9d4458998",
+        "docs/source/robosuite.controllers.rst": "955374b3a87d311d56e6ad37b01c31914b125639e8ab25f638422d30c7dc1a08",
+        "docs/source/robosuite.devices.rst": "5ccce6b54eec9da12c8a8cf058c2c569a1fea2834a31b3e45a6b637a3a2ddb61",
+        "docs/source/robosuite.environments.manipulation.rst": "0c6962288f2d317d454dda6208a56dda8a6776e93c04d5005f28d89969bd92c7",
+        "docs/source/robosuite.environments.rst": "dfe74063b6991e2d7bfd329dd7cdfba075cf69eacf4d50b308ba047051473cbe",
+        "docs/source/robosuite.models.arenas.rst": "423d2b70590b0c35fd60ba448bf27a1563766244e06ac5c18b1b658efb7fa22f",
+        "docs/source/robosuite.models.bases.rst": "479ce82774b5352108af369d2b170a26b9ebef6e8f309d27679ad1035cdd86ac",
+        "docs/source/robosuite.models.grippers.rst": "41feaed1545cbfe56ac9bc474645ccf7967827232999d75c7709a6cca6bb88dc",
+        "docs/source/robosuite.models.mounts.rst": "5d8bc581eefe8b583422307535a69be0d7ef04a57d4f6c8817a5c559d56adb18",
+        "docs/source/robosuite.models.objects.composite.rst": "90779d49b68566ce60b99d771914f2dc4fdb1f50b9bc4b7ddcd83c7fb1ae16ae",
+        "docs/source/robosuite.models.objects.composite_body.rst": "47e4983baf61a6f1d104c851cd4918d60a73d18e1f299fe84f0c527bf533e9e9",
+        "docs/source/robosuite.models.objects.group.rst": "a29002605e02accbe8e7e68248fadfcfa6b1e436ba5f30b54d53aff6986505cf",
+        "docs/source/robosuite.models.objects.primitive.rst": "8ce536b3287698829f0650e79a9a1ffc4c975424c4f1d14cc5adb40ce707b338",
+        "docs/source/robosuite.models.objects.rst": "bb16b7be461aada7d2a936a84591584af76c56d23816da1c0d671c58e6f6ae63",
+        "docs/source/robosuite.models.robots.manipulators.rst": "13426603aad6f64ada399935c31b85112cae7fb02b7651aa4de55094ccef357b",
+        "docs/source/robosuite.models.robots.rst": "176ba94a4ebdaaefde375560db12617f3911776ab2368aaa9046bfdb5115d7ba",
+        "docs/source/robosuite.models.rst": "715fdb79746aa42c81af1b0e76e2366ab9c38e375a85a19894319a5217e52d99",
+        "docs/source/robosuite.models.tasks.rst": "8376440a3ce37ef3404db97c2117b6e2e57c59e64daa7c82cc5d27625eccdc0c",
+        "docs/source/robosuite.renderers.context.rst": "a5bfff6ae148ef88af09eba7ead7053d7251517db9bd0b6459a9911df43756ca",
+        "docs/source/robosuite.renderers.mjviewer.rst": "d1a34851271e081f0d147d705a3692bf269c58bcededf63d3d59f2f3def92047",
+        "docs/source/robosuite.renderers.mujoco.rst": "97df22dab1ee4082ec06d059643840fc6cf6c33cea38f6356f71e56e9aeca27a",
+        "docs/source/robosuite.renderers.rst": "c27e89f8dec5be658e91e511546e426c27376489d1a7f79ea6a23ffba627c2cb",
+        "docs/source/robosuite.robots.rst": "b4ebeb7f621790a742825accddb4f96bf69d65fb39977bd2b51c0495e16a74a0",
+        "docs/source/robosuite.rst": "e910b26a94cb7c144ba02b5ff315b1142bde188f67bcbb1bc35fe694feb26974",
+        "docs/source/robosuite.utils.rst": "7bdcb02541a340f2c1b5f29a6a87494922a0e32358d371e5b6c0dfc886d188b4",
+        "docs/source/robosuite.wrappers.rst": "60cd3f02851ece763030bcf9ae8ffa766b54cff92a664437ef25cf745c97a6a5",
+        "docs/tutorials/add_controller.md": "8433690c94980ba84097422e7fd62c418ea8d6ac43ba91fbb59cef0c9c912519",
+        "docs/tutorials/add_environment.md": "98577245511ed30a3ec65510d2a1f9e8d058783e7c8aa472e8816d88fdb62eb7",
+        "pyproject.toml": "18f793488e126b1332e81bb13e46ca4934179f262799f6b91d84e96dca48a450",
+        "requirements-extra.txt": "8a0930d34ec1345611d45de37a160896314285610881cfda54d850bae9ba7ea5",
+        "requirements.txt": "0cac0e472eba3359aa79e9674ff11a5fd0484b9c465fc1cb774c30938edcc5d7",
+        "robosuite/__init__.py": "2b5f31317604f60b731695dc9ce5307e635c5170c5e4bd1ef55377e63196f27d",
+        "robosuite/controllers/__init__.py": "ff4bd26d31ae5b28fb96d60877ca6aa52be9f6e37e790689df9af60cb9efab61",
+        "robosuite/controllers/composite/__init__.py": "d46ba2fe57fb9417315001d32c9f5411a3208eecc192fdbb92646cff1e31ef34",
+        "robosuite/controllers/composite/composite_controller.py": "335147a75b4a7fca6b79456037723bfab953536a9fef60086532af20f6ce695e",
+        "robosuite/controllers/composite/composite_controller_factory.py": "eadacb99410312f084dad5c248eff0dfba4070b5b2c0ce2ade86ab14f23bbcfc",
+        "robosuite/controllers/config/default/composite/basic.json": "438aad2c74f4b6d6888b1f521ff452f553ee925ba35be8f395635cd14c2b16a4",
+        "robosuite/controllers/config/default/composite/hybrid_mobile_base.json": "4fc1d4a0c1eee21e712e0a4cfb980663296a0dd080682b9a69d3a4008013e3e7",
+        "robosuite/controllers/config/default/composite/whole_body_ik.json": "eae7fe4526dfa41697c8457f49468481113ff17d18e12d3503347b436e66622e",
+        "robosuite/controllers/config/default/composite/whole_body_mink_ik.json": "d037fa8e0ced6d031ba7b3695fba9eb4dd7f46e8f9a0bb0b3ef11baba0f1c12d",
+        "robosuite/controllers/config/default/parts/ik_pose.json": "ddfa6cca0851236c473f0124b4fea37623883ecbf2db8d6ac862bde0a29495dd",
+        "robosuite/controllers/config/default/parts/joint_position.json": "a16a5b02dd14b2032ff56534e8e834fcdc84641e524f66ea228e49c1b53b8d35",
+        "robosuite/controllers/config/default/parts/joint_torque.json": "e6858aee9055f39f2ef3ffe92d6f5a726d821a9e38b7ed7e91f8946a7888df3d",
+        "robosuite/controllers/config/default/parts/joint_velocity.json": "db2684e109ed323036e394392ddcfed4cd9a9d0d21351a939d2ab1a58838e2b5",
+        "robosuite/controllers/config/default/parts/osc_pose.json": "42ebbfee36cdd287b73da31eb251acce5c91718819feb48c5b978f7a5e8d4b9d",
+        "robosuite/controllers/config/default/parts/osc_position.json": "4c52982e8d5db51a75ca32e77f88b4fa0cdbeaedb3df79a25a098fc0440dc931",
+        "robosuite/controllers/config/robots/default_baxter.json": "245ead39e7ae8449a9406fe69c6354857f1d5ac7a0d029e1df6c9d3b08fbec8f",
+        "robosuite/controllers/config/robots/default_gr1.json": "8fc42fda888bf6d2d0dd23b9443c822d9e20b51082234ea187f760abffa1e840",
+        "robosuite/controllers/config/robots/default_gr1_fixed_lower_body.json": "5a87fe73439b27b4d303f1ba4ee143547df8744010cdde3beaf9ba57bf99715f",
+        "robosuite/controllers/config/robots/default_gr1_floating_body.json": "f9ff577801497bda55dc7c33d06c690e1820411ab979a08e00a164f76afe1077",
+        "robosuite/controllers/config/robots/default_iiwa.json": "796e66a9318b199676fd1602c5ecfa4372c296c5898776cabf3f9f50c53d48d8",
+        "robosuite/controllers/config/robots/default_kinova3.json": "796e66a9318b199676fd1602c5ecfa4372c296c5898776cabf3f9f50c53d48d8",
+        "robosuite/controllers/config/robots/default_panda.json": "796e66a9318b199676fd1602c5ecfa4372c296c5898776cabf3f9f50c53d48d8",
+        "robosuite/controllers/config/robots/default_panda_dex.json": "eebae40f0ee28397710639357c442ecb784eb7ce89a6aebea43c32a590a4e04c",
+        "robosuite/controllers/config/robots/default_pandaomron.json": "4f91b12b904e8907005393e45dbb5576af470f7f3d16da017de3826fa22e8dcb",
+        "robosuite/controllers/config/robots/default_sawyer.json": "796e66a9318b199676fd1602c5ecfa4372c296c5898776cabf3f9f50c53d48d8",
+        "robosuite/controllers/config/robots/default_spotwitharm.json": "3d9cfd3c514d2ee5666ab8d1023b821338c97204d132df542d267275711bb34f",
+        "robosuite/controllers/config/robots/default_tiago.json": "430a7339fa7c413d1655202a2d7ce2cf2bbf9a7720967ace6d2f4459e550b318",
+        "robosuite/controllers/config/robots/default_tiago_whole_body_ik.json": "358ddf2dcb6b640710ea43be1ee10b27c3e4e8fbf38f6e84727aaaaec5e5fe63",
+        "robosuite/controllers/config/robots/default_ur5e.json": "796e66a9318b199676fd1602c5ecfa4372c296c5898776cabf3f9f50c53d48d8",
+        "robosuite/controllers/parts/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "robosuite/controllers/parts/arm/__init__.py": "c74cb69ff0173b646ff5025e08e10386340dc491dafa2bacecd7ce2d0ec047a8",
+        "robosuite/controllers/parts/arm/ik.py": "700f8ac41541cd30e35f4507176054cbfc96f2063068920870759dac53db0936",
+        "robosuite/controllers/parts/arm/osc.py": "bcc238dbe7a95fe64f48469ef4d6a4f3ed3869992c8805452e0c881ae457873b",
+        "robosuite/controllers/parts/controller.py": "dabc92411886895be495ca920459c00433f17be7240510872a6fd5c005545e20",
+        "robosuite/controllers/parts/controller_factory.py": "db74f3a52666d5755bfb12c63e8c84abfc0dce8f3e70d23b17c87a53ee4a4fdd",
+        "robosuite/controllers/parts/generic/__init__.py": "0eab222c32b32a38198a297fbb035d4261f10ccb41766ad355f8810f7b982b5b",
+        "robosuite/controllers/parts/generic/joint_pos.py": "7c56c31fd426fe496f7adf3ed5bc22667ec6c5f7fe910d7d561b8e27cc0a1484",
+        "robosuite/controllers/parts/generic/joint_tor.py": "d5ccc084cf938ee26ff1fc4389f38d62f1d059ad0a95064f2bf749ed01f8f27c",
+        "robosuite/controllers/parts/generic/joint_vel.py": "c6b1bf3c6c18245ef03934e8ebc5c634fcd0f37f233070dcab28739f6c3db76e",
+        "robosuite/controllers/parts/gripper/__init__.py": "f98ad958b344fae5b3676fd051e32e4e41465aff5334d8affaa1e7d947cde877",
+        "robosuite/controllers/parts/gripper/gripper_controller.py": "8cd31a8683f9e6da11623f0aa83eab8a3678c165d4f1b86a1b47f17e9798f460",
+        "robosuite/controllers/parts/gripper/simple_grip.py": "2207911877d3416ae7dd247c948eeae9c684c511e92cb9dc5410668b40a90c4c",
+        "robosuite/controllers/parts/mobile_base/__init__.py": "ee437a0ef26c536d6f1b2e5bd78f242a8452804e419a04b11e399cb568258853",
+        "robosuite/controllers/parts/mobile_base/joint_vel.py": "bd99413dee93b9a510e2ec68f72900ddbf6382d228af767fc9fb8acb4afb876d",
+        "robosuite/controllers/parts/mobile_base/mobile_base_controller.py": "755c201ae0dbbb0a5008858558d73ed902f27684488755e7e1d8e0cb317a0d89",
+        "robosuite/demos/demo_collect_and_playback_data.py": "6661bb80943eab70af753bab1bda2ace2be57679a21b2f4d26c1700e5fc9fe82",
+        "robosuite/demos/demo_composite_robot.py": "15b959be2ceb693ad69b3076c3ccfd59981423b62f86ed45f770035b87296ac5",
+        "robosuite/demos/demo_control.py": "c09ee40659987d0c0d7cefa8e291bb0f921a676187884aa63a8950849dd6e822",
+        "robosuite/demos/demo_device_control.py": "9085aa5dcc0119a13b8b1f4c49632a14201519d669cdeed3231656519b68e4cc",
+        "robosuite/demos/demo_domain_randomization.py": "56449c7560f2e7260877c956ce074f4b0fd4b804c300bbbd1da75487ef358bc7",
+        "robosuite/demos/demo_gripper_interaction.py": "5c8005d1c24d1c09219147c95da4af9d3c15163eb21c80af65f0365ca54b909e",
+        "robosuite/demos/demo_gripper_selection.py": "acb722b947a495256304e683de2cca8dbb56bf27a377a8b216fd99080a1edd34",
+        "robosuite/demos/demo_gym_functionality.py": "150c7e7217be2ec220430a5b091da37ed4f2280e2fc8611e37a44b7287e15bcf",
+        "robosuite/demos/demo_random_action.py": "b3b6c835aab2cf5b9bb5ebbdaaa954bdd810385884925653884537326d65b0ba",
+        "robosuite/demos/demo_renderers.py": "effc8480fae40ca4bf5589697c96616115015f7dc5d041281e9902f7730ca8f3",
+        "robosuite/demos/demo_segmentation.py": "f0985b450ded3b90d5a6343e5d3311adf4d952e36776fb6fb91be42b443e0a40",
+        "robosuite/demos/demo_sensor_corruption.py": "9f6828fd293279fc86e61898867fca4823fc42192ac2670009dbd3d36a141f0e",
+        "robosuite/demos/demo_usd_export.py": "494ba521a77830ba809b32de3ca84630dc1888d69e70db5f2cfc942e4e76ce82",
+        "robosuite/demos/demo_video_recording.py": "f430c3f2d925cf47302ca23611f34e612060259fe40f0fcfb63c535843220765",
+        "robosuite/devices/__init__.py": "0f447a145fccd32f2a01f820d82c803662305f28206006341abccd217db39854",
+        "robosuite/devices/device.py": "f975a7e12e1fb43396321b8a457c5a196349099d458e4774060928ddfa023627",
+        "robosuite/devices/keyboard.py": "ffcca7fca9c151204fb4965bc214af24f9549cf02c8e4e68405e4f466bebab40",
+        "robosuite/devices/mjgui.py": "278b5fe7ed1ef0f39a3844552355635abb391ef5f30c5cbde4f11ffed16aadc8",
+        "robosuite/devices/spacemouse.py": "f60f8c9ecf94b6a5a5d50eec8df127383f09a9f31140ba8e17be7b4834be87e7",
+        "robosuite/environments/__init__.py": "af53e81283d60824e797eb91d834d500fdcd2d9d99e4234fc03ad54472c89b53",
+        "robosuite/environments/base.py": "d28f5c6cd07d23a650f585c3aa2b17122b2abc234c4f327619eca6de0d5fcecc",
+        "robosuite/environments/manipulation/__init__.py": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+        "robosuite/environments/manipulation/door.py": "deee447e3aa34e7255a588615f26d636a348b1f35753b50ccdcd34da41426349",
+        "robosuite/environments/manipulation/lift.py": "8f7c422af47d4cabf3043ed5060b1a3c47ff87b0e3474ef722d1f685c39530eb",
+        "robosuite/environments/manipulation/manipulation_env.py": "fde14741acc23e363216defd87fd2406e616a66549c0e6f936f090e52ea7aa73",
+        "robosuite/environments/manipulation/nut_assembly.py": "5d10f2147774af91cdfea8d47f24aea0d1f51ddcaffc5b06a83c52c953749ab7",
+        "robosuite/environments/manipulation/pick_place.py": "1abafb93f272c6ccda7f207b6c5c12c0c9b2f97087d60754dba402786c70c4ee",
+        "robosuite/environments/manipulation/stack.py": "50d071b524df11b3fb18e733795f173f2579e1baeac9ac609e9061035c874029",
+        "robosuite/environments/manipulation/tool_hang.py": "856f8d9789f60544752a75889b3a1d94ccd3cd4fdb076b20eb3e3e982d51f6f7",
+        "robosuite/environments/manipulation/two_arm_env.py": "d551036d81b2c9500c4d97e1f23b2e13761926b194bd819470eac599374c755d",
+        "robosuite/environments/manipulation/two_arm_handover.py": "4d536963f5faaa9c495add8c99b2a97ab2a965e19fdcc75797f993d96d5d11d0",
+        "robosuite/environments/manipulation/two_arm_lift.py": "547a9ebaac64ccae7e0094b71fc974071ebec225933ebf3a35134790ee025ae8",
+        "robosuite/environments/manipulation/two_arm_peg_in_hole.py": "7d390706e5398a311986fafe848ee0a732c07b5016a15239e1a8d4947ee4954d",
+        "robosuite/environments/manipulation/two_arm_transport.py": "3f5fda99ec7152d93254a9f5064e5fbf404a3e60092553ded695782798facc92",
+        "robosuite/environments/manipulation/wipe.py": "8356cdf1e2764c586854a5a06443ff3c2f8c50ba260530eb15475ce0ff28da99",
+        "robosuite/environments/robot_env.py": "222042bea966aad1374ad6b478c254a50507d2e817adfeba4348c350a802ac03",
+        "robosuite/examples/third_party_controller/default_mink_ik_gr1.json": "7e7eb134c82e161e718d835629a0a1e2b1f7743ba0b356d9d36a923939aafe9d",
+        "robosuite/examples/third_party_controller/mink_controller.py": "59b83f39c7073c5f7d6713bfda6b572876edc175663243260fdab483373eb71c",
+        "robosuite/examples/third_party_controller/teleop_mink.py": "145e3dc2da46a92170e7a0237cd8dbe0475d8988cd5f822b6d2906e8d3ad44be",
+        "robosuite/macros.py": "89fe016b27bb6553089ecd30a12fd42ec1184b57adb6fd2a4698434f9c9f988d",
+        "robosuite/models/__init__.py": "7bbf258eefcab2b59ee902789f91ff3f477e75aae4d39436281c1eda0806ba7e",
+        "robosuite/models/arenas/__init__.py": "1926c1b827bdfb2363e417090a255aa9608f38448875271e0ce854fb45b9a018",
+        "robosuite/models/arenas/arena.py": "1f0538d99f3e04abf90422315e86e3b17f310d85be4d518b9b8e6a050a9e766c",
+        "robosuite/models/arenas/bins_arena.py": "37c2fdc76ef2d70e45f86594203270acde7aa3a55a7dcddb768040ec3705a481",
+        "robosuite/models/arenas/empty_arena.py": "70f349c70e8cba53d1e75a14b05eacf8a71400f339ecc1e2d368c576a3a3fc47",
+        "robosuite/models/arenas/multi_table_arena.py": "a1987194a4f975d47846eae6596bd64c9e2716f21c3075485dbefc99e468e06e",
+        "robosuite/models/arenas/pegs_arena.py": "fe99c13dc5bf928357361468557d445d0de112dbc716c7c2cfd00b33ddce233f",
+        "robosuite/models/arenas/table_arena.py": "1e2d878d1240f6abfa2541bb4de644fa071ffc7f82bdfd853b4250588a99608d",
+        "robosuite/models/arenas/wipe_arena.py": "aa2e02b658c4322bc026dc1e9a85d911bd1e54cc9d0386e7f9c9c2984644e83b",
+        "robosuite/models/base.py": "5bc7f3d8ca37ad1ff747942885981748d57717f269808cd194164f7b41c31a07",
+        "robosuite/models/bases/__init__.py": "913caab644ea9364331a7c48a304e4991bad8eb95ba4e0bc68d0807fd7a581cc",
+        "robosuite/models/bases/floating_legged_base.py": "ae1276bcbdb58cd3d40ec10640eaa0c5c2d7aa7bd0b5fde67c0ee3f285f5b65e",
+        "robosuite/models/bases/leg_base_model.py": "ec91a64c481885eea3726652ae5fdd5f35aa28db54d34b081bf32c08dc630b52",
+        "robosuite/models/bases/mobile_base_model.py": "50ea31f97785f3c6d9a41bfe7f38692eac87b02f82014f4189b9eb7af12be2d7",
+        "robosuite/models/bases/mount_model.py": "5520969860f0063d8ce25bb56753049739a033d376badec5a3cab0c4aadef2e1",
+        "robosuite/models/bases/no_actuation_base.py": "2a2e2bb374191dbcd56e67492b20610c8e3911f909d064a1d8bb81c10c627803",
+        "robosuite/models/bases/null_mobile_base.py": "64300d57ee41d1f1c031554b34f2aeb79f8ecbd45e6394e196e701c3899e707c",
+        "robosuite/models/bases/null_mount.py": "8755b498918552a262e50fc7e31f97b8765e22046440e6df8cecf6dc9dc7a04d",
+        "robosuite/models/bases/omron_mobile_base.py": "8ac905f41b7c0cc1b8085ae7dd6910503ddf41ceec77aec6ec44b53ab81e152c",
+        "robosuite/models/bases/rethink_minimal_mount.py": "9076e7330e490e290899ffb7d8b907bf73ccf1dbddd421fa5a805333fa9acaef",
+        "robosuite/models/bases/rethink_mount.py": "de500514eebfaf03868f21d3d869efaaeee9ce0266d49452cc396333fd0f0b11",
+        "robosuite/models/bases/robot_base_factory.py": "6a2399fecbbc8dc406bdc437bc278e0f2f8cfaee1ce843a03f0b59718833c919",
+        "robosuite/models/bases/robot_base_model.py": "c56e705ec027fe346ded51b134305473116ccd85ebe3461dab670ef2b8f3f3c5",
+        "robosuite/models/bases/spot_base.py": "ba70bea5e38780683ce7c245fda8eda5999ebd75783109d363bef9a1a9ed667b",
+        "robosuite/models/grippers/__init__.py": "2842d469e3e061792b80ede8c2dbb5275166ef2d70aad0c8fc8d3fad383f6a6e",
+        "robosuite/models/grippers/bd_gripper.py": "3ed057f89e0e5fbd35d9f6cb9105c5b2e3366a4c089f23c3b824105094c6d629",
+        "robosuite/models/grippers/fourier_hands.py": "89af194366d8c26c6d149c1fbfe93a1c0d3e9ae5fcea47ce3b26194e5bba7be6",
+        "robosuite/models/grippers/gripper_factory.py": "44b9766b40cccdb22b59b939cbb40b66ac9fb718a59ae3f41ef39117885dc3a2",
+        "robosuite/models/grippers/gripper_model.py": "b4582d448add9f4726a343a257fa32932465360b2bbc0362665846828a1356cb",
+        "robosuite/models/grippers/gripper_tester.py": "1c781b4f2c5ac11800ab1cacd12a57dd6f27bf8a1a6d20f90c56f2c11a813a06",
+        "robosuite/models/grippers/inspire_hands.py": "6d9d54267d7306484acf8de08fcdfbe9094cad9d6cb69ddaaa981cbd1ce080bf",
+        "robosuite/models/grippers/jaco_three_finger_gripper.py": "2b0ecb2b2770971b7c3f057d2de189a2bd3c232010ad85f76eb60fc07c4a0379",
+        "robosuite/models/grippers/null_gripper.py": "070be8818b236b049f7bb7d466d68cb01060dc3808eceb69182e3add8f96207a",
+        "robosuite/models/grippers/panda_gripper.py": "df0449a9b003e9a019fad4ef59b435ae2b9accd2705026da041165dd99faab8d",
+        "robosuite/models/grippers/rethink_gripper.py": "93fa8c51d6d4b1ac2c7f99dde36b8f4c4c817c4297c65bec17994c68487c9bc1",
+        "robosuite/models/grippers/robotiq_140_gripper.py": "fb74f6cdbd5d655e9943606ce669b628f3e5b342c8109a450b489cffb765825e",
+        "robosuite/models/grippers/robotiq_85_gripper.py": "da6e593854606e874c9f96a34095e02ffbf787f09f17ac0426744a523580ec5f",
+        "robosuite/models/grippers/robotiq_three_finger_gripper.py": "9cd87325472f051ba5f9419ca74e19345f3570453c4f56b5e3990206a2c5feb2",
+        "robosuite/models/grippers/wiping_gripper.py": "3e5fb3e3ffccf90aef02f287a4cd865265ba7c49e4ae971352001a7ef07ae711",
+        "robosuite/models/objects/__init__.py": "1dd471102059b1ac0c8d61a36901f22163fa43a2a9a4d891a1914b919cf46195",
+        "robosuite/models/objects/composite/__init__.py": "3e15b79e7d6b3ec851cebffd78fe77ae25e1488c16629dad39eafc7af44b0122",
+        "robosuite/models/objects/composite/bin.py": "3e6120cdd8d0ab463fb74f2b3554fd6265ba8e1efae9522887ac09ff78861fce",
+        "robosuite/models/objects/composite/cone.py": "d34058a5b1ec3963f41808a82752a2952c0bdc727526062b3784ca930cbf5cea",
+        "robosuite/models/objects/composite/hammer.py": "ce4d83997d1974bc7b964fbc4fe4c493ea1a7a6b1e10cf305fe53d94362e2367",
+        "robosuite/models/objects/composite/hollow_cylinder.py": "385a040b1fde379be57d20e5d26f4ac48c5bf1783a359bbae6e93b7c352a365d",
+        "robosuite/models/objects/composite/hook_frame.py": "0a7a41d109849a63477dbdd33a931e93a772e8707a893b63c745efb224278510",
+        "robosuite/models/objects/composite/lid.py": "56fe44445c23f81d104d8c2c97c2191b1d1a5a94df4aa5ebef244ef34e5ef6a7",
+        "robosuite/models/objects/composite/pot_with_handles.py": "0dfb9477b97033099966b544486c9446439cc58e756a38af90e9bacfbe679b8c",
+        "robosuite/models/objects/composite/stand_with_mount.py": "2787fa587f4f78d141dd316704f5b31b275788c59a7acc48994282c8443615cc",
+        "robosuite/models/objects/composite_body/__init__.py": "d44fb49f34ed77c4488c6df360afec27241755cb68383a92ac7faed4b7b01ff0",
+        "robosuite/models/objects/composite_body/hinged_box.py": "6e690972e3938f42186f8b9acadb735c8513a4605c8074f46d7d368f4b9755e2",
+        "robosuite/models/objects/composite_body/ratcheting_wrench.py": "52519d57b2620b3d08f65752a749192074583b1c3ae008fd8a351bb2b89d9ab7",
+        "robosuite/models/objects/generated_objects.py": "07e1fd5d1e8ac5132a110738b07f191694c2021ef2519f884e2c367504779042",
+        "robosuite/models/objects/group/__init__.py": "988a5b73cdad2bf89c6c3482499a1258bc92eb7801f9a0adfad7b2434b2e7b99",
+        "robosuite/models/objects/group/transport.py": "a8a9fcfc9614a036f7bd4deece3b3c42e194560bf9c855bdd5992907ea575f8f",
+        "robosuite/models/objects/object_groups.py": "8f4d26df94fe0ccebd626e344e6c653c8c092e7af1b9e90dbc7374988b35bf57",
+        "robosuite/models/objects/objects.py": "d97bda0aadcc812d3b46160a23e1992a9bdad583b2d67d57605692e00b45a054",
+        "robosuite/models/objects/primitive/__init__.py": "9d1aa3691d7c389f7f754e2b6d99d980ce093815d3e97639c4a64b74d66d378a",
+        "robosuite/models/objects/primitive/ball.py": "c185a7bf32661e887fbdb6737827bd5be475e95a69a6d1056052cf5e27af0e80",
+        "robosuite/models/objects/primitive/box.py": "b824899f0afa8ff6fa10a31264536bd4fb85a276c67b53c4bde3188fb6b9c0a6",
+        "robosuite/models/objects/primitive/capsule.py": "e92a3d04f9540d0ea2aaefd0b8a4f1826c095c522b8cd50dfa173b084f27956f",
+        "robosuite/models/objects/primitive/cylinder.py": "c945d32ed99528420c262399cf286dadf1d6329cfa06b774b6f2354f74854f4a",
+        "robosuite/models/objects/xml_objects.py": "0a51f16aeb26a2e2b3acb4f955faf3552316e02b8b8b89f7c891b2ca3e365b1c",
+        "robosuite/models/robots/__init__.py": "f28bfbac9c79d540d6b17b169a0e78f43b2685f162cf957aead314267c4abf02",
+        "robosuite/models/robots/compositional.py": "109eb998a1219864ac1209cac5850ab531f508eb63337025803337078a7d02f1",
+        "robosuite/models/robots/manipulators/__init__.py": "97a5e0383a9e3ade32b4d3c58507a123101fcb2835f8ee8779a2d742075d636e",
+        "robosuite/models/robots/manipulators/baxter_robot.py": "c40040b4f286ba501d35327c448ddbc6cfd0b87b1a80fb79103f244005fd25c4",
+        "robosuite/models/robots/manipulators/gr1_robot.py": "6a029108f3083c522192dcbcfa49735e306030d14117347aa12b591dd8ffa8c7",
+        "robosuite/models/robots/manipulators/humanoid_model.py": "7add485a500ca506ebefcb52dd4ca0fd4e66a750168fab70cb05e2fc3a473f30",
+        "robosuite/models/robots/manipulators/humanoid_upperbody_model.py": "862c823188f238d7f0a222a97ecdcd0683d9218190ad0558a8d5808a8a54c4fc",
+        "robosuite/models/robots/manipulators/iiwa_robot.py": "9aa863166b6b6f49dd3f76a64c251fa90f07698681d68d7f8554e8e2a17f4190",
+        "robosuite/models/robots/manipulators/jaco_robot.py": "1eb04ba0645b9841fa93a7a917e535ba9f63cdf84348b1845f11a1616f76d23c",
+        "robosuite/models/robots/manipulators/kinova3_robot.py": "6b3eafa5e7ef5f79a9d603abbc7e00f2e722b0f1052442bacdc7077cd2d6b6a7",
+        "robosuite/models/robots/manipulators/legged_manipulator_model.py": "c82104fd050c39e577ba26a10f885aac32ab2adf242b366cf2b33d5813e2c0fb",
+        "robosuite/models/robots/manipulators/manipulator_model.py": "96707f46c1869353a17a9e79f4f235bba4f55283bc7e8ce53d8696f0aba21c36",
+        "robosuite/models/robots/manipulators/panda_robot.py": "326cf4f4fb8b06dcc8345139d0f21eb62128bd8ca18fb5fc80bdc852636c6e1e",
+        "robosuite/models/robots/manipulators/sawyer_robot.py": "a2fdb353c4b46f27b09d9cfa792c9daf31ba8df49a2c56b6644697df0cca81e0",
+        "robosuite/models/robots/manipulators/spot_arm.py": "84548f9dc189ff69d14a22e1c13906d48729167fc26e32d466e44240098a068b",
+        "robosuite/models/robots/manipulators/tiago_robot.py": "567c404d12ec735c37123483bac22b1e4c3b05d34c4cfd5c0560fcecd700ce45",
+        "robosuite/models/robots/manipulators/ur5e_robot.py": "97efb00a04e2ebdaf003d28f532af3569b5a5fbe3ef059550d36574159334c42",
+        "robosuite/models/robots/robot_model.py": "aede2469d909d82d86a80a6bfad0928cf7dcd24d21b8163541726c7460acb392",
+        "robosuite/models/tasks/__init__.py": "1cf75cefcc1946af24830e4bb43db9a577b6bc98526df11b6d028ad5ffcdfbf0",
+        "robosuite/models/tasks/manipulation_task.py": "fb9cfe240fcedd952a3c822855c01d402f892f79744cc25ee781bd7904745c2d",
+        "robosuite/models/tasks/task.py": "86d6d33ac8b8406d3c791ca38d3f9a3f8b7a30eeece5d750865b23f0d09fea1f",
+        "robosuite/models/world.py": "c18e123c7d405c0f20ff94139841f1cf2803b979dc12cd52cb7182b56b436dc7",
+        "robosuite/renderers/__init__.py": "2796ed54506ddf24e31f781a63ab8097187d810c7f36d4d412154a9c40ecc5f5",
+        "robosuite/renderers/base.py": "b81a54574b93dd1c72f9454d71c650c508d6d0ea5dcfb69e6372fde38a274835",
+        "robosuite/renderers/base_parser.py": "d4b61d53365573c93220cd099c4bbbbe55ed101228803d73f0b18152bb953565",
+        "robosuite/renderers/config/nvisii_config.json": "14eb995940fe380349e6c3ce9347dc185e6b7e903f2f6715df091014daffdcb4",
+        "robosuite/renderers/context/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "robosuite/renderers/context/egl_context.py": "04841a9a980ab22484bc532c07068660efc8fbff8bb2a4c8af7c7c3a4a759845",
+        "robosuite/renderers/context/glfw_context.py": "c38e3033fd11a4f1bc25d7031c0e5ac06e6ed7e2ebff113d3c04658713fe15a0",
+        "robosuite/renderers/context/osmesa_context.py": "6bdfb87d115674de396892a7ed7d104abe374143166ad9770c2ed2bfd08e67a8",
+        "robosuite/renderers/mjviewer/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "robosuite/renderers/mjviewer/mjviewer_renderer.py": "4e213baf7f0a867e91ec616a03baf758a7bf7bf0126090baa996987375b639b0",
+        "robosuite/robots/__init__.py": "e673bacaba1f5c6a77c44a68b185dda2efda5959d73a3b522854112faf0e0541",
+        "robosuite/robots/fixed_base_robot.py": "82b974f85bbbe01b69d3cf0dfa4e0e7243aab3e952fd3ab78296458a7257c27e",
+        "robosuite/robots/legged_robot.py": "22d7d23fa875c5c74470078e43b90664b9003a981a50c941813124dd31187e8b",
+        "robosuite/robots/mobile_robot.py": "ccadc1d694fef1af2a20f5b4fe488e8f02f5dd433c8088fd55f3b817ba2a3cc8",
+        "robosuite/robots/robot.py": "36078321e5d8476a0d7f6dce33084cc359a17983a1ceef35666779752f795de6",
+        "robosuite/robots/wheeled_robot.py": "0301e5562eda125036f81285b4a8b77432b553d830609c6752eae79b5a5f4ee0",
+        "robosuite/scripts/browse_mjcf_model.py": "25d9dda964c90d3b8615c00d87a1af3831f32f81cc246ddf0026e0e310bf66e2",
+        "robosuite/scripts/check_custom_robot_model.py": "e3a129e09da720818a627da4d196c535f93cca56051648226348b4e42f68285e",
+        "robosuite/scripts/collect_human_demonstrations.py": "4db346a49838ec0f37701929492d658ca46a697ec8b388e12d04d11920f07335",
+        "robosuite/scripts/compile_mjcf_model.py": "c2550e4734d4fb12ddd55ff6ee7fee86f65a01878603bbbe7c687f1dc7c93103",
+        "robosuite/scripts/internal/view_robot_initialization.py": "af1cc69259619f47da6776a11a1370c68e7d8ad9a80453103516037fb1b22615",
+        "robosuite/scripts/make_reset_video.py": "856949ba3049f246cc9ac2c8c11a77a624bcbb2e18c37570b908d9c013fbf223",
+        "robosuite/scripts/playback_demonstrations_from_hdf5.py": "8764420e4194b1378f28e26772179775ab8fc6b3cd2b17b7bad0ee66933bff7b",
+        "robosuite/scripts/print_robosuite_info.py": "2d6161db27d792b98800c415604cc41a2919a2c6ef762f9ed22daad0f523f59d",
+        "robosuite/scripts/print_robot_action_info.py": "d68e097cfd6e866e5dd34ce10ef398be5ec28f3f2c923b23c68b0ed0ce5da9ae",
+        "robosuite/scripts/render_dataset_with_omniverse.py": "b2589ba2965be7e2d9c221e79210df5c53b1f01aae58704118f71050efc2bb00",
+        "robosuite/scripts/setup_macros.py": "151cfd7b6e8111bb511a04d9f5cbb6fac57e42639430a56dbb9dec0dbe5f3b21",
+        "robosuite/scripts/tune_camera.py": "e8cfa05a6cddf34b69d4372e3dda8b1268c563833075882d351b33b55cba3865",
+        "robosuite/scripts/tune_joints.py": "453a06b453901beac55adc8417489c1f83b604eb0c3edbea8955bdddd1895800",
+        "robosuite/utils/__init__.py": "068be29da25b0c6c318f04c8690d5ae2fdb007f77e6c87708c187b46b5800b37",
+        "robosuite/utils/binding_utils.py": "418a67d8cb4af0ffe612a10511f6c15fe8c1f781d29941092bf964c81177e5de",
+        "robosuite/utils/buffers.py": "14e66d717a24a0ce1ba5c97108317f2a9594405579a6daf902b371fae09e6b46",
+        "robosuite/utils/camera_utils.py": "320d1fccc23ea09334d747093c12ec014fdad072b71308026cf1dfe48db98afb",
+        "robosuite/utils/control_utils.py": "c599f39eaae07b581155ec42c498cb3888cd3e50f72062bd1d2ff13b69e164b5",
+        "robosuite/utils/errors.py": "59cd07e7423efa62cd2d694bd1c5258cc108393d621a98be86a536bc336c6f61",
+        "robosuite/utils/ik_utils.py": "8b5417f6bef6c33d558988648675a8316d9fe9fa69952ec1bbcffd01b32853a5",
+        "robosuite/utils/input_utils.py": "70abfeb492e3a0e31ccd063196003314794d11825d0fc54b3930a36d7724b269",
+        "robosuite/utils/log_utils.py": "fbf8b61d85431e0431b33bd9a02230c9ded50702f8dff75366a7158b94cc2400",
+        "robosuite/utils/mjcf_utils.py": "6c905e9feaef447b8ea74ca91adc269f69edca2973a4526b284bf0214639ace7",
+        "robosuite/utils/mjmod.py": "a8c9d174308ee53f77a75875c4895245bafac81cfba661bc035dcb5f471ecbc7",
+        "robosuite/utils/numba.py": "2d25a8466d175e46e910e40447e7f40aabea7b2e2177a4294a3d7bcb1026e45b",
+        "robosuite/utils/observables.py": "83e7bc67745477d207c09c4a5eb86e280909b06531ab7346595a45a84200dcfd",
+        "robosuite/utils/opencv_renderer.py": "9c9714dda5653bdba7b66774048b1d41e2db9a4a10371a85a413d93918b75418",
+        "robosuite/utils/placement_samplers.py": "7efca750e744f9dc3ee170f7898978f1418f8813b8f697f5bab0b85e509f8d87",
+        "robosuite/utils/robot_composition_utils.py": "0b8e77d855f6d5be289c1c0112aa0d3f07c9916a38aa6563c4315ab744192998",
+        "robosuite/utils/robot_utils.py": "b3812f78713523eb0cd23dbb41478b67076c3121c8fb09ee426ff870447d87b1",
+        "robosuite/utils/sim_utils.py": "ebe743fda8123fbeb0b4be471ec7298348a4c3fe2bccfe255d856d096f47dbf5",
+        "robosuite/utils/traj_utils.py": "42da2abe66b0ceed7651da4e95ae02e24e949f32b9946e4f0966e9d5ed1540bc",
+        "robosuite/utils/transform_utils.py": "bd96a08eab2c7dc2dde6f9363ed3595b41105e70cde2dca6a6c2fed27160c445",
+        "robosuite/utils/usd/camera.py": "3ed1ac78140c40a978007947ef3b912a4bffbb72e06f931932bd28eedbf21d91",
+        "robosuite/utils/usd/demo.py": "16879f04c59a6eb46cf7ef13fc2ceca0093d289479cfbc947b5e0a9019557b7a",
+        "robosuite/utils/usd/exporter.py": "154ca0ad969d9f51a23eaaa8b5099064eca3ffa77442a75f825d8a4f1cfb3d75",
+        "robosuite/utils/usd/lights.py": "bd2acd4d48f31ee89a355f07bdd4c224852fb7d2d6271f426936226c202810e9",
+        "robosuite/utils/usd/objects.py": "739d68b91c597d4c2a25e92ee4da2245099616c8afcabf1ba4d04ec5a5525785",
+        "robosuite/utils/usd/shapes.py": "1452d65aac36507ba4b3ac27651b158d3de503f44141165e03d26e051dafdefa",
+        "robosuite/utils/usd/utils.py": "e97da3ca0802393aa9237d3bda0ea334dca7d99a033892a7d675426a3d68e22b",
+        "robosuite/wrappers/__init__.py": "1ae2b49294b413f43c84a4eaed989931577a141e5b7777011614242efd5ad428",
+        "robosuite/wrappers/data_collection_wrapper.py": "2db53cd19053875666fbac10fb754e25cae9764cba2ee186702a3a209105da77",
+        "robosuite/wrappers/demo_sampler_wrapper.py": "70c15df6e7875f4717b18e7c09f03062927650df095654d59a38b149c3ff3fad",
+        "robosuite/wrappers/domain_randomization_wrapper.py": "bfae2f67c4acd09c2420eaa5c96e8418d6aceb597bf07ad4a4800f29d18efc79",
+        "robosuite/wrappers/gym_wrapper.py": "16bc2efa233f8c20a4a22fe37434f982d2b8745ee1b221d217e265ff686211f8",
+        "robosuite/wrappers/visualization_wrapper.py": "bcad6f522c678fbdedf19c72a9ef73bc139d0716348fb2a6d7c3530a5fcf394c",
+        "robosuite/wrappers/wrapper.py": "0c7507cb27050f6d76bcec57398fc29e71a370a93068d7d48af47bd6e14e7469",
+        "setup.py": "aa5be28d9e97aa15188e47c19b5ac7206ad7ab9f575ab40e468acdfe7ae1d75d",
+        "tests/test_controllers/test_composite_controllers.py": "86d81f30cd722996d93d943a3beea10fc25570adcdbcf39a4f1d931c13b5c36e",
+        "tests/test_controllers/test_linear_interpolator.py": "9f2649e389f5b1c57e4b04d18675a06d91aa0a1da92d487777148cf86b948afb",
+        "tests/test_controllers/test_variable_impedance.py": "69aea90bd13bdb9612ad4a8bf61a4ecce4f636dcf574be94a5f2cac859de754a",
+        "tests/test_environments/test_action_playback.py": "73ae17bb3fecb8a7fd37d132fdc9ff32f75b5542e13b7ee1cc3b127f2602e3ac",
+        "tests/test_environments/test_all_environments.py": "2f69bd47977086202cc0a2370a10224788584e677cc8550dda278542536436f2",
+        "tests/test_environments/test_camera_transforms.py": "87af8af43dcba9280b35cb9acc6434a5cc54cd4deef3316ee11d4cf360585ec7",
+        "tests/test_grippers/test_all_grippers.py": "def462590d7d5df349ed4d59f0f13765585aba6c57a7d49eeb68ef92a797537f",
+        "tests/test_grippers/test_jaco_threefinger.py": "3fc46bb510cb59d88cae239aedf674236db34067c89600210b1137007449c44a",
+        "tests/test_grippers/test_panda_gripper.py": "3167065b3aa1af7fb76cf4a67da5ffeae0b00482650cad70d1cd95f4eda71d87",
+        "tests/test_grippers/test_rethink_gripper.py": "d458ebc59cf9f26d36a1d05686636338687278935aa82487b06545178b8e9bf8",
+        "tests/test_grippers/test_robotiq_140.py": "83a7843f6cbfc719b0e717ae183038141093b929d8dfe6cb5443adcce49eea81",
+        "tests/test_grippers/test_robotiq_85.py": "1e42bb60e6f292543ee7ef687c0bdfd25dd05f67c5530a1b2f0c1eaecb440001",
+        "tests/test_grippers/test_robotiq_threefinger.py": "d4694d3890268dd206047cb55150112cfa8e59f99d1291f1048d95c526d965c7",
+        "tests/test_renderers/test_all_renderers.py": "20eb0632bd727fdd9951843da7e96f9dea40efca3fa6a164f4ad2ea0ba2dcae9",
+        "tests/test_robots/test_all_robots.py": "87a16337cdfee3c39542ffde898e3189563d3409f61fb4a2bad7848fb96b6113",
+        "tests/test_robots/test_composite_robots.py": "70d0bb12c57e90f21b8c61d4a7a708fe6fb956f11a4d3a970bc19dbe4d761327"
+      }
+    }
+  },
+  "object_inventory": {
+    "file_count": 42994,
+    "total_regular_bytes": 6843155836,
+    "inventory_sha256": "f5cae285846c2afa55db6909027d8454242e217f54f21856cbf68a91bdcc0c7b"
+  },
+  "versions": {
+    "Farama-Notifications": "0.0.6",
+    "ImageIO": "2.37.4",
+    "PyOpenGL": "3.1.10",
+    "PyYAML": "6.0.3",
+    "absl-py": "2.5.0",
+    "av": "17.1.0",
+    "cloudpickle": "3.1.2",
+    "contourpy": "1.3.2",
+    "cycler": "0.12.1",
+    "etils": "1.13.0",
+    "evdev": "1.9.3",
+    "fonttools": "4.64.0",
+    "fsspec": "2026.7.0",
+    "glfw": "2.10.2",
+    "gymnasium": "0.29.1",
+    "h5py": "3.16.0",
+    "hidapi": "0.15.0",
+    "importlib_resources": "7.1.0",
+    "kiwisolver": "1.5.1",
+    "llvmlite": "0.44.0",
+    "lxml": "6.1.1",
+    "matplotlib": "3.10.9",
+    "mujoco": "3.2.6",
+    "numba": "0.61.2",
+    "numpy": "1.26.4",
+    "opencv-python": "4.11.0.86",
+    "packaging": "26.3",
+    "pillow": "12.3.0",
+    "pip": "26.2.1",
+    "pygame": "2.6.1",
+    "pynput": "1.8.2",
+    "pyparsing": "3.3.2",
+    "python-dateutil": "2.9.0.post0",
+    "python-xlib": "0.33",
+    "scipy": "1.15.3",
+    "setuptools": "84.0.0",
+    "six": "1.17.0",
+    "termcolor": "3.3.0",
+    "tqdm": "4.70.0",
+    "typing_extensions": "4.16.0",
+    "wheel": "0.48.0",
+    "zipp": "4.1.0"
+  }
+}

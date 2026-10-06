@@ -1,0 +1,17 @@
+[
+  {"id": "google_robot_pick_horizontal_coke_can", "family": "pick_coke_can", "robot": "google_robot_static", "native_horizon": 80},
+  {"id": "google_robot_pick_vertical_coke_can", "family": "pick_coke_can", "robot": "google_robot_static", "native_horizon": 80},
+  {"id": "google_robot_pick_standing_coke_can", "family": "pick_coke_can", "robot": "google_robot_static", "native_horizon": 80},
+  {"id": "google_robot_move_near_v0", "family": "move_near", "robot": "google_robot_static", "native_horizon": 80},
+  {"id": "google_robot_open_top_drawer", "family": "open_drawer", "robot": "google_robot_static", "native_horizon": 113},
+  {"id": "google_robot_open_middle_drawer", "family": "open_drawer", "robot": "google_robot_static", "native_horizon": 113},
+  {"id": "google_robot_open_bottom_drawer", "family": "open_drawer", "robot": "google_robot_static", "native_horizon": 113},
+  {"id": "google_robot_close_top_drawer", "family": "close_drawer", "robot": "google_robot_static", "native_horizon": 113},
+  {"id": "google_robot_close_middle_drawer", "family": "close_drawer", "robot": "google_robot_static", "native_horizon": 113},
+  {"id": "google_robot_close_bottom_drawer", "family": "close_drawer", "robot": "google_robot_static", "native_horizon": 113},
+  {"id": "google_robot_place_apple_in_closed_top_drawer", "family": "place_apple_in_closed_drawer", "robot": "google_robot_static", "native_horizon": 200},
+  {"id": "widowx_spoon_on_towel", "family": "spoon_on_towel", "robot": "widowx", "native_horizon": 60},
+  {"id": "widowx_carrot_on_plate", "family": "carrot_on_plate", "robot": "widowx", "native_horizon": 60},
+  {"id": "widowx_stack_cube", "family": "stack_cube", "robot": "widowx", "native_horizon": 60},
+  {"id": "widowx_put_eggplant_in_basket", "family": "eggplant_in_basket", "robot": "widowx_sink_camera_setup", "native_horizon": 120}
+]

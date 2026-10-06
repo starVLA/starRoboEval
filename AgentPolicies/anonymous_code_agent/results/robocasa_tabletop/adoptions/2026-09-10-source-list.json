@@ -1,0 +1,46 @@
+[
+  {
+    "run_dir": "/mnt/workspace/users/jinhuiye/Projects/starVLA-RSI/runs/tabletop-pilot-20260907-001/case-000/run",
+    "videos": [
+      {
+        "episode_id": "tabletop-task00-seed20260907-attempt1",
+        "artifact": "video",
+        "camera": "ego_view_bg_crop_pad_res256_freq20",
+        "description": "follow-the-native-tabletop-task-instruction-supplied-after-reset"
+      }
+    ]
+  },
+  {
+    "run_dir": "/mnt/workspace/users/jinhuiye/Projects/starVLA-RSI/runs/tabletop-pilot-20260907-001/case-001/run",
+    "videos": [
+      {
+        "episode_id": "tabletop-task19-seed20260907-attempt1",
+        "artifact": "video",
+        "camera": "ego_view_bg_crop_pad_res256_freq20",
+        "description": "follow-the-native-tabletop-task-instruction-supplied-after-reset"
+      }
+    ]
+  },
+  {
+    "run_dir": "/mnt/workspace/users/jinhuiye/Projects/starVLA-RSI/runs/tabletop-next-pair-20260909-001/case-000/run",
+    "videos": [
+      {
+        "episode_id": "tabletop-task01-seed20260907-attempt1",
+        "artifact": "video",
+        "camera": "ego_view_bg_crop_pad_res256_freq20",
+        "description": "follow-the-native-tabletop-task-instruction-supplied-after-reset"
+      }
+    ]
+  },
+  {
+    "run_dir": "/mnt/workspace/users/jinhuiye/Projects/starVLA-RSI/runs/tabletop-next-pair-20260909-001/case-001/run",
+    "videos": [
+      {
+        "episode_id": "tabletop-task02-seed20260907-attempt1",
+        "artifact": "video",
+        "camera": "ego_view_bg_crop_pad_res256_freq20",
+        "description": "follow-the-native-tabletop-task-instruction-supplied-after-reset"
+      }
+    ]
+  }
+]

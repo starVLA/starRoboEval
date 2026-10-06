@@ -1,0 +1,216 @@
+{
+  "schema_version": "starvla-rsi.basic-result/v1",
+  "run_id": "2026-10-04-google_robot_pick_horizontal_coke_can-can-picking-post-convergence-once",
+  "benchmark": {
+    "name": "simpler_env",
+    "version": "0.0.1",
+    "protocol_version": "simpler-prepackaged-development/rgb/action-feedback/agent-method/v1",
+    "source_revision": "c701ea271b16b80616d6fed9713c4a50a0adea3b:ef7a4d4fdf4b69f2c2154db5b15b9ac8dfe10682"
+  },
+  "method": {
+    "schema_version": "starvla-rsi.method/v1",
+    "id": "gpt6-astra-direct",
+    "version": "codex-native/v1",
+    "models": [
+      {
+        "id": "primary",
+        "role": "policy",
+        "provider": "openai",
+        "model": "gpt-6-astra",
+        "version": null
+      }
+    ],
+    "configuration": {}
+  },
+  "method_origin": "legacy_policy_projection",
+  "configuration_availability": "not_supplied_in_legacy_identity_projection",
+  "identity_evidence": "participant_declaration_not_provider_attestation",
+  "protocol": {
+    "budget_mode": "horizon",
+    "primary_budget": "first_exhausted_limit",
+    "invalid_action_handling": "feedback",
+    "usage_accounting_version": "starvla-rsi.method-usage/v1",
+    "max_steps": 80,
+    "max_policy_calls": 200,
+    "replan_interval": 5
+  },
+  "contracts": {
+    "action_spec": {
+      "mode": "ee_delta_pose",
+      "frame": "ee_align (measured-pose delta)",
+      "rotation": "axis-angle rotation vector, radians",
+      "gripper": "+1 close; -1 open; 0 hold (target delta)",
+      "names": [
+        "dx_m",
+        "dy_m",
+        "dz_m",
+        "rx_rad",
+        "ry_rad",
+        "rz_rad",
+        "gripper"
+      ],
+      "size": 7,
+      "control_hz": 3.0,
+      "low": [
+        -1.0,
+        -1.0,
+        -1.0,
+        -1.5707963267948966,
+        -1.5707963267948966,
+        -1.5707963267948966,
+        -1.0
+      ],
+      "high": [
+        1.0,
+        1.0,
+        1.0,
+        1.5707963267948966,
+        1.5707963267948966,
+        1.5707963267948966,
+        1.0
+      ]
+    },
+    "observation_spec": {
+      "control_feedback_schema": null,
+      "cameras": [
+        "overhead_camera"
+      ],
+      "state_names": [],
+      "modalities": [
+        "language",
+        "rgb"
+      ],
+      "privileged": false
+    }
+  },
+  "recording": {
+    "availability": "declared_settings_only",
+    "configuration": {
+      "scope": "client-retention; server-native capture configured separately",
+      "source_capture": "internal source/config snapshots retained independently of preset",
+      "schema_version": "starvla-rsi.recording/v1",
+      "mode": "standard",
+      "images": true,
+      "tool_traces": true,
+      "interactions": true,
+      "model_io": true,
+      "videos": true
+    },
+    "publication_requirement": false
+  },
+  "outcome": {
+    "scope": "client_selected_schedule",
+    "planned": 1,
+    "unattempted": 0,
+    "attempted": 1,
+    "completed": 1,
+    "errors": 0,
+    "successes": 0,
+    "policy_calls": 76,
+    "rejected_actions": 0,
+    "action_decisions": 76,
+    "environment_steps": 80,
+    "success_rate": 0.0,
+    "attempt_success_rate": 0.0,
+    "selected_success_rate": 0.0,
+    "rate_denominators": {
+      "success_rate": "completed_cases",
+      "attempt_success_rate": "attempted_cases",
+      "selected_success_rate": "selected_cases",
+      "completion_rate": "attempted_cases"
+    },
+    "completion_rate": 1.0
+  },
+  "usage": {
+    "calls": null,
+    "input_tokens": 378692,
+    "output_tokens": 33224,
+    "cached_input_tokens": 132352,
+    "estimated_cost_usd": null,
+    "latency_s": 1950.4469924988225
+  },
+  "component_usage": {
+    "primary": {
+      "calls": null,
+      "input_tokens": null,
+      "output_tokens": null,
+      "cached_input_tokens": null,
+      "estimated_cost_usd": null,
+      "latency_s": null
+    }
+  },
+  "episodes": [
+    {
+      "id": "google_robot_pick_horizontal_coke_can-000000",
+      "task": "google_robot_pick_horizontal_coke_can",
+      "seed": 20260907,
+      "status": "completed",
+      "success": false,
+      "termination_reason": "environment:truncated",
+      "counters": {
+        "policy_calls": 76,
+        "action_decisions": 76,
+        "environment_steps": 80,
+        "rejected_actions": 0
+      },
+      "duration_s": 2083.0294089158997,
+      "usage": {
+        "calls": null,
+        "input_tokens": 378692,
+        "output_tokens": 33224,
+        "cached_input_tokens": 132352,
+        "estimated_cost_usd": null,
+        "latency_s": 1950.4469924988225
+      },
+      "component_usage": {
+        "primary": {
+          "calls": null,
+          "input_tokens": null,
+          "output_tokens": null,
+          "cached_input_tokens": null,
+          "estimated_cost_usd": null,
+          "latency_s": null
+        }
+      },
+      "native_metrics": {
+        "native_steps": 80,
+        "native_horizon": 80,
+        "evaluation_horizon": 80,
+        "success_ever": false
+      },
+      "error": null,
+      "recording": {
+        "availability": "declared_settings_only",
+        "configuration": {
+          "scope": "client-retention; server-native capture configured separately",
+          "source_capture": "internal source/config snapshots retained independently of preset",
+          "schema_version": "starvla-rsi.recording/v1",
+          "mode": "standard",
+          "images": true,
+          "tool_traces": true,
+          "interactions": true,
+          "model_io": true,
+          "videos": true,
+          "agent_events_written": 0,
+          "warnings": []
+        },
+        "publication_requirement": false
+      }
+    }
+  ],
+  "selected_native_metrics": [
+    "native_steps",
+    "native_horizon",
+    "evaluation_horizon",
+    "success_ever"
+  ],
+  "record_check": "closed_result_index_and_summary_consistent",
+  "limitations": [
+    "Interaction recording is optional and is not a publication requirement.",
+    "No event, source, provider or native execution audit is implied by this presentation.",
+    "The denominator is the client-selected schedule, not necessarily the entire benchmark.",
+    "Missing usage is unknown, not zero; model composition and usage are reported declarations.",
+    "Native metrics are included only when explicitly selected; no media or raw traces are copied.",
+    "Review public method configuration and text before publishing; key filtering is not secret detection."
+  ]
+}

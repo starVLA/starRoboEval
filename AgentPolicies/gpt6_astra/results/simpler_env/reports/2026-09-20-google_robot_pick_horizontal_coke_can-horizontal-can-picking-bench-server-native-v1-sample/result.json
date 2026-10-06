@@ -1,0 +1,189 @@
+{
+  "schema_version": "starvla-rsi.sample-result/v1",
+  "run_id": "2026-09-20-google_robot_pick_horizontal_coke_can-horizontal-can-picking-bench-server-native-v1-sample",
+  "benchmark": "simpler_env",
+  "protocol_version": "simpler-prepackaged-development/rgb/decision-200-prefix-5/action-feedback/v1",
+  "scope": {
+    "kind": "single_fixed_native_sample",
+    "selected_cases": 1,
+    "attempts_per_case": 1,
+    "automatic_retry": false,
+    "native_full_evaluation": false,
+    "benchmark_wide_success_rate": null
+  },
+  "model": {
+    "profile": "gpt6_astra",
+    "requested_model": "gpt-6-astra",
+    "requested_provider": "openai",
+    "control_method": "codex-native/v1",
+    "transport": "codex-exec/v1",
+    "reasoning_effort": "xhigh",
+    "identity_evidence": "Requested CLI identity; backend model/provider identity is not independently attested.",
+    "provider_request_count": null,
+    "provider_internal_retries": null,
+    "os_isolation_attested": false
+  },
+  "source": {
+    "tree": "9bad65a48744189c8fbe7a4955d82cf1fffceeba",
+    "client_commit": "ef935c5d51a91d04c05374a0b663a3971e59e43c",
+    "server_commit": "c7942a851baf62ab5c9064eae520795f9f58cd4c",
+    "native_revision": "c701ea271b16b80616d6fed9713c4a50a0adea3b:ef7a4d4fdf4b69f2c2154db5b15b9ac8dfe10682",
+    "preset_sha256": "bfecab5b8421daa00822167f03f9ff77ca087be3afc36045dc72d2bef41b59e4",
+    "effective_prompt_sha256": "18c7a4f474631d1e9769c553020b5de854b3200a2cb265294ab464df9acdb4aa"
+  },
+  "conditions": {
+    "task": "google_robot_pick_horizontal_coke_can",
+    "seed": 20260907,
+    "reset_selection": "prepackaged_seeded_reset",
+    "observation": "overhead_camera RGB640x512, no robot state",
+    "action": "7 physical measured-pose translation/axis-angle/gripper delta controls",
+    "native_reference_horizon": 80,
+    "environment_step_cap": 1000,
+    "max_policy_calls": 200,
+    "replan_interval": 5,
+    "budget_mode": "decisions",
+    "invalid_action_handling": "feedback",
+    "action_rejection_feedback": true,
+    "control_hz": 3
+  },
+  "outcome": {
+    "status": "error",
+    "success": null,
+    "successes": 0,
+    "attempted": 1,
+    "completed": 0,
+    "errors": 1,
+    "policy_calls": 101,
+    "action_decisions": 100,
+    "environment_steps": 103,
+    "rejected_actions": 0,
+    "termination_reason": "error:infrastructure",
+    "duration_s": 2733.8711942500086,
+    "first_success": null
+  },
+  "error": {
+    "category": "infrastructure",
+    "type": "PolicyCallError",
+    "failure_code": "stderr_rejected",
+    "policy_call": 101,
+    "cli_exit_code": -15,
+    "stderr_bytes": 172,
+    "stdout_bytes": 101,
+    "cleanup_failed": false,
+    "wrapper_retries": 0,
+    "explanation": "The CLI transport rejected stderr during call 101 and stopped that invocation. Retained receipt does not preserve the raw stderr text, so its underlying cause is not established; this is not classified as a task failure."
+  },
+  "native_diagnostics": {
+    "first_success": null,
+    "success_ever": false,
+    "last_acknowledged_control": 103,
+    "last_acknowledged_native_success": false,
+    "success_at_native_horizon_80": false,
+    "success_at_evaluation_horizon_1000": null,
+    "all_control_indices_contiguous": true,
+    "interpretation": "Diagnostic native flags from acknowledged step records only. The incomplete infrastructure-error attempt retains success=null; these flags do not replace its outcome."
+  },
+  "usage": {
+    "source": "CLI-reported, not independent provider metering",
+    "cached_input_tokens": null,
+    "calls": null,
+    "estimated_cost_usd": null,
+    "input_tokens": null,
+    "latency_s": 2557.290970578877,
+    "output_tokens": null
+  },
+  "observed_completed_call_usage": {
+    "calls_with_reported_usage": 100,
+    "input_tokens": 493000,
+    "output_tokens": 47939,
+    "cached_input_tokens": 153344,
+    "limitation": "Partial sum over the 100 returned decisions only. Failed call 101 has unknown tokens; full-run aggregate usage remains null where the original records mark it unknown."
+  },
+  "scoring": {
+    "rule": "Last executed native step info[success] for protocol-completed episodes; intermediate success does not terminate this track.",
+    "extra_scorer_calls": 0,
+    "infrastructure_error_success": null
+  },
+  "evidence_path_base": "Paths are relative to this benchmark result directory. Each paths array names alternative existing local or exported-client layouts with identical file bytes; raw evidence is not Git data.",
+  "evidence": {
+    "manifest": {
+      "paths": [
+        "raw/2026-09-20-google_robot_pick_horizontal_coke_can-horizontal-can-picking-bench-server-native-v1-sample/manifest.json",
+        "raw/2026-09-20-google_robot_pick_horizontal_coke_can-horizontal-can-picking-bench-server-native-v1-sample/client/manifest.json"
+      ],
+      "bytes": 9086,
+      "sha256": "9d8e7822e184e726d2d9f99106fb3a97fdc3d1f217b952cb040265be5f15b016"
+    },
+    "summary": {
+      "paths": [
+        "raw/2026-09-20-google_robot_pick_horizontal_coke_can-horizontal-can-picking-bench-server-native-v1-sample/summary.json",
+        "raw/2026-09-20-google_robot_pick_horizontal_coke_can-horizontal-can-picking-bench-server-native-v1-sample/client/summary.json"
+      ],
+      "bytes": 890,
+      "sha256": "6968338caa45a169229e5f420b8c8248c10366ef1dd4978d011553e5da7781ca"
+    },
+    "episode_result": {
+      "paths": [
+        "raw/2026-09-20-google_robot_pick_horizontal_coke_can-horizontal-can-picking-bench-server-native-v1-sample/episodes/google_robot_pick_horizontal_coke_can-000000/result.json",
+        "raw/2026-09-20-google_robot_pick_horizontal_coke_can-horizontal-can-picking-bench-server-native-v1-sample/client/episodes/google_robot_pick_horizontal_coke_can-000000/result.json"
+      ],
+      "bytes": 4886,
+      "sha256": "8ca08a071458766bbbcdf11572d311ad6784af43b6829f99dde504a262bef413"
+    },
+    "episode_events": {
+      "paths": [
+        "raw/2026-09-20-google_robot_pick_horizontal_coke_can-horizontal-can-picking-bench-server-native-v1-sample/episodes/google_robot_pick_horizontal_coke_can-000000/events.jsonl",
+        "raw/2026-09-20-google_robot_pick_horizontal_coke_can-horizontal-can-picking-bench-server-native-v1-sample/client/episodes/google_robot_pick_horizontal_coke_can-000000/events.jsonl"
+      ],
+      "bytes": 416460,
+      "sha256": "6e755cda4d4fa6931494ff419cca630fb83f0ddf46546723007d93ee636d3cf1"
+    },
+    "native_provenance": {
+      "paths": [
+        "raw/2026-09-20-google_robot_pick_horizontal_coke_can-horizontal-can-picking-bench-server-native-v1-sample/episodes/google_robot_pick_horizontal_coke_can-000000/artifacts/sim_server_files/native_provenance.json",
+        "raw/2026-09-20-google_robot_pick_horizontal_coke_can-horizontal-can-picking-bench-server-native-v1-sample/client/episodes/google_robot_pick_horizontal_coke_can-000000/artifacts/sim_server_files/native_provenance.json"
+      ],
+      "bytes": 1083,
+      "sha256": "65c802145f6b3d2005945e9ee663c5df5bf5b651e1c5994578ffac1185ce1657"
+    },
+    "native_frames": {
+      "paths": [
+        "raw/2026-09-20-google_robot_pick_horizontal_coke_can-horizontal-can-picking-bench-server-native-v1-sample/episodes/google_robot_pick_horizontal_coke_can-000000/artifacts/sim_server_files/frames.jsonl",
+        "raw/2026-09-20-google_robot_pick_horizontal_coke_can-horizontal-can-picking-bench-server-native-v1-sample/client/episodes/google_robot_pick_horizontal_coke_can-000000/artifacts/sim_server_files/frames.jsonl"
+      ],
+      "bytes": 17778,
+      "sha256": "4b11c3074d1033dc1d5ff17deeaa3d3c5a43645c82f3da089822c3bfe27f94eb"
+    },
+    "sim_server_receipt": {
+      "paths": [
+        "raw/2026-09-20-google_robot_pick_horizontal_coke_can-horizontal-can-picking-bench-server-native-v1-sample/episodes/google_robot_pick_horizontal_coke_can-000000/artifacts/sim_server_receipt.json",
+        "raw/2026-09-20-google_robot_pick_horizontal_coke_can-horizontal-can-picking-bench-server-native-v1-sample/client/episodes/google_robot_pick_horizontal_coke_can-000000/artifacts/sim_server_receipt.json"
+      ],
+      "bytes": 16206,
+      "sha256": "970475d3be8358317a7a31edbfdb7c4b17c2260b371b41b9f4b9dec0215a0611"
+    },
+    "model_source_index": {
+      "paths": [
+        "raw/2026-09-20-google_robot_pick_horizontal_coke_can-horizontal-can-picking-bench-server-native-v1-sample/model_source/index.json",
+        "raw/2026-09-20-google_robot_pick_horizontal_coke_can-horizontal-can-picking-bench-server-native-v1-sample/client/model_source/index.json"
+      ],
+      "bytes": 6002,
+      "sha256": "d0c9e6966b413c07ac9c82ee421e36a7a11c6c59b637630aeab88c112934d48e"
+    },
+    "runtime_source_index": {
+      "paths": [
+        "raw/2026-09-20-google_robot_pick_horizontal_coke_can-horizontal-can-picking-bench-server-native-v1-sample/harness_source/index.json",
+        "raw/2026-09-20-google_robot_pick_horizontal_coke_can-horizontal-can-picking-bench-server-native-v1-sample/client/harness_source/index.json"
+      ],
+      "bytes": 25192,
+      "sha256": "cb04b3b8aed35ed57288fe28e277421da56a65f98c1299027572bea02932af8e"
+    }
+  },
+  "limitations": [
+    "One selected incomplete sample is not a benchmark-wide success rate or native-full score.",
+    "The 200-call/prefix-5/1000-control development track differs from the native 80-control horizon.",
+    "No success was observed in 103 acknowledged controls, but the infrastructure-error outcome is not replaced with a completed model failure.",
+    "The raw stderr cause is not present in retained receipt; no network or quota diagnosis is asserted.",
+    "Video decoding and byte checks do not establish asset, model identity, provider accounting or native baseline parity."
+  ]
+}

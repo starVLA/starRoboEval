@@ -1,0 +1,10 @@
+{
+  "schema_version": "starvla-rsi.sample-media/v1",
+  "run_id": "2026-09-20-libero_spatial-task0-init0-black-bowl-on-plate-bench-server-native-v1-sample",
+  "path_base": "libero result directory",
+  "files": [],
+  "limitations": [
+    "No environment constructed, no reset images or videos produced.",
+    "Generated media are Git-ignored byte-checked presentation copies; raw files are unchanged."
+  ]
+}

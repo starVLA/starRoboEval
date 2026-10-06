@@ -1,0 +1,26 @@
+{
+  "schema_version": "starvla-rsi.vla-arena-native-pin/v1",
+  "upstream_revision": "babe582ebffc82b979b77964a7e56417d02f63a4",
+  "source_url": "https://github.com/PKU-Alignment/VLA-Arena",
+  "files": 4529,
+  "bytes": 909169622,
+  "groups": {
+    "assets": {
+      "files": 2928,
+      "bytes": 875080252,
+      "inventory_sha256": "413edfb90e4fa818b7a7b734a0e46abaf7f3ed8adfbe8d205eecbdae3a0f9d53"
+    },
+    "bddl": {
+      "files": 306,
+      "bytes": 609993,
+      "inventory_sha256": "53bc23a85bc7bb8730e414f5e100e23ba2269dfedfaf1ce32efb048b14f84ba1"
+    },
+    "init": {
+      "files": 421,
+      "bytes": 20373751,
+      "inventory_sha256": "7366f9ca561c47bff6aa49decf761f09d9f5d8b97fb32ebb463e79c02834c55c"
+    }
+  },
+  "inventory_sha256": "32f0caf4a8efcf7179bdb8075b05bb9fa02d22bac526fb33ceb3ae21c25d65c7",
+  "scope": "entire vla_arena package subtree plus pyproject.toml; native bytecode rejected, no exclusions"
+}

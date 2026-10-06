@@ -1,0 +1,266 @@
+{
+  "episodes": [
+    {
+      "case_id": "classify_objects/arx_x5/eval-seed0/layout0",
+      "counters": {
+        "action_decisions": 167,
+        "controls": 833,
+        "first_native_success_control": 833,
+        "policy_calls": 167,
+        "rejected_actions": 0
+      },
+      "error": null,
+      "layout_id": 0,
+      "media": [
+        {
+          "bytes": 2479899,
+          "camera": "cam_head",
+          "path": "media/2026-09-20-classify_objects-category-sorting-direct-v2-network-recovery-reference-layouts0-4-panel5/classify_objects-category-sorting-arx_x5-eval-seed0-layout0/video_cam_head.mp4",
+          "sha256": "33f66f78f041d19650b1207704871efaff9666354a4abc9ca767f3440f4fd664"
+        },
+        {
+          "bytes": 3618658,
+          "camera": "cam_left_wrist",
+          "path": "media/2026-09-20-classify_objects-category-sorting-direct-v2-network-recovery-reference-layouts0-4-panel5/classify_objects-category-sorting-arx_x5-eval-seed0-layout0/video_cam_left_wrist.mp4",
+          "sha256": "762bf6a46055377d90238f4fcd4f4a354bbb8cbb15119af4b19010826d84cb74"
+        },
+        {
+          "bytes": 4789799,
+          "camera": "cam_right_wrist",
+          "path": "media/2026-09-20-classify_objects-category-sorting-direct-v2-network-recovery-reference-layouts0-4-panel5/classify_objects-category-sorting-arx_x5-eval-seed0-layout0/video_cam_right_wrist.mp4",
+          "sha256": "631d1a995a2c4b7df6fd26785c297704a9a2f59000470385df5622f38d27a04f"
+        }
+      ],
+      "native_scores": {
+        "benchmark": 100.0,
+        "process": 100.0,
+        "scale": "0..100"
+      },
+      "schema_version": "starvla-rsi.published-episode/v1",
+      "seed": 20260907,
+      "status": "completed",
+      "success": true,
+      "task": "classify_objects",
+      "task_description": "category-sorting",
+      "termination_reason": "environment:terminated",
+      "usage": {
+        "cached_input_tokens": 20299264,
+        "calls": null,
+        "estimated_cost_usd": null,
+        "input_tokens": 20721504,
+        "latency_s": 4300.966708495223,
+        "output_tokens": 34185
+      }
+    },
+    {
+      "case_id": "classify_objects/arx_x5/eval-seed0/layout1",
+      "counters": {
+        "action_decisions": 192,
+        "controls": 956,
+        "first_native_success_control": 956,
+        "policy_calls": 193,
+        "rejected_actions": 1
+      },
+      "error": null,
+      "layout_id": 1,
+      "media": [
+        {
+          "bytes": 2651879,
+          "camera": "cam_head",
+          "path": "media/2026-09-20-classify_objects-category-sorting-direct-v2-network-recovery-reference-layouts0-4-panel5/classify_objects-category-sorting-arx_x5-eval-seed0-layout1/video_cam_head.mp4",
+          "sha256": "ab5773c0a671002f7473c2d9d8f457ce9ac5eb3805cfebee3c2c563b93eaaf2f"
+        },
+        {
+          "bytes": 4462746,
+          "camera": "cam_left_wrist",
+          "path": "media/2026-09-20-classify_objects-category-sorting-direct-v2-network-recovery-reference-layouts0-4-panel5/classify_objects-category-sorting-arx_x5-eval-seed0-layout1/video_cam_left_wrist.mp4",
+          "sha256": "99e9e9971dcfdfafe889f973c9c3abf89d80ad03ddcfe65af6e7dc3dbc04f3ff"
+        },
+        {
+          "bytes": 4525630,
+          "camera": "cam_right_wrist",
+          "path": "media/2026-09-20-classify_objects-category-sorting-direct-v2-network-recovery-reference-layouts0-4-panel5/classify_objects-category-sorting-arx_x5-eval-seed0-layout1/video_cam_right_wrist.mp4",
+          "sha256": "10b1e16e04846e3595d85905cdb0f1d3785fbe262caffa9268d53b39646b368a"
+        }
+      ],
+      "native_scores": {
+        "benchmark": 100.0,
+        "process": 100.0,
+        "scale": "0..100"
+      },
+      "schema_version": "starvla-rsi.published-episode/v1",
+      "seed": 20260907,
+      "status": "completed",
+      "success": true,
+      "task": "classify_objects",
+      "task_description": "category-sorting",
+      "termination_reason": "environment:terminated",
+      "usage": {
+        "cached_input_tokens": 24928000,
+        "calls": null,
+        "estimated_cost_usd": null,
+        "input_tokens": 25321176,
+        "latency_s": 3825.7820681289595,
+        "output_tokens": 55837
+      }
+    },
+    {
+      "case_id": "classify_objects/arx_x5/eval-seed0/layout2",
+      "counters": {
+        "action_decisions": 170,
+        "controls": 848,
+        "first_native_success_control": 848,
+        "policy_calls": 170,
+        "rejected_actions": 0
+      },
+      "error": null,
+      "layout_id": 2,
+      "media": [
+        {
+          "bytes": 2518009,
+          "camera": "cam_head",
+          "path": "media/2026-09-20-classify_objects-category-sorting-direct-v2-network-recovery-reference-layouts0-4-panel5/classify_objects-category-sorting-arx_x5-eval-seed0-layout2/video_cam_head.mp4",
+          "sha256": "6340c4b2bb1bf62d2c8c7d64949d77eb3b1793034bd412f7733a1a5feebc3082"
+        },
+        {
+          "bytes": 4868138,
+          "camera": "cam_left_wrist",
+          "path": "media/2026-09-20-classify_objects-category-sorting-direct-v2-network-recovery-reference-layouts0-4-panel5/classify_objects-category-sorting-arx_x5-eval-seed0-layout2/video_cam_left_wrist.mp4",
+          "sha256": "673661d7bc88e8049c41a5d7534a92f2fb9f5b33c3cfa6108f7caac49eb2b75f"
+        },
+        {
+          "bytes": 4036953,
+          "camera": "cam_right_wrist",
+          "path": "media/2026-09-20-classify_objects-category-sorting-direct-v2-network-recovery-reference-layouts0-4-panel5/classify_objects-category-sorting-arx_x5-eval-seed0-layout2/video_cam_right_wrist.mp4",
+          "sha256": "50d802e70d1a18a20285410e662dccc11ee47ccbddc3d30ac4ab7dd594c2955f"
+        }
+      ],
+      "native_scores": {
+        "benchmark": 100.0,
+        "process": 100.0,
+        "scale": "0..100"
+      },
+      "schema_version": "starvla-rsi.published-episode/v1",
+      "seed": 20260907,
+      "status": "completed",
+      "success": true,
+      "task": "classify_objects",
+      "task_description": "category-sorting",
+      "termination_reason": "environment:terminated",
+      "usage": {
+        "cached_input_tokens": 20909952,
+        "calls": null,
+        "estimated_cost_usd": null,
+        "input_tokens": 21181249,
+        "latency_s": 4334.639480787009,
+        "output_tokens": 39385
+      }
+    },
+    {
+      "case_id": "classify_objects/arx_x5/eval-seed0/layout3",
+      "counters": {
+        "action_decisions": 220,
+        "controls": 1100,
+        "first_native_success_control": null,
+        "policy_calls": 220,
+        "rejected_actions": 0
+      },
+      "error": null,
+      "layout_id": 3,
+      "media": [
+        {
+          "bytes": 3164102,
+          "camera": "cam_head",
+          "path": "media/2026-09-20-classify_objects-category-sorting-direct-v2-network-recovery-reference-layouts0-4-panel5/classify_objects-category-sorting-arx_x5-eval-seed0-layout3/video_cam_head.mp4",
+          "sha256": "f1fc5fd8b1c574210dd77d172384adaa26ca56570d81057f1b088369ebeb2e7f"
+        },
+        {
+          "bytes": 5261774,
+          "camera": "cam_left_wrist",
+          "path": "media/2026-09-20-classify_objects-category-sorting-direct-v2-network-recovery-reference-layouts0-4-panel5/classify_objects-category-sorting-arx_x5-eval-seed0-layout3/video_cam_left_wrist.mp4",
+          "sha256": "441827f92de9be02e1b361dd3981ce0fbb308e4989e2612974219ae1b71a96ff"
+        },
+        {
+          "bytes": 4926934,
+          "camera": "cam_right_wrist",
+          "path": "media/2026-09-20-classify_objects-category-sorting-direct-v2-network-recovery-reference-layouts0-4-panel5/classify_objects-category-sorting-arx_x5-eval-seed0-layout3/video_cam_right_wrist.mp4",
+          "sha256": "9d3fdf8f750505ed7fe095189e538ba5033c25a6de9aa0a2469c38b195319c14"
+        }
+      ],
+      "native_scores": {
+        "benchmark": 40.0,
+        "process": 40.0,
+        "scale": "0..100"
+      },
+      "schema_version": "starvla-rsi.published-episode/v1",
+      "seed": 20260907,
+      "status": "completed",
+      "success": false,
+      "task": "classify_objects",
+      "task_description": "category-sorting",
+      "termination_reason": "environment:truncated",
+      "usage": {
+        "cached_input_tokens": 25862528,
+        "calls": null,
+        "estimated_cost_usd": null,
+        "input_tokens": 26479934,
+        "latency_s": 5801.369846800095,
+        "output_tokens": 65720
+      }
+    },
+    {
+      "case_id": "classify_objects/arx_x5/eval-seed0/layout4",
+      "counters": {
+        "action_decisions": 220,
+        "controls": 1100,
+        "first_native_success_control": null,
+        "policy_calls": 220,
+        "rejected_actions": 0
+      },
+      "error": null,
+      "layout_id": 4,
+      "media": [
+        {
+          "bytes": 3427170,
+          "camera": "cam_head",
+          "path": "media/2026-09-20-classify_objects-category-sorting-direct-v2-network-recovery-reference-layouts0-4-panel5/classify_objects-category-sorting-arx_x5-eval-seed0-layout4/video_cam_head.mp4",
+          "sha256": "3125237dcba8296120563cda83595364cd73ff892beb2b7618efa8e062bf7ea2"
+        },
+        {
+          "bytes": 6681335,
+          "camera": "cam_left_wrist",
+          "path": "media/2026-09-20-classify_objects-category-sorting-direct-v2-network-recovery-reference-layouts0-4-panel5/classify_objects-category-sorting-arx_x5-eval-seed0-layout4/video_cam_left_wrist.mp4",
+          "sha256": "4f473b40b0c025d8236b4bb06cb457a1291403803dc6d05ef809f5cf41818f84"
+        },
+        {
+          "bytes": 5527816,
+          "camera": "cam_right_wrist",
+          "path": "media/2026-09-20-classify_objects-category-sorting-direct-v2-network-recovery-reference-layouts0-4-panel5/classify_objects-category-sorting-arx_x5-eval-seed0-layout4/video_cam_right_wrist.mp4",
+          "sha256": "c00990912713873961ea64a30e2b11070574c542a64b56055f9562a97a1a3fdf"
+        }
+      ],
+      "native_scores": {
+        "benchmark": 40.0,
+        "process": 40.0,
+        "scale": "0..100"
+      },
+      "schema_version": "starvla-rsi.published-episode/v1",
+      "seed": 20260907,
+      "status": "completed",
+      "success": false,
+      "task": "classify_objects",
+      "task_description": "category-sorting",
+      "termination_reason": "environment:truncated",
+      "usage": {
+        "cached_input_tokens": 26362112,
+        "calls": null,
+        "estimated_cost_usd": null,
+        "input_tokens": 26734531,
+        "latency_s": 4914.33311270595,
+        "output_tokens": 51998
+      }
+    }
+  ],
+  "run_id": "2026-09-20-classify_objects-category-sorting-direct-v2-network-recovery-reference-layouts0-4-panel5",
+  "schema_version": "starvla-rsi.published-episode/v1"
+}

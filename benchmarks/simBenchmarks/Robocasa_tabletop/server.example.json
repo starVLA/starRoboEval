@@ -1,0 +1,10 @@
+{
+  "casa_source": "/absolute/path/to/pinned/robocasa-gr1",
+  "suite_source": "/absolute/path/to/pinned/robosuite-gr1",
+  "object_inventory": "/absolute/path/to/pinned/object-inventory.json",
+  "task_scope": "pilot",
+  "task_ids": [0],
+  "render_gpu_device_id": 0,
+  "budget_mode": "horizon",
+  "control_step_cap": 1000
+}

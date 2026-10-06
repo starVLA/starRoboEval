@@ -1,0 +1,75 @@
+{
+  "schema_version": "starvla-rsi.sample-result-index/v1",
+  "benchmark": "robocasa_tabletop",
+  "latest_completed_sample": "2026-10-04-PnPCupToDrawerClose-cup-in-drawer-resource-fix-authorized-once",
+  "runs": [
+    {
+      "run_id": "2026-10-04-PnPCupToDrawerClose-cup-in-drawer-post-convergence-once",
+      "report": "reports/2026-10-04-PnPCupToDrawerClose-cup-in-drawer-post-convergence-once/result.json",
+      "html_report": "reports/2026-10-04-PnPCupToDrawerClose-cup-in-drawer-post-convergence-once/index.html",
+      "kind": "single_fixed_sample_launch_error",
+      "status": "completed_with_errors",
+      "planned": 1,
+      "attempted": 1,
+      "completed": 0,
+      "successes": 0,
+      "errors": 1,
+      "unattempted": 0,
+      "policy_calls": 0,
+      "action_decisions": 0,
+      "environment_steps": 0,
+      "rejected_actions": 0,
+      "termination_reason": "error:infrastructure",
+      "native_success": null,
+      "native_full_evaluation": false
+    },
+    {
+      "run_id": "2026-10-04-PnPCupToDrawerClose-cup-in-drawer-resource-fix-authorized-once",
+      "report": "reports/2026-10-04-PnPCupToDrawerClose-cup-in-drawer-resource-fix-authorized-once-independent-audit/result.json",
+      "html_report": "reports/2026-10-04-PnPCupToDrawerClose-cup-in-drawer-resource-fix-authorized-once-independent-audit/index.html",
+      "kind": "single_user_authorized_resource_corrected_sample",
+      "status": "completed",
+      "protocol_version": "gr1-tabletop-pilot-0-19/rgb256-qpos29/control-1000/v2",
+      "method": "codex-native/v1",
+      "requested_model": "gpt-6-astra",
+      "requested_reasoning_effort": "xhigh",
+      "identity_evidence": "participant_declaration_not_provider_attestation",
+      "provider_requests": null,
+      "seed": 20260907,
+      "planned": 1,
+      "attempted": 1,
+      "completed": 1,
+      "successes": 0,
+      "errors": 0,
+      "unattempted": 0,
+      "policy_calls": 199,
+      "action_decisions": 198,
+      "environment_steps": 990,
+      "rejected_actions": 0,
+      "termination_reason": "policy:give_up",
+      "native_success": false,
+      "budget": {
+        "max_steps": 1000,
+        "max_policy_calls": 200,
+        "method_replan_interval": 5,
+        "service_max_policy_calls": null,
+        "service_replan_interval": null,
+        "native_engine_horizon": 1000,
+        "native_ignore_done": true
+      },
+      "retry_of": "2026-10-04-PnPCupToDrawerClose-cup-in-drawer-post-convergence-once",
+      "retry_authorization": "explicit_user_authorization_after_resource_conflict",
+      "automatic_retry": false,
+      "native_full_evaluation": false,
+      "source_commit": "63b30885bdb82706dc572ec981cd4430dd1e23af",
+      "videos": [
+        {
+          "camera": "ego_view_bg_crop_pad_res256_freq20",
+          "path": "raw/2026-10-04-PnPCupToDrawerClose-cup-in-drawer-resource-fix-authorized-once/client/episodes/tabletop-task00-seed20260907-attempt1/artifacts/sim_server_files/ego_view_bg_crop_pad_res256_freq20.mp4",
+          "frames": 991,
+          "fps": 20
+        }
+      ]
+    }
+  ]
+}

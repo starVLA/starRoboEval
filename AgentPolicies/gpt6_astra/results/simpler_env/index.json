@@ -1,0 +1,46 @@
+{
+  "schema_version": "starvla-rsi.sample-result-index/v1",
+  "benchmark": "simpler_env",
+  "latest_closed_sample": "2026-10-04-google_robot_pick_horizontal_coke_can-can-picking-post-convergence-once",
+  "latest_completed_sample": "2026-10-04-google_robot_pick_horizontal_coke_can-can-picking-post-convergence-once",
+  "runs": [
+    {
+      "run_id": "2026-09-20-google_robot_pick_horizontal_coke_can-horizontal-can-picking-bench-server-native-v1-sample",
+      "report": "reports/2026-09-20-google_robot_pick_horizontal_coke_can-horizontal-can-picking-bench-server-native-v1-sample/result.json",
+      "kind": "single_fixed_native_sample",
+      "status": "error",
+      "attempted": 1,
+      "completed": 0,
+      "successes": 0,
+      "errors": 1,
+      "native_full_evaluation": false
+    },
+    {
+      "run_id": "2026-10-04-google_robot_pick_horizontal_coke_can-can-picking-post-convergence-once",
+      "report": "reports/2026-10-04-google_robot_pick_horizontal_coke_can-can-picking-post-convergence-once-independent-audit/result.json",
+      "html_report": "reports/2026-10-04-google_robot_pick_horizontal_coke_can-can-picking-post-convergence-once-independent-audit/index.html",
+      "kind": "single_preselected_model_sample",
+      "status": "completed",
+      "protocol_version": "simpler-prepackaged-development/rgb/action-feedback/agent-method/v1",
+      "method": "codex-native/v1",
+      "requested_model": "gpt-6-astra",
+      "identity_evidence": "participant_declaration_not_provider_attestation",
+      "provider_requests": null,
+      "seed": 20260907,
+      "planned": 1,
+      "attempted": 1,
+      "completed": 1,
+      "successes": 0,
+      "errors": 0,
+      "unattempted": 0,
+      "policy_calls": 76,
+      "action_decisions": 76,
+      "environment_steps": 80,
+      "rejected_actions": 0,
+      "termination_reason": "environment:truncated",
+      "budget": {"max_steps": 80, "max_policy_calls": 200, "method_replan_interval": 5},
+      "automatic_retry": false,
+      "native_full_evaluation": false
+    }
+  ]
+}

@@ -1,0 +1,658 @@
+{
+  "created_at": "2026-09-10T17:22:31.959778+00:00",
+  "limitations": [
+    "Index of the explicit closed source list, not full benchmark coverage or a merged model score.",
+    "Original manifests, results, source packages and paths remain unchanged.",
+    "Hashes cover the listed records and selected videos, not all source/assets/wire artifacts.",
+    "Native first success is read from existing step logs; incomplete evidence remains null.",
+    "Model/provider identity, accounting and isolation are not retroactively verified."
+  ],
+  "model": null,
+  "namespace": "anonymous_code_agent",
+  "provider": null,
+  "runs": [
+    {
+      "action_spec": {
+        "control_hz": 25.0,
+        "frame": "native fixed-base ARX X5 joint coordinates",
+        "gripper": "continuous [0,1], 0 closed / 1 open; native scalar maps to [-0.01,0.044] m",
+        "high": [
+          10.0,
+          10.0,
+          10.0,
+          10.0,
+          10.0,
+          3.14,
+          1.0,
+          10.0,
+          10.0,
+          10.0,
+          10.0,
+          10.0,
+          3.14,
+          1.0
+        ],
+        "low": [
+          -10.0,
+          -10.0,
+          -10.0,
+          -10.0,
+          -10.0,
+          -3.14,
+          0.0,
+          -10.0,
+          -10.0,
+          -10.0,
+          -10.0,
+          -10.0,
+          -3.14,
+          0.0
+        ],
+        "mode": "robodojo_dual_x5_joint_target_14",
+        "names": [
+          "left_joint1_rad",
+          "left_joint2_rad",
+          "left_joint3_rad",
+          "left_joint4_rad",
+          "left_joint5_rad",
+          "left_joint6_rad",
+          "left_gripper_open_01",
+          "right_joint1_rad",
+          "right_joint2_rad",
+          "right_joint3_rad",
+          "right_joint4_rad",
+          "right_joint5_rad",
+          "right_joint6_rad",
+          "right_gripper_open_01"
+        ],
+        "rotation": "six absolute revolute joint targets per arm, radians",
+        "size": 14
+      },
+      "benchmark": {
+        "name": "robodojo",
+        "protocol_version": "robodojo-rgb-joint14-horizon-200calls-prefix5-nativecap-v1-continuation-pair-v1-zengshuang-reference-v1-http-cache-checkpoint-v1",
+        "source_revision": "36bfcb7c580b149c6e39ed2eb77d60689152e570",
+        "version": "36bfcb7-native"
+      },
+      "episodes": [
+        {
+          "action_decisions": 52,
+          "duration_s": 2987.12652831804,
+          "environment_steps": 256,
+          "episode": {
+            "id": "hang_mugs/arx_x5/eval-seed0/layout0",
+            "instruction": "Hang all the mugs on the mug rack.",
+            "metadata": {
+              "asset_policy": "zengshuang-reference-v1",
+              "asset_reference_sha256": "bcee49283722d1b80c0d95a51a44267e0fb9bbc1d76dd52ea0d0e2416e0879dd",
+              "http_cache_seed_sha256": "aff34e2d5ef9ebb8ee331a8a63449e7d5a3c488ba2b7233ac4e92f35eb27e1fb",
+              "layout_id": 0,
+              "layout_sha256": "d257f31ef0597bcc47470ce8df823a120283257669426175f0ee8099a83cb601",
+              "native_eval_seed": 0,
+              "native_horizon": 800,
+              "native_step_lim_override": null,
+              "official_leaderboard_protocol": false,
+              "reference_native_horizon": 800,
+              "runner_control_safety_cap": 1000,
+              "task_scope": "continuation-pair-v1"
+            },
+            "seed": 20260907,
+            "task": "hang_mugs"
+          },
+          "error": null,
+          "metrics": {
+            "adapter_step_returns": 256,
+            "attempted_control_targets": 256,
+            "control_target_hz": 25.0,
+            "control_targets": 256,
+            "diagnostic_only": false,
+            "effective_control_target_cap": 800,
+            "first_native_success_control_target": null,
+            "native_alive_flag": true,
+            "native_benchmark_score": 0.0,
+            "native_benchmark_score_scale": "0..100",
+            "native_end_flag": false,
+            "native_horizon": 800,
+            "native_physics_counter": 3402,
+            "native_process_score": 0.0,
+            "native_reward": 0.0,
+            "native_reward_evaluations": 256,
+            "native_step_lim_override": null,
+            "native_take_action_count": 256,
+            "physics_hz": 250.0,
+            "physics_ticks": 2560,
+            "reference_native_horizon": 800,
+            "reset_physics_ticks": 842,
+            "success": false,
+            "track": "robodojo-rgb-joint14-horizon-200calls-prefix5-nativecap-v1-continuation-pair-v1-zengshuang-reference-v1-http-cache-checkpoint-v1"
+          },
+          "policy_calls": 53,
+          "progress": {
+            "complete_step_coverage": true,
+            "first_native_success_step": null,
+            "first_native_success_timestamp": null,
+            "native_success_field": "native_success",
+            "policy_call_at_first_native_success": null
+          },
+          "source_result": "/mnt/workspace/users/jinhuiye/Projects/starVLA-RSI/starVLA/anonymous_code_agent/results/robodojo/raw/2026-09-11-hang-mugs-and-sweep-blocks-cache-checkpoint/campaign/case-000/run/episodes/hang_mugs_arx_x5_eval-seed0_layout0/result.json",
+          "status": "completed",
+          "success": false,
+          "termination_reason": "policy:give_up",
+          "usage": {
+            "cached_input_tokens": null,
+            "calls": null,
+            "estimated_cost_usd": null,
+            "input_tokens": null,
+            "latency_s": 2594.867266516434,
+            "output_tokens": null
+          }
+        }
+      ],
+      "harness_source": {
+        "file_count": 33,
+        "files_root": "harness_source/files",
+        "index_sha256": "a8def9a1c1ef736d1afa92ecdbf7680c14103db5e959cfbc3a000fe8b5d291ca",
+        "inventory_sha256": "d17d1c742be6804275e9fa9eda9487bc00e72d00defe0c2aa0a0194f96d697b6",
+        "limitations": "Not an external-policy, prompt, simulator, asset, dependency, or loaded-memory snapshot.",
+        "path": "harness_source/index.json",
+        "scope": "installed evaluation package .py/.json files only",
+        "source_root": "/mnt/workspace/users/jinhuiye/Projects/starVLA-RSI/starVLA/anonymous_code_agent/results/robodojo/raw/2026-09-11-hang-mugs-and-sweep-blocks-cache-checkpoint/campaign/frozen/starVLA/evaluation",
+        "total_bytes": 536974
+      },
+      "model_profile": {
+        "config_sha256": "ed3f9d074679b67111356905e4e3ce6343f073a48e346da0f517ba17fccdb7a4",
+        "dependencies_sha256": "1dfec743b49a7e4b23a85fb28a86672f896597fed7b634a7f5bf830fbf7d5256",
+        "factory": "starVLA.anonymous_code_agent.policy:create_policy",
+        "id": "anonymous_code_agent",
+        "profile_sha256": "a3837d382bfc0a487fbf8d6152cd32d1b9e4bf38f38ec9ca64a3c1bf2f463e09",
+        "prompt_sha256": "d80b93def1890f10e723902e66e0b65efdb49272c51605df924076fb8b3f8ff0",
+        "schema_version": "starvla-rsi.model-profile/v1",
+        "source_inventory_sha256": "5e48b37769b26696a7682dcd06a12362ecc501eaed9dc17c60fb2b129c65b5eb"
+      },
+      "model_source": {
+        "file_count": 11,
+        "index_sha256": "4bc18bbce2d78c5e1160be5f684d303eece3afb501c513b8a2e52aaa90890321",
+        "inventory_sha256": "d7587accb02d1d1e7b7339f42490af82fa2e08396d0c524089050fa11425aede",
+        "path": "model_source/index.json",
+        "schema_version": "starvla-rsi.model-source/v1",
+        "total_bytes": 22744
+      },
+      "observation_spec": {
+        "cameras": [
+          "cam_head",
+          "cam_left_wrist",
+          "cam_right_wrist"
+        ],
+        "modalities": [
+          "rgb",
+          "language"
+        ],
+        "privileged": false,
+        "state_names": []
+      },
+      "policy": {
+        "kind": "external-code-agent",
+        "model": null,
+        "name": "code-agent-development",
+        "parameters": {
+          "absolute_paths_exported": false,
+          "directory": "/mnt/workspace/users/jinhuiye/Projects/starVLA-RSI/public/mbx-5f9eb0e9db1a73f2428aab37ba604e93",
+          "endpoint_blinding": "operator_must_supply_seed_independent_root_and_opaque_endpoint",
+          "evaluation_status": "experimental",
+          "history": "current_observation_only",
+          "max_chunk_length": 5,
+          "max_response_bytes": 65536,
+          "model_profile": {
+            "config_sha256": "ed3f9d074679b67111356905e4e3ce6343f073a48e346da0f517ba17fccdb7a4",
+            "dependencies_sha256": "1dfec743b49a7e4b23a85fb28a86672f896597fed7b634a7f5bf830fbf7d5256",
+            "factory": "starVLA.anonymous_code_agent.policy:create_policy",
+            "id": "anonymous_code_agent",
+            "profile_sha256": "a3837d382bfc0a487fbf8d6152cd32d1b9e4bf38f38ec9ca64a3c1bf2f463e09",
+            "prompt_sha256": "d80b93def1890f10e723902e66e0b65efdb49272c51605df924076fb8b3f8ff0",
+            "schema_version": "starvla-rsi.model-profile/v1",
+            "source_inventory_sha256": "5e48b37769b26696a7682dcd06a12362ecc501eaed9dc17c60fb2b129c65b5eb"
+          },
+          "prompt_sha256": "c162e116070a33a5ae558b1d8fb922e913375cc1bf47d8d9633bc3aa1d559f8c",
+          "provider_call_limit_verified": false,
+          "public_path_base": "mailbox_root",
+          "timeout_s": 900.0,
+          "usage_source": "client_reported_or_unavailable"
+        },
+        "provider": null,
+        "version": "starvla-rsi.mailbox/v2"
+      },
+      "protocol": {
+        "budget_mode": "horizon",
+        "early_policy_stop_exception": "safety_stop_with_nonempty_note",
+        "episode_ids": [
+          "hang_mugs/arx_x5/eval-seed0/layout0"
+        ],
+        "episode_limit": 1,
+        "fail_fast": false,
+        "max_policy_calls": 200,
+        "max_steps": 1000,
+        "min_action_decisions_before_give_up": 50,
+        "primary_budget": "first_exhausted_limit",
+        "replan_interval": 5,
+        "seed": 20260907,
+        "stop_constraint_version": "minimum-action-decisions/v1"
+      },
+      "run_id": "run",
+      "runtime": {
+        "executable": "/mnt/workspace/users/jinhuiye/conda/envs/starvla-rsi-tabletop/bin/python",
+        "git": {
+          "dirty": true,
+          "evaluation_package_diff": {
+            "format": "git diff --no-ext-diff --no-textconv HEAD --binary -- <scope>",
+            "includes_untracked_files": false,
+            "scope": "starVLA/anonymous_code_agent/results/robodojo/raw/2026-09-11-hang-mugs-and-sweep-blocks-cache-checkpoint/campaign/frozen/starVLA/evaluation",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "size_bytes": 0,
+            "status": "recorded"
+          },
+          "revision": "9ae943df4b330459c94cf7d1f4aeb6018d42901c"
+        },
+        "hostname": "nb-tspyxddl7i-0",
+        "platform": "Linux-5.10.0-1.oe.jd_702.x86_64-x86_64-with-glibc2.39",
+        "python": "3.10.21"
+      },
+      "source_files_sha256": {
+        "episodes.jsonl": "61e505c55e859f1b13bcd43fec816e68e8034f91d3e5609fd1aaf02b491a63b5",
+        "episodes/hang_mugs_arx_x5_eval-seed0_layout0/artifacts/cam_head.mp4": "70cc35859300fe82fc6cf8ac99d098e90e64ab9bf781629013178b41a09b2301",
+        "episodes/hang_mugs_arx_x5_eval-seed0_layout0/artifacts/cam_left_wrist.mp4": "877b424aa7feca68a5c57a689bfe13af8a15f78350675bcdc9592672778654ae",
+        "episodes/hang_mugs_arx_x5_eval-seed0_layout0/artifacts/cam_right_wrist.mp4": "8d18c20f8af690c41b18b6b6bb2ee7be3e20a58641b4a7d7010d122e941c651c",
+        "episodes/hang_mugs_arx_x5_eval-seed0_layout0/events.jsonl": "03d8e79c611597b70120c5a4436f1643fc97520566e1bfd4bf92c3196eb31be8",
+        "episodes/hang_mugs_arx_x5_eval-seed0_layout0/result.json": "840cc0305e53fd241722b76271be88b8e157f7faa99f6bf704fd63b1ee1beaf4",
+        "manifest.json": "3aa7d848da655625f2b3eac2de92427a5a947e2bdf064f1918a01aba7c89e2a5",
+        "status.json": "78982cda8b873711dec506daf8bce30a021df017fd58058b0eb4ed6fb7d896f5",
+        "summary.json": "d46ab9e8ba212007d3a96781fb1fa0249e8af64096bbf071eb35a995d101a012"
+      },
+      "source_run": "/mnt/workspace/users/jinhuiye/Projects/starVLA-RSI/starVLA/anonymous_code_agent/results/robodojo/raw/2026-09-11-hang-mugs-and-sweep-blocks-cache-checkpoint/campaign/case-000/run",
+      "status": "completed",
+      "summary": {
+        "attempt_success_rate": 0.0,
+        "attempted": 1,
+        "benchmark": "robodojo",
+        "by_task": {
+          "hang_mugs": {
+            "attempt_success_rate": 0.0,
+            "attempted": 1,
+            "completed": 1,
+            "errors": 0,
+            "policy_calls": 53,
+            "success_rate": 0.0,
+            "successes": 0
+          }
+        },
+        "completed": 1,
+        "completion_rate": 1.0,
+        "errors": 0,
+        "policy": "code-agent-development",
+        "policy_calls": 53,
+        "run_id": "run",
+        "schema_version": "starvla-rsi.eval/v1",
+        "success_rate": 0.0,
+        "successes": 0,
+        "usage": {
+          "cached_input_tokens": null,
+          "calls": null,
+          "estimated_cost_usd": null,
+          "input_tokens": null,
+          "latency_s": 2594.867266516434,
+          "output_tokens": null
+        }
+      },
+      "videos": [
+        {
+          "camera": "cam_head",
+          "episode_id": "hang_mugs/arx_x5/eval-seed0/layout0",
+          "path": "media/robodojo/2026-09-10-hang_mugs-mug-hanging-run-21751fde5b3f-case-000-b7517fe5/cam_head-cam_head.mp4",
+          "sha256": "70cc35859300fe82fc6cf8ac99d098e90e64ab9bf781629013178b41a09b2301",
+          "size_bytes": 460130,
+          "source": "/mnt/workspace/users/jinhuiye/Projects/starVLA-RSI/starVLA/anonymous_code_agent/results/robodojo/raw/2026-09-11-hang-mugs-and-sweep-blocks-cache-checkpoint/campaign/case-000/run/episodes/hang_mugs_arx_x5_eval-seed0_layout0/artifacts/cam_head.mp4",
+          "source_relative": "episodes/hang_mugs_arx_x5_eval-seed0_layout0/artifacts/cam_head.mp4"
+        },
+        {
+          "camera": "cam_left_wrist",
+          "episode_id": "hang_mugs/arx_x5/eval-seed0/layout0",
+          "path": "media/robodojo/2026-09-10-hang_mugs-mug-hanging-run-21751fde5b3f-case-000-b7517fe5/cam_left_wrist-cam_left_wrist.mp4",
+          "sha256": "877b424aa7feca68a5c57a689bfe13af8a15f78350675bcdc9592672778654ae",
+          "size_bytes": 938041,
+          "source": "/mnt/workspace/users/jinhuiye/Projects/starVLA-RSI/starVLA/anonymous_code_agent/results/robodojo/raw/2026-09-11-hang-mugs-and-sweep-blocks-cache-checkpoint/campaign/case-000/run/episodes/hang_mugs_arx_x5_eval-seed0_layout0/artifacts/cam_left_wrist.mp4",
+          "source_relative": "episodes/hang_mugs_arx_x5_eval-seed0_layout0/artifacts/cam_left_wrist.mp4"
+        },
+        {
+          "camera": "cam_right_wrist",
+          "episode_id": "hang_mugs/arx_x5/eval-seed0/layout0",
+          "path": "media/robodojo/2026-09-10-hang_mugs-mug-hanging-run-21751fde5b3f-case-000-b7517fe5/cam_right_wrist-cam_right_wrist.mp4",
+          "sha256": "8d18c20f8af690c41b18b6b6bb2ee7be3e20a58641b4a7d7010d122e941c651c",
+          "size_bytes": 527322,
+          "source": "/mnt/workspace/users/jinhuiye/Projects/starVLA-RSI/starVLA/anonymous_code_agent/results/robodojo/raw/2026-09-11-hang-mugs-and-sweep-blocks-cache-checkpoint/campaign/case-000/run/episodes/hang_mugs_arx_x5_eval-seed0_layout0/artifacts/cam_right_wrist.mp4",
+          "source_relative": "episodes/hang_mugs_arx_x5_eval-seed0_layout0/artifacts/cam_right_wrist.mp4"
+        }
+      ]
+    },
+    {
+      "action_spec": {
+        "control_hz": 25.0,
+        "frame": "native fixed-base ARX X5 joint coordinates",
+        "gripper": "continuous [0,1], 0 closed / 1 open; native scalar maps to [-0.01,0.044] m",
+        "high": [
+          10.0,
+          10.0,
+          10.0,
+          10.0,
+          10.0,
+          3.14,
+          1.0,
+          10.0,
+          10.0,
+          10.0,
+          10.0,
+          10.0,
+          3.14,
+          1.0
+        ],
+        "low": [
+          -10.0,
+          -10.0,
+          -10.0,
+          -10.0,
+          -10.0,
+          -3.14,
+          0.0,
+          -10.0,
+          -10.0,
+          -10.0,
+          -10.0,
+          -10.0,
+          -3.14,
+          0.0
+        ],
+        "mode": "robodojo_dual_x5_joint_target_14",
+        "names": [
+          "left_joint1_rad",
+          "left_joint2_rad",
+          "left_joint3_rad",
+          "left_joint4_rad",
+          "left_joint5_rad",
+          "left_joint6_rad",
+          "left_gripper_open_01",
+          "right_joint1_rad",
+          "right_joint2_rad",
+          "right_joint3_rad",
+          "right_joint4_rad",
+          "right_joint5_rad",
+          "right_joint6_rad",
+          "right_gripper_open_01"
+        ],
+        "rotation": "six absolute revolute joint targets per arm, radians",
+        "size": 14
+      },
+      "benchmark": {
+        "name": "robodojo",
+        "protocol_version": "robodojo-rgb-joint14-horizon-200calls-prefix5-nativecap-v1-continuation-pair-v1-zengshuang-reference-v1-http-cache-checkpoint-v1",
+        "source_revision": "36bfcb7c580b149c6e39ed2eb77d60689152e570",
+        "version": "36bfcb7-native"
+      },
+      "episodes": [
+        {
+          "action_decisions": 50,
+          "duration_s": 2386.4769533488434,
+          "environment_steps": 246,
+          "episode": {
+            "id": "sweep_blocks/arx_x5/eval-seed0/layout0",
+            "instruction": "Pick up the broom, hand it over to the right hand, then use the dustpan to sweep the blocks.",
+            "metadata": {
+              "asset_policy": "zengshuang-reference-v1",
+              "asset_reference_sha256": "bcee49283722d1b80c0d95a51a44267e0fb9bbc1d76dd52ea0d0e2416e0879dd",
+              "http_cache_seed_sha256": "aff34e2d5ef9ebb8ee331a8a63449e7d5a3c488ba2b7233ac4e92f35eb27e1fb",
+              "layout_id": 0,
+              "layout_sha256": "1eebf38dc48de8c80a3010a112082c0b6bc6a4e0a45d0c38c05f8c719774ba9e",
+              "native_eval_seed": 0,
+              "native_horizon": 1000,
+              "native_step_lim_override": null,
+              "official_leaderboard_protocol": false,
+              "reference_native_horizon": 1000,
+              "runner_control_safety_cap": 1000,
+              "task_scope": "continuation-pair-v1"
+            },
+            "seed": 20260907,
+            "task": "sweep_blocks"
+          },
+          "error": null,
+          "metrics": {
+            "adapter_step_returns": 246,
+            "attempted_control_targets": 246,
+            "control_target_hz": 25.0,
+            "control_targets": 246,
+            "diagnostic_only": false,
+            "effective_control_target_cap": 1000,
+            "first_native_success_control_target": null,
+            "native_alive_flag": true,
+            "native_benchmark_score": 0.0,
+            "native_benchmark_score_scale": "0..100",
+            "native_end_flag": false,
+            "native_horizon": 1000,
+            "native_physics_counter": 3302,
+            "native_process_score": null,
+            "native_reward": 0.0,
+            "native_reward_evaluations": 246,
+            "native_step_lim_override": null,
+            "native_take_action_count": 246,
+            "physics_hz": 250.0,
+            "physics_ticks": 2460,
+            "reference_native_horizon": 1000,
+            "reset_physics_ticks": 842,
+            "success": false,
+            "track": "robodojo-rgb-joint14-horizon-200calls-prefix5-nativecap-v1-continuation-pair-v1-zengshuang-reference-v1-http-cache-checkpoint-v1"
+          },
+          "policy_calls": 51,
+          "progress": {
+            "complete_step_coverage": true,
+            "first_native_success_step": null,
+            "first_native_success_timestamp": null,
+            "native_success_field": "native_success",
+            "policy_call_at_first_native_success": null
+          },
+          "source_result": "/mnt/workspace/users/jinhuiye/Projects/starVLA-RSI/starVLA/anonymous_code_agent/results/robodojo/raw/2026-09-11-hang-mugs-and-sweep-blocks-cache-checkpoint/campaign/case-001/run/episodes/sweep_blocks_arx_x5_eval-seed0_layout0/result.json",
+          "status": "completed",
+          "success": false,
+          "termination_reason": "policy:give_up",
+          "usage": {
+            "cached_input_tokens": null,
+            "calls": null,
+            "estimated_cost_usd": null,
+            "input_tokens": null,
+            "latency_s": 2030.7765221493319,
+            "output_tokens": null
+          }
+        }
+      ],
+      "harness_source": {
+        "file_count": 33,
+        "files_root": "harness_source/files",
+        "index_sha256": "a8def9a1c1ef736d1afa92ecdbf7680c14103db5e959cfbc3a000fe8b5d291ca",
+        "inventory_sha256": "d17d1c742be6804275e9fa9eda9487bc00e72d00defe0c2aa0a0194f96d697b6",
+        "limitations": "Not an external-policy, prompt, simulator, asset, dependency, or loaded-memory snapshot.",
+        "path": "harness_source/index.json",
+        "scope": "installed evaluation package .py/.json files only",
+        "source_root": "/mnt/workspace/users/jinhuiye/Projects/starVLA-RSI/starVLA/anonymous_code_agent/results/robodojo/raw/2026-09-11-hang-mugs-and-sweep-blocks-cache-checkpoint/campaign/frozen/starVLA/evaluation",
+        "total_bytes": 536974
+      },
+      "model_profile": {
+        "config_sha256": "ed3f9d074679b67111356905e4e3ce6343f073a48e346da0f517ba17fccdb7a4",
+        "dependencies_sha256": "1dfec743b49a7e4b23a85fb28a86672f896597fed7b634a7f5bf830fbf7d5256",
+        "factory": "starVLA.anonymous_code_agent.policy:create_policy",
+        "id": "anonymous_code_agent",
+        "profile_sha256": "a3837d382bfc0a487fbf8d6152cd32d1b9e4bf38f38ec9ca64a3c1bf2f463e09",
+        "prompt_sha256": "d80b93def1890f10e723902e66e0b65efdb49272c51605df924076fb8b3f8ff0",
+        "schema_version": "starvla-rsi.model-profile/v1",
+        "source_inventory_sha256": "5e48b37769b26696a7682dcd06a12362ecc501eaed9dc17c60fb2b129c65b5eb"
+      },
+      "model_source": {
+        "file_count": 11,
+        "index_sha256": "4bc18bbce2d78c5e1160be5f684d303eece3afb501c513b8a2e52aaa90890321",
+        "inventory_sha256": "d7587accb02d1d1e7b7339f42490af82fa2e08396d0c524089050fa11425aede",
+        "path": "model_source/index.json",
+        "schema_version": "starvla-rsi.model-source/v1",
+        "total_bytes": 22744
+      },
+      "observation_spec": {
+        "cameras": [
+          "cam_head",
+          "cam_left_wrist",
+          "cam_right_wrist"
+        ],
+        "modalities": [
+          "rgb",
+          "language"
+        ],
+        "privileged": false,
+        "state_names": []
+      },
+      "policy": {
+        "kind": "external-code-agent",
+        "model": null,
+        "name": "code-agent-development",
+        "parameters": {
+          "absolute_paths_exported": false,
+          "directory": "/mnt/workspace/users/jinhuiye/Projects/starVLA-RSI/public/mbx-67a58b4b7efbef4d57d065c56eef5c5d",
+          "endpoint_blinding": "operator_must_supply_seed_independent_root_and_opaque_endpoint",
+          "evaluation_status": "experimental",
+          "history": "current_observation_only",
+          "max_chunk_length": 5,
+          "max_response_bytes": 65536,
+          "model_profile": {
+            "config_sha256": "ed3f9d074679b67111356905e4e3ce6343f073a48e346da0f517ba17fccdb7a4",
+            "dependencies_sha256": "1dfec743b49a7e4b23a85fb28a86672f896597fed7b634a7f5bf830fbf7d5256",
+            "factory": "starVLA.anonymous_code_agent.policy:create_policy",
+            "id": "anonymous_code_agent",
+            "profile_sha256": "a3837d382bfc0a487fbf8d6152cd32d1b9e4bf38f38ec9ca64a3c1bf2f463e09",
+            "prompt_sha256": "d80b93def1890f10e723902e66e0b65efdb49272c51605df924076fb8b3f8ff0",
+            "schema_version": "starvla-rsi.model-profile/v1",
+            "source_inventory_sha256": "5e48b37769b26696a7682dcd06a12362ecc501eaed9dc17c60fb2b129c65b5eb"
+          },
+          "prompt_sha256": "c162e116070a33a5ae558b1d8fb922e913375cc1bf47d8d9633bc3aa1d559f8c",
+          "provider_call_limit_verified": false,
+          "public_path_base": "mailbox_root",
+          "timeout_s": 900.0,
+          "usage_source": "client_reported_or_unavailable"
+        },
+        "provider": null,
+        "version": "starvla-rsi.mailbox/v2"
+      },
+      "protocol": {
+        "budget_mode": "horizon",
+        "early_policy_stop_exception": "safety_stop_with_nonempty_note",
+        "episode_ids": [
+          "sweep_blocks/arx_x5/eval-seed0/layout0"
+        ],
+        "episode_limit": 1,
+        "fail_fast": false,
+        "max_policy_calls": 200,
+        "max_steps": 1000,
+        "min_action_decisions_before_give_up": 50,
+        "primary_budget": "first_exhausted_limit",
+        "replan_interval": 5,
+        "seed": 20260907,
+        "stop_constraint_version": "minimum-action-decisions/v1"
+      },
+      "run_id": "run",
+      "runtime": {
+        "executable": "/mnt/workspace/users/jinhuiye/conda/envs/starvla-rsi-tabletop/bin/python",
+        "git": {
+          "dirty": true,
+          "evaluation_package_diff": {
+            "format": "git diff --no-ext-diff --no-textconv HEAD --binary -- <scope>",
+            "includes_untracked_files": false,
+            "scope": "starVLA/anonymous_code_agent/results/robodojo/raw/2026-09-11-hang-mugs-and-sweep-blocks-cache-checkpoint/campaign/frozen/starVLA/evaluation",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "size_bytes": 0,
+            "status": "recorded"
+          },
+          "revision": "9ae943df4b330459c94cf7d1f4aeb6018d42901c"
+        },
+        "hostname": "nb-tspyxddl7i-0",
+        "platform": "Linux-5.10.0-1.oe.jd_702.x86_64-x86_64-with-glibc2.39",
+        "python": "3.10.21"
+      },
+      "source_files_sha256": {
+        "episodes.jsonl": "895a0923152d615040831dc22980198695320ac1e5aaa5becb1cb5c6c97d0792",
+        "episodes/sweep_blocks_arx_x5_eval-seed0_layout0/artifacts/cam_head.mp4": "858c8620406613eb88ac99c3e9088e533d9e53358c3efdb52f53204faca22875",
+        "episodes/sweep_blocks_arx_x5_eval-seed0_layout0/artifacts/cam_left_wrist.mp4": "62d92c0369d7ade3617e7832835e11f107eea52ba3b4edcc1b61b5245daf3963",
+        "episodes/sweep_blocks_arx_x5_eval-seed0_layout0/artifacts/cam_right_wrist.mp4": "70a539be9db790bf63c6d431241b29d60173a63aa0b767398617662fe35eeb9f",
+        "episodes/sweep_blocks_arx_x5_eval-seed0_layout0/events.jsonl": "9031eabb8aa308b9cf35dbcb7344bd2577574cc1871929e1ff9c79551bffb6d4",
+        "episodes/sweep_blocks_arx_x5_eval-seed0_layout0/result.json": "7a105236e00e76260235e3fe41db926f9f19f412c080331deb88cdba7b9efaa9",
+        "manifest.json": "7ab2b4212d864d9e08e0d13b7eced4ec6bb2e46f8524f0327c972d8568a69176",
+        "status.json": "5e7c930d03f0a88a618df537e4b3c15b91effa3f4f4b25cadd4072533d864b55",
+        "summary.json": "1c692ca26a0246a126e3a0727464dfe244bcf001ba1399fd5f2a2b4dbff2d03c"
+      },
+      "source_run": "/mnt/workspace/users/jinhuiye/Projects/starVLA-RSI/starVLA/anonymous_code_agent/results/robodojo/raw/2026-09-11-hang-mugs-and-sweep-blocks-cache-checkpoint/campaign/case-001/run",
+      "status": "completed",
+      "summary": {
+        "attempt_success_rate": 0.0,
+        "attempted": 1,
+        "benchmark": "robodojo",
+        "by_task": {
+          "sweep_blocks": {
+            "attempt_success_rate": 0.0,
+            "attempted": 1,
+            "completed": 1,
+            "errors": 0,
+            "policy_calls": 51,
+            "success_rate": 0.0,
+            "successes": 0
+          }
+        },
+        "completed": 1,
+        "completion_rate": 1.0,
+        "errors": 0,
+        "policy": "code-agent-development",
+        "policy_calls": 51,
+        "run_id": "run",
+        "schema_version": "starvla-rsi.eval/v1",
+        "success_rate": 0.0,
+        "successes": 0,
+        "usage": {
+          "cached_input_tokens": null,
+          "calls": null,
+          "estimated_cost_usd": null,
+          "input_tokens": null,
+          "latency_s": 2030.7765221493319,
+          "output_tokens": null
+        }
+      },
+      "videos": [
+        {
+          "camera": "cam_head",
+          "episode_id": "sweep_blocks/arx_x5/eval-seed0/layout0",
+          "path": "media/robodojo/2026-09-10-sweep_blocks-block-sweeping-run-0fe2b2b75169-case-001-636de90f/cam_head-cam_head.mp4",
+          "sha256": "858c8620406613eb88ac99c3e9088e533d9e53358c3efdb52f53204faca22875",
+          "size_bytes": 521421,
+          "source": "/mnt/workspace/users/jinhuiye/Projects/starVLA-RSI/starVLA/anonymous_code_agent/results/robodojo/raw/2026-09-11-hang-mugs-and-sweep-blocks-cache-checkpoint/campaign/case-001/run/episodes/sweep_blocks_arx_x5_eval-seed0_layout0/artifacts/cam_head.mp4",
+          "source_relative": "episodes/sweep_blocks_arx_x5_eval-seed0_layout0/artifacts/cam_head.mp4"
+        },
+        {
+          "camera": "cam_left_wrist",
+          "episode_id": "sweep_blocks/arx_x5/eval-seed0/layout0",
+          "path": "media/robodojo/2026-09-10-sweep_blocks-block-sweeping-run-0fe2b2b75169-case-001-636de90f/cam_left_wrist-cam_left_wrist.mp4",
+          "sha256": "62d92c0369d7ade3617e7832835e11f107eea52ba3b4edcc1b61b5245daf3963",
+          "size_bytes": 1093014,
+          "source": "/mnt/workspace/users/jinhuiye/Projects/starVLA-RSI/starVLA/anonymous_code_agent/results/robodojo/raw/2026-09-11-hang-mugs-and-sweep-blocks-cache-checkpoint/campaign/case-001/run/episodes/sweep_blocks_arx_x5_eval-seed0_layout0/artifacts/cam_left_wrist.mp4",
+          "source_relative": "episodes/sweep_blocks_arx_x5_eval-seed0_layout0/artifacts/cam_left_wrist.mp4"
+        },
+        {
+          "camera": "cam_right_wrist",
+          "episode_id": "sweep_blocks/arx_x5/eval-seed0/layout0",
+          "path": "media/robodojo/2026-09-10-sweep_blocks-block-sweeping-run-0fe2b2b75169-case-001-636de90f/cam_right_wrist-cam_right_wrist.mp4",
+          "sha256": "70a539be9db790bf63c6d431241b29d60173a63aa0b767398617662fe35eeb9f",
+          "size_bytes": 942587,
+          "source": "/mnt/workspace/users/jinhuiye/Projects/starVLA-RSI/starVLA/anonymous_code_agent/results/robodojo/raw/2026-09-11-hang-mugs-and-sweep-blocks-cache-checkpoint/campaign/case-001/run/episodes/sweep_blocks_arx_x5_eval-seed0_layout0/artifacts/cam_right_wrist.mp4",
+          "source_relative": "episodes/sweep_blocks_arx_x5_eval-seed0_layout0/artifacts/cam_right_wrist.mp4"
+        }
+      ]
+    }
+  ],
+  "schema_version": "starvla-rsi.result-index/v1"
+}

@@ -1,0 +1,48 @@
+[
+  {
+    "run_dir": "/mnt/workspace/users/jinhuiye/Projects/starVLA-RSI/starVLA/anonymous_code_agent/results/robodojo/raw/2026-09-11-hang-mugs-and-sweep-blocks-cache-checkpoint/campaign/case-000/run",
+    "videos": [
+      {
+        "episode_id": "hang_mugs/arx_x5/eval-seed0/layout0",
+        "artifact": "video_cam_head",
+        "camera": "cam_head",
+        "description": "mug-hanging"
+      },
+      {
+        "episode_id": "hang_mugs/arx_x5/eval-seed0/layout0",
+        "artifact": "video_cam_left_wrist",
+        "camera": "cam_left_wrist",
+        "description": "mug-hanging"
+      },
+      {
+        "episode_id": "hang_mugs/arx_x5/eval-seed0/layout0",
+        "artifact": "video_cam_right_wrist",
+        "camera": "cam_right_wrist",
+        "description": "mug-hanging"
+      }
+    ]
+  },
+  {
+    "run_dir": "/mnt/workspace/users/jinhuiye/Projects/starVLA-RSI/starVLA/anonymous_code_agent/results/robodojo/raw/2026-09-11-hang-mugs-and-sweep-blocks-cache-checkpoint/campaign/case-001/run",
+    "videos": [
+      {
+        "episode_id": "sweep_blocks/arx_x5/eval-seed0/layout0",
+        "artifact": "video_cam_head",
+        "camera": "cam_head",
+        "description": "block-sweeping"
+      },
+      {
+        "episode_id": "sweep_blocks/arx_x5/eval-seed0/layout0",
+        "artifact": "video_cam_left_wrist",
+        "camera": "cam_left_wrist",
+        "description": "block-sweeping"
+      },
+      {
+        "episode_id": "sweep_blocks/arx_x5/eval-seed0/layout0",
+        "artifact": "video_cam_right_wrist",
+        "camera": "cam_right_wrist",
+        "description": "block-sweeping"
+      }
+    ]
+  }
+]

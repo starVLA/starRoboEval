@@ -1,0 +1,16 @@
+{
+  "schema_version": "starvla-rsi.sample-result-index/v1",
+  "benchmark": "simple_humanoid",
+  "latest_completed_sample": "2026-09-20-G1WholebodyTabletopGraspMP-v0-tabletop-grasp-bench-server-native-v1-sample",
+  "runs": [
+    {
+      "run_id": "2026-09-20-G1WholebodyTabletopGraspMP-v0-tabletop-grasp-bench-server-native-v1-sample",
+      "report": "reports/2026-09-20-G1WholebodyTabletopGraspMP-v0-tabletop-grasp-bench-server-native-v1-sample/result.json",
+      "kind": "single_fixed_native_sample",
+      "attempted": 1,
+      "successes": 1,
+      "errors": 0,
+      "native_full_evaluation": false
+    }
+  ]
+}

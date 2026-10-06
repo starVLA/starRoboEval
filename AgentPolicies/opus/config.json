@@ -1,0 +1,7 @@
+{
+  "schema_version": "starvla-rsi.model-config/v1",
+  "profile_id": "opus",
+  "provider": null,
+  "model": null,
+  "status": "unconfigured; user-facing label only"
+}

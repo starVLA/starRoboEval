@@ -1,0 +1,189 @@
+[
+  {
+    "run_dir": "/mnt/workspace/users/jinhuiye/Projects/starVLA-RSI/runs/simpler-codeagent-first-two-20260907/case-000/run",
+    "videos": [
+      {
+        "episode_id": "google_robot_pick_horizontal_coke_can-000000",
+        "artifact": "video",
+        "camera": "overhead_camera",
+        "description": "follow-the-current-instruction-in-the-camera-observation"
+      }
+    ]
+  },
+  {
+    "run_dir": "/mnt/workspace/users/jinhuiye/Projects/starVLA-RSI/runs/simpler-codeagent-first-two-20260907/case-001/run",
+    "videos": [
+      {
+        "episode_id": "widowx_spoon_on_towel-000000",
+        "artifact": "video",
+        "camera": "3rd_view_camera",
+        "description": "follow-the-current-instruction-in-the-camera-observation"
+      }
+    ]
+  },
+  {
+    "run_dir": "/mnt/workspace/users/jinhuiye/Projects/starVLA-RSI/runs/simpler-task-coverage-20260907-001/case-000/run",
+    "videos": [
+      {
+        "episode_id": "google_robot_pick_horizontal_coke_can-000000",
+        "artifact": "video",
+        "camera": "overhead_camera",
+        "description": "follow-the-current-instruction-in-the-camera-observation"
+      }
+    ]
+  },
+  {
+    "run_dir": "/mnt/workspace/users/jinhuiye/Projects/starVLA-RSI/runs/simpler-task-coverage-20260907-001/case-001/run",
+    "videos": [
+      {
+        "episode_id": "google_robot_pick_vertical_coke_can-000000",
+        "artifact": "video",
+        "camera": "overhead_camera",
+        "description": "follow-the-current-instruction-in-the-camera-observation"
+      }
+    ]
+  },
+  {
+    "run_dir": "/mnt/workspace/users/jinhuiye/Projects/starVLA-RSI/runs/simpler-task-coverage-20260907-001/case-002/run",
+    "videos": [
+      {
+        "episode_id": "google_robot_pick_standing_coke_can-000000",
+        "artifact": "video",
+        "camera": "overhead_camera",
+        "description": "follow-the-current-instruction-in-the-camera-observation"
+      }
+    ]
+  },
+  {
+    "run_dir": "/mnt/workspace/users/jinhuiye/Projects/starVLA-RSI/runs/simpler-task-coverage-20260907-001/case-003/run",
+    "videos": [
+      {
+        "episode_id": "google_robot_move_near_v0-000000",
+        "artifact": "video",
+        "camera": "overhead_camera",
+        "description": "follow-the-current-instruction-in-the-camera-observation"
+      }
+    ]
+  },
+  {
+    "run_dir": "/mnt/workspace/users/jinhuiye/Projects/starVLA-RSI/runs/simpler-task-coverage-20260907-001/case-004/run",
+    "videos": [
+      {
+        "episode_id": "google_robot_open_top_drawer-000000",
+        "artifact": "video",
+        "camera": "overhead_camera",
+        "description": "follow-the-current-instruction-in-the-camera-observation"
+      }
+    ]
+  },
+  {
+    "run_dir": "/mnt/workspace/users/jinhuiye/Projects/starVLA-RSI/runs/simpler-task-coverage-20260907-001/case-005/run",
+    "videos": [
+      {
+        "episode_id": "google_robot_open_middle_drawer-000000",
+        "artifact": "video",
+        "camera": "overhead_camera",
+        "description": "follow-the-current-instruction-in-the-camera-observation"
+      }
+    ]
+  },
+  {
+    "run_dir": "/mnt/workspace/users/jinhuiye/Projects/starVLA-RSI/runs/simpler-task-coverage-20260907-001/case-006/run",
+    "videos": [
+      {
+        "episode_id": "google_robot_open_bottom_drawer-000000",
+        "artifact": "video",
+        "camera": "overhead_camera",
+        "description": "follow-the-current-instruction-in-the-camera-observation"
+      }
+    ]
+  },
+  {
+    "run_dir": "/mnt/workspace/users/jinhuiye/Projects/starVLA-RSI/runs/simpler-task-coverage-20260907-001/case-007/run",
+    "videos": [
+      {
+        "episode_id": "google_robot_close_top_drawer-000000",
+        "artifact": "video",
+        "camera": "overhead_camera",
+        "description": "follow-the-current-instruction-in-the-camera-observation"
+      }
+    ]
+  },
+  {
+    "run_dir": "/mnt/workspace/users/jinhuiye/Projects/starVLA-RSI/runs/simpler-task-coverage-20260907-001/case-008/run",
+    "videos": [
+      {
+        "episode_id": "google_robot_close_middle_drawer-000000",
+        "artifact": "video",
+        "camera": "overhead_camera",
+        "description": "follow-the-current-instruction-in-the-camera-observation"
+      }
+    ]
+  },
+  {
+    "run_dir": "/mnt/workspace/users/jinhuiye/Projects/starVLA-RSI/runs/simpler-task-coverage-20260907-001/case-009/run",
+    "videos": [
+      {
+        "episode_id": "google_robot_close_bottom_drawer-000000",
+        "artifact": "video",
+        "camera": "overhead_camera",
+        "description": "follow-the-current-instruction-in-the-camera-observation"
+      }
+    ]
+  },
+  {
+    "run_dir": "/mnt/workspace/users/jinhuiye/Projects/starVLA-RSI/runs/simpler-task-coverage-20260907-001/case-010/run",
+    "videos": [
+      {
+        "episode_id": "google_robot_place_apple_in_closed_top_drawer-000000",
+        "artifact": "video",
+        "camera": "overhead_camera",
+        "description": "follow-the-current-instruction-in-the-camera-observation"
+      }
+    ]
+  },
+  {
+    "run_dir": "/mnt/workspace/users/jinhuiye/Projects/starVLA-RSI/runs/simpler-task-coverage-20260907-001/case-011/run",
+    "videos": [
+      {
+        "episode_id": "widowx_spoon_on_towel-000000",
+        "artifact": "video",
+        "camera": "3rd_view_camera",
+        "description": "follow-the-current-instruction-in-the-camera-observation"
+      }
+    ]
+  },
+  {
+    "run_dir": "/mnt/workspace/users/jinhuiye/Projects/starVLA-RSI/runs/simpler-task-coverage-20260907-001/case-012/run",
+    "videos": [
+      {
+        "episode_id": "widowx_carrot_on_plate-000000",
+        "artifact": "video",
+        "camera": "3rd_view_camera",
+        "description": "follow-the-current-instruction-in-the-camera-observation"
+      }
+    ]
+  },
+  {
+    "run_dir": "/mnt/workspace/users/jinhuiye/Projects/starVLA-RSI/runs/simpler-task-coverage-20260907-001/case-013/run",
+    "videos": [
+      {
+        "episode_id": "widowx_stack_cube-000000",
+        "artifact": "video",
+        "camera": "3rd_view_camera",
+        "description": "follow-the-current-instruction-in-the-camera-observation"
+      }
+    ]
+  },
+  {
+    "run_dir": "/mnt/workspace/users/jinhuiye/Projects/starVLA-RSI/runs/simpler-task-coverage-20260907-001/case-014/run",
+    "videos": [
+      {
+        "episode_id": "widowx_put_eggplant_in_basket-000000",
+        "artifact": "video",
+        "camera": "3rd_view_camera",
+        "description": "follow-the-current-instruction-in-the-camera-observation"
+      }
+    ]
+  }
+]

@@ -1,87 +1,113 @@
 [build-system]
-requires = ["setuptools"]
+requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "starVLA"
-authors = [
-    {name = "Jinhui Ye", email="jinhuiyes@gmail.com"},
-    {name = "Fangjing Wang", email="fangjing_wang@outlook.com"},
-    {name = "Junqiu Yu", email="michaelyu1101@163.com"},
-
-]
-description = "StarVLA: A Lego-like Codebase for Vision-Language-Action Model Developing ."
-version = "1.0.1"
+name = "starVLA-RSI"
+version = "0.1.0"
+description = "A reproducible benchmark for general-purpose embodied agents across simulation and real robots."
 readme = "README.md"
 requires-python = ">=3.10"
-keywords = ["vision-language-actions models", " robotic manipulation", "multimodal pretraining", "robot learning", "generative models"]
 license = {file = "LICENSE"}
+authors = [
+    {name = "Jinhui Ye", email = "jinhuiyes@gmail.com"},
+    {name = "Fangjing Wang", email = "fangjing_wang@outlook.com"},
+    {name = "Junqiu Yu", email = "michaelyu1101@163.com"},
+]
+keywords = [
+    "embodied agents",
+    "robot evaluation",
+    "multimodal agents",
+    "vision-language-action",
+    "benchmark",
+]
 classifiers = [
     "Development Status :: 3 - Alpha",
-    "Intended Audience :: Developers",
-    "Intended Audience :: Education",
     "Intended Audience :: Science/Research",
     "License :: OSI Approved :: MIT License",
-    "Operating System :: OS Independent",
-"Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.10",
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
 ]
-dependencies = [
-]
+dependencies = []
+
+[project.scripts]
+starvla-eval = "benchkit.cli:main"
+rsi-bench = "benchkit.sim_server.cli:main"
 
 [project.optional-dependencies]
-dev = [
-    "black>=24.2.0",
-    "gpustat",
-    "ipython",
-    "pre-commit",
-    "ruff>=0.2.2",
-]
-sagemaker = [
-    "boto3",
-    "sagemaker"
-]
-
+dev = ["ruff>=0.2.2"]
+sim-client = ["numpy"]
+gpt6-astra = ["numpy", "Pillow"]
+gpt6-astra-codex = ["numpy", "Pillow"]
 
 [tool.setuptools.packages.find]
 where = ["."]
+include = [
+    "benchkit", "benchkit.*",
+    "AgentPolicies", "AgentPolicies.anonymous_code_agent", "AgentPolicies.gpt6_astra", "AgentPolicies.opus",
+    "AgentPolicies.gpt6_astra.methods", "AgentPolicies.gpt6_astra.transports", "AgentPolicies.gpt6_astra.tools",
+    "AgentPolicies.anonymous_code_agent.tools",
+    "AgentPolicies.policy_support",
+    "AgentPolicies.protocol_example",
+    "benchmarks", "benchmarks.simBenchmarks",
+    "benchmarks.simBenchmarks.SimplerEnv", "benchmarks.simBenchmarks.SimplerEnv.environment",
+    "benchmarks.simBenchmarks.SimplerEnv.bench_server", "benchmarks.simBenchmarks.SimplerEnv.bench_server.protocol",
+    "benchmarks.simBenchmarks.LIBERO",
+    "benchmarks.simBenchmarks.LIBERO.bench_server", "benchmarks.simBenchmarks.LIBERO.bench_server.protocol",
+    "benchmarks.simBenchmarks.SIMPLE", "benchmarks.simBenchmarks.SIMPLE.environment",
+    "benchmarks.simBenchmarks.SIMPLE.bench_server", "benchmarks.simBenchmarks.SIMPLE.bench_server.protocol",
+    "benchmarks.simBenchmarks.Robocasa_365", "benchmarks.simBenchmarks.Robocasa_365.bench_server", "benchmarks.simBenchmarks.Robocasa_365.bench_server.protocol", "benchmarks.simBenchmarks.Robocasa_365.environment",
+    "benchmarks.simBenchmarks.Robocasa_tabletop", "benchmarks.simBenchmarks.Robocasa_tabletop.bench_server", "benchmarks.simBenchmarks.Robocasa_tabletop.bench_server.protocol", "benchmarks.simBenchmarks.Robocasa_tabletop.environment",
+    "benchmarks.simBenchmarks.RoboDojo", "benchmarks.simBenchmarks.RoboDojo.bench_server",
+    "benchmarks.simBenchmarks.RoboDojo.bench_server.protocol", "benchmarks.simBenchmarks.RoboDojo.environment",
+    "benchmarks.simBenchmarks.MetaWorld", "benchmarks.simBenchmarks.MetaWorld.environment",
+    "benchmarks.simBenchmarks.LIBERO-plus", "benchmarks.simBenchmarks.LIBERO-plus.environment",
+    "benchmarks.simBenchmarks.Robotwin", "benchmarks.simBenchmarks.Robotwin.environment",
+    "benchmarks.simBenchmarks.DOMINO", "benchmarks.simBenchmarks.DOMINO.environment",
+    "benchmarks.simBenchmarks.DOMINO.bench_server", "benchmarks.simBenchmarks.DOMINO.bench_server.protocol",
+    "benchmarks.simBenchmarks.Behavior", "benchmarks.simBenchmarks.Behavior.environment",
+    "benchmarks.simBenchmarks.Behavior.bench_server", "benchmarks.simBenchmarks.Behavior.bench_server.protocol",
+    "benchmarks.simBenchmarks.VLA-Arena", "benchmarks.simBenchmarks.VLA-Arena.environment",
+    "benchmarks.simBenchmarks.calvin", "benchmarks.simBenchmarks.calvin.environment",
+    "benchmarks.simBenchmarks.MetaWorld.bench_server", "benchmarks.simBenchmarks.MetaWorld.bench_server.protocol",
+    "benchmarks.simBenchmarks.LIBERO-plus.bench_server", "benchmarks.simBenchmarks.LIBERO-plus.bench_server.protocol",
+    "benchmarks.simBenchmarks.Robotwin.bench_server",
+    "benchmarks.simBenchmarks.VLA-Arena.bench_server", "benchmarks.simBenchmarks.VLA-Arena.bench_server.protocol",
+    "benchmarks.simBenchmarks.calvin.bench_server", "benchmarks.simBenchmarks.calvin.bench_server.protocol",
+]
 exclude = [
-    "tests",         # test directory
-    "tests.*",
-    "cache",         # cache directory
-    "cache.*",
-    "playground",    # playground directory (contains symlinks to Datasets, Models)
-    "playground.*",
-    "results",       # result directory
-    "results.*",
-    "checkpoints",   # model checkpoint
-    "checkpoints.*",
-    "scripts",       # script directory
-    "scripts.*",
-    "eval",          # evaluation related directory
-    "eval.*",
-    "assets",        # assets directory
-    "assets.*",
-    "**bar**",           # bar directory
-    "bar.*",
-    ".vscode",       # VS Code configuration directory
-    "*.egg-info",    # egg-info metadata directory
-    "**__pycache__**",   # Python cache directory
-    "*.pyc",         # compiled Python file
-    "*.pyo",         # optimized Python file
-    "starVLA.egg-info",
-    "starVLA.egg-info.*",
-    "starVLA.config",
-    "starVLA.config.*",
+    "*.checks", "*.checks.*", "benchkit.artifact_checks",
+    "*.legacy", "*.legacy.*", "*.results", "*.results.*",
+    "*._local", "*._local.*",
 ]
 
 [tool.setuptools.package-data]
-"cogact" = ["py.typed"]
-
-[tool.black]
-line-length = 121
-target-version = ["py310"]
-preview = true
+"benchkit" = ["py.typed"]
+"benchkit.catalog" = ["benchmarks.json"]
+# Hyphenated benchmark directories are loaded with importlib. Package-data keys
+# must be valid Python module names, so declare their exact data via the parent.
+"benchmarks.simBenchmarks" = [
+    "LIBERO-plus/environment/native_source_manifest.json", "LIBERO-plus/bench_server/protocol/catalogs/*.json",
+    "VLA-Arena/bench_server/protocol/task_catalog.json", "VLA-Arena/environment/native_source_pin.json",
+    "VLA-Arena/environment/robosuite_pin.json", "VLA-Arena/environment/requirements*.txt",
+]
+"benchmarks.simBenchmarks.SimplerEnv.bench_server.protocol" = ["task_catalog.json"]
+"benchmarks.simBenchmarks.LIBERO.bench_server.protocol" = ["libero_catalog.json"]
+"benchmarks.simBenchmarks.SIMPLE.bench_server.protocol" = ["simple_released_tasks.json", "POLICY_GUIDE.md"]
+"benchmarks.simBenchmarks.SIMPLE.environment" = ["upstream.json"]
+"benchmarks.simBenchmarks.Robocasa_365.bench_server.protocol" = ["robocasa365_target50.json", "task_inventory.json"]
+"benchmarks.simBenchmarks.Robocasa_tabletop.bench_server.protocol" = ["robocasa_tabletop_contract.json", "POLICY_GUIDE.md"]
+"benchmarks.simBenchmarks.RoboDojo.bench_server.protocol" = ["task_catalog.json"]
+"benchmarks.simBenchmarks.RoboDojo.environment" = ["reference_eef_snapshot.json"]
+"benchmarks.simBenchmarks.MetaWorld.bench_server.protocol" = ["task_catalog.json"]
+"benchmarks.simBenchmarks.MetaWorld.environment" = ["package_pin.json"]
+"benchmarks.simBenchmarks.Robotwin.environment" = ["native_snapshot.json", "runtime_snapshot.json", "oidn_2_3_3_snapshot.json"]
+"benchmarks.simBenchmarks.calvin.bench_server.protocol" = ["frozen_sequence.json", "eval_sequences.json"]
+"benchmarks.simBenchmarks.calvin.environment" = ["runtime_snapshot.json", "requirements-rgb-setup.txt"]
+"AgentPolicies.anonymous_code_agent" = ["profile.json", "config.json", "dependencies.json", "prompt.txt", "prompts/*.txt"]
+"AgentPolicies.gpt6_astra" = ["profile.json", "configuration.schema.json", "dependencies.json", "configs/*.json", "prompts/*.txt"]
+"AgentPolicies.opus" = ["profile.json", "config.json", "dependencies.json", "prompt.txt"]
 
 [tool.ruff]
 line-length = 121

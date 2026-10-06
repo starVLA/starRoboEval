@@ -1,23 +1,18 @@
-.PHONY: help clean check autoformat
-.DEFAULT: help
+.PHONY: help check catalog smoke
+.DEFAULT_GOAL := help
+PYTHON ?= python3
 
-# Generates a useful overview/help message for various make features - add to this as necessary!
 help:
-	@echo "make clean"
-	@echo "    Remove all temporary pyc/pycache files"
-	@echo "make check"
-	@echo "    Run code style and linting (black, ruff) *without* changing files!"
-	@echo "make autoformat"
-	@echo "    Apply formatting in place with black and fixable Ruff edits without failing on existing lint backlog."
-
-clean:
-	find . -name "*.pyc" | xargs rm -f && \
-	find . -name "__pycache__" | xargs rm -rf
+	@echo "make check    Parse active source, check ownership and validate the catalog"
+	@echo "make catalog  List all 13 benchmark migration targets"
+	@echo "make smoke    Run the dependency-free evaluation self-check"
 
 check:
-	black --check .
-	ruff check --show-source .
+	$(PYTHON) -B -m benchkit catalog --check
+	$(PYTHON) -B -m benchkit.checks.check_boundaries
 
-autoformat:
-	black .
-	ruff check --fix-only --show-fixes .
+catalog:
+	$(PYTHON) -B -m benchkit catalog
+
+smoke:
+	$(PYTHON) -B -m benchkit smoke

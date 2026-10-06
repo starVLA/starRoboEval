@@ -1,0 +1,673 @@
+{
+  "created_at": "2026-09-14T18:29:44.703267+00:00",
+  "limitations": [
+    "Index of the explicit closed source list, not full benchmark coverage or a merged model score.",
+    "Original manifests, results, source packages and paths remain unchanged.",
+    "Hashes cover the listed records and selected videos, not all source/assets/wire artifacts.",
+    "Native first success is read from existing step logs; incomplete evidence remains null.",
+    "Diagnostic runs retain native outcomes as infrastructure evidence, not model capability scores.",
+    "Model/provider identity, accounting and isolation are not retroactively verified."
+  ],
+  "model": null,
+  "namespace": "anonymous_code_agent",
+  "provider": null,
+  "runs": [
+    {
+      "action_spec": {
+        "control_hz": 25.0,
+        "frame": "native fixed-base ARX X5 joint coordinates",
+        "gripper": "continuous [0,1], 0 closed / 1 open; native scalar maps to [-0.01,0.044] m",
+        "high": [
+          10.0,
+          10.0,
+          10.0,
+          10.0,
+          10.0,
+          3.14,
+          1.0,
+          10.0,
+          10.0,
+          10.0,
+          10.0,
+          10.0,
+          3.14,
+          1.0
+        ],
+        "low": [
+          -10.0,
+          -10.0,
+          -10.0,
+          -10.0,
+          -10.0,
+          -3.14,
+          0.0,
+          -10.0,
+          -10.0,
+          -10.0,
+          -10.0,
+          -10.0,
+          -3.14,
+          0.0
+        ],
+        "mode": "robodojo_dual_x5_joint_target_14",
+        "names": [
+          "left_joint1_rad",
+          "left_joint2_rad",
+          "left_joint3_rad",
+          "left_joint4_rad",
+          "left_joint5_rad",
+          "left_joint6_rad",
+          "left_gripper_open_01",
+          "right_joint1_rad",
+          "right_joint2_rad",
+          "right_joint3_rad",
+          "right_joint4_rad",
+          "right_joint5_rad",
+          "right_joint6_rad",
+          "right_gripper_open_01"
+        ],
+        "rotation": "six absolute revolute joint targets per arm, radians",
+        "size": 14
+      },
+      "benchmark": {
+        "name": "robodojo",
+        "protocol_version": "robodojo-rgb-joint14-horizon-200calls-prefix5-nativecap-v1-zengshuang-reference-v1",
+        "source_revision": "36bfcb7c580b149c6e39ed2eb77d60689152e570",
+        "version": "36bfcb7-native"
+      },
+      "diagnostic": false,
+      "episodes": [
+        {
+          "action_decisions": 50,
+          "duration_s": 1365.9065691698343,
+          "environment_steps": 246,
+          "episode": {
+            "id": "stack_bowls/arx_x5/eval-seed0/layout0",
+            "instruction": "Stack the three bowls together.",
+            "metadata": {
+              "asset_policy": "zengshuang-reference-v1",
+              "asset_reference_sha256": "bcee49283722d1b80c0d95a51a44267e0fb9bbc1d76dd52ea0d0e2416e0879dd",
+              "layout_id": 0,
+              "layout_sha256": "8ec7c160815f8955b5dd1af1a042673140cc2b6ac4b7536ee7fa9057e8a978f5",
+              "native_eval_seed": 0,
+              "native_horizon": 800,
+              "native_step_lim_override": null,
+              "reference_native_horizon": 800
+            },
+            "seed": 20260907,
+            "task": "stack_bowls"
+          },
+          "error": null,
+          "metrics": {
+            "adapter_step_returns": 246,
+            "attempted_control_targets": 246,
+            "control_target_hz": 25.0,
+            "control_targets": 246,
+            "diagnostic_only": false,
+            "effective_control_target_cap": 800,
+            "first_native_success_control_target": null,
+            "native_alive_flag": true,
+            "native_benchmark_score": 0.0,
+            "native_benchmark_score_scale": "0..100",
+            "native_end_flag": false,
+            "native_horizon": 800,
+            "native_physics_counter": 3302,
+            "native_process_score": 0.0,
+            "native_reward": 0.0,
+            "native_reward_evaluations": 246,
+            "native_step_lim_override": null,
+            "native_take_action_count": 246,
+            "physics_hz": 250.0,
+            "physics_ticks": 2460,
+            "reference_native_horizon": 800,
+            "reset_physics_ticks": 842,
+            "success": false,
+            "track": "robodojo-rgb-joint14-horizon-200calls-prefix5-nativecap-v1-zengshuang-reference-v1"
+          },
+          "policy_calls": 51,
+          "progress": {
+            "complete_step_coverage": true,
+            "first_native_success_step": null,
+            "first_native_success_timestamp": null,
+            "native_success_field": "native_success",
+            "policy_call_at_first_native_success": null
+          },
+          "source_result": "/mnt/workspace/users/jinhuiye/Projects/starVLA-RSI/starVLA/anonymous_code_agent/results/robodojo/raw/2026-09-15-stack_bowls-bowl-stacking-and-push_T-t-block-alignment-codex/campaign/case-000/run/episodes/stack_bowls_arx_x5_eval-seed0_layout0/result.json",
+          "status": "completed",
+          "success": false,
+          "termination_reason": "policy:give_up",
+          "usage": {
+            "cached_input_tokens": null,
+            "calls": null,
+            "estimated_cost_usd": null,
+            "input_tokens": null,
+            "latency_s": 1020.5888904151507,
+            "output_tokens": null
+          }
+        }
+      ],
+      "harness_source": {
+        "file_count": 60,
+        "files_root": "harness_source/files",
+        "index_sha256": "e7270d85b17b5bb3e4959f12b1cd05e6b56c860c391d7ca632ab96d53e9ec24a",
+        "inventory_sha256": "9d42a3ffb04f31fe615aa135ac0ec6ed4e972aafe428f12854399e1836e2eec4",
+        "limitations": "Not an external-policy, prompt, simulator, asset, dependency, or loaded-memory snapshot.",
+        "path": "harness_source/index.json",
+        "scope": "harness and explicit benchmark runtime source; repository-relative layout/v2",
+        "source_root": "/mnt/workspace/users/jinhuiye/Projects/starVLA-RSI/starVLA/anonymous_code_agent/results/robodojo/raw/2026-09-15-stack_bowls-bowl-stacking-and-push_T-t-block-alignment-codex/campaign/frozen",
+        "total_bytes": 670321
+      },
+      "model_profile": {
+        "config_sha256": "ed8cc0195c356e4d7b76f5713023cfd8a2d8bd7d71a01ffcd530078ba975f31f",
+        "dependencies_sha256": "6bcd7b1e466af925f48a675be813d59068781511a7dfcaf7078735fe44edc217",
+        "factory": "starVLA.anonymous_code_agent.policy:create_policy",
+        "id": "anonymous_code_agent",
+        "profile_sha256": "a3837d382bfc0a487fbf8d6152cd32d1b9e4bf38f38ec9ca64a3c1bf2f463e09",
+        "prompt_sha256": "f163e3dce972d84edfecf20ad858aaa8f25d758be7b36debdbd26e1b3ba62f44",
+        "schema_version": "starvla-rsi.model-profile/v1",
+        "source_inventory_sha256": "46b696e04c1da28654ecbc1761ab041f109e164bd45f779aba0bda751117f30a"
+      },
+      "model_source": {
+        "file_count": 14,
+        "index_sha256": "d339ba4e2cd22fddd2bbaae339c3d197d66393ba57d101153bc0118300cb5fb6",
+        "inventory_sha256": "0d8029a79abffe1a8cf5a0e39f62ba9e74299a7957a65ddcfe7000c2313b49e7",
+        "path": "model_source/index.json",
+        "schema_version": "starvla-rsi.model-source/v2",
+        "total_bytes": 42226
+      },
+      "observation_spec": {
+        "cameras": [
+          "cam_head",
+          "cam_left_wrist",
+          "cam_right_wrist"
+        ],
+        "modalities": [
+          "rgb",
+          "language"
+        ],
+        "privileged": false,
+        "state_names": []
+      },
+      "policy": {
+        "kind": "external-code-agent",
+        "model": null,
+        "name": "code-agent-development",
+        "parameters": {
+          "absolute_paths_exported": false,
+          "directory": "/mnt/workspace/users/jinhuiye/policy-endpoints/mbx-992d2cad93b9f88c82425de474cefca4",
+          "endpoint_blinding": "operator_must_supply_seed_independent_root_and_opaque_endpoint",
+          "evaluation_status": "experimental",
+          "history": "current_observation_only",
+          "max_chunk_length": 5,
+          "max_response_bytes": 65536,
+          "model_profile": {
+            "config_sha256": "ed8cc0195c356e4d7b76f5713023cfd8a2d8bd7d71a01ffcd530078ba975f31f",
+            "dependencies_sha256": "6bcd7b1e466af925f48a675be813d59068781511a7dfcaf7078735fe44edc217",
+            "factory": "starVLA.anonymous_code_agent.policy:create_policy",
+            "id": "anonymous_code_agent",
+            "profile_sha256": "a3837d382bfc0a487fbf8d6152cd32d1b9e4bf38f38ec9ca64a3c1bf2f463e09",
+            "prompt_sha256": "f163e3dce972d84edfecf20ad858aaa8f25d758be7b36debdbd26e1b3ba62f44",
+            "schema_version": "starvla-rsi.model-profile/v1",
+            "source_inventory_sha256": "46b696e04c1da28654ecbc1761ab041f109e164bd45f779aba0bda751117f30a"
+          },
+          "policy_stop_rule": {
+            "early_policy_stop_exception": "safety_stop_with_nonempty_note",
+            "min_action_decisions_before_give_up": 50,
+            "scope": "policy",
+            "stop_constraint_version": "minimum-action-decisions/v2"
+          },
+          "prompt_sha256": "e838fa09a8a7077cdfd47880b9ad8da56da4d3ff720d49f3c357a2574e055c46",
+          "provider_call_limit_verified": false,
+          "public_path_base": "mailbox_root",
+          "timeout_s": 900.0,
+          "usage_source": "client_reported_or_unavailable"
+        },
+        "provider": null,
+        "version": "starvla-rsi.mailbox/v3"
+      },
+      "protocol": {
+        "budget_mode": "horizon",
+        "episode_ids": [
+          "stack_bowls/arx_x5/eval-seed0/layout0"
+        ],
+        "episode_limit": 1,
+        "execution_feedback_version": "starvla-rsi.execution-feedback/v1",
+        "fail_fast": false,
+        "max_policy_calls": 200,
+        "max_steps": 1000,
+        "primary_budget": "first_exhausted_limit",
+        "replan_interval": 5,
+        "seed": 20260907
+      },
+      "run_id": "run",
+      "runtime": {
+        "executable": "/mnt/workspace/users/jinhuiye/Projects/rsi-direct-policy-check.0PcRrG/venv/bin/python",
+        "git": {
+          "dirty": false,
+          "evaluation_package_diff": {
+            "format": "git diff --no-ext-diff --no-textconv HEAD --binary -- <scope>",
+            "includes_untracked_files": false,
+            "scope": "starVLA/anonymous_code_agent/results/robodojo/raw/2026-09-15-stack_bowls-bowl-stacking-and-push_T-t-block-alignment-codex/campaign/frozen",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "size_bytes": 0,
+            "status": "recorded"
+          },
+          "revision": "44a539d772c6fa4489eefa6795c2c3bb9b92a4a0"
+        },
+        "hostname": "nb-tspyxddl7i-0",
+        "platform": "Linux-5.10.0-1.oe.jd_702.x86_64-x86_64-with-glibc2.39",
+        "python": "3.10.21"
+      },
+      "source_files_sha256": {
+        "episodes.jsonl": "a449c1d46912fb5a24e1c41f2b8a846838e5aa8eaf12a1aaf44b2d21c609ca8d",
+        "episodes/stack_bowls_arx_x5_eval-seed0_layout0/artifacts/cam_head.mp4": "8f861f3ca8da1baa2027551111e8e351c3dff6e46fa0d342ef7279253cac00af",
+        "episodes/stack_bowls_arx_x5_eval-seed0_layout0/artifacts/cam_left_wrist.mp4": "2f6357d5b31745e19810ce937fbbcd06920655cc82595eda86e7793d4c826c38",
+        "episodes/stack_bowls_arx_x5_eval-seed0_layout0/artifacts/cam_right_wrist.mp4": "b02870447b76e41e5468c3ed3e29b9a510735d93c23d1d5ad04b3a6f8e18b9b1",
+        "episodes/stack_bowls_arx_x5_eval-seed0_layout0/events.jsonl": "1351756e164b24c283d6c9439d027f42c8b78f664e6646dfef5745063b9a61bb",
+        "episodes/stack_bowls_arx_x5_eval-seed0_layout0/result.json": "15436b5a7ae2577af36167ba9cb876a9f4caee054f88b48fdba8cc849f793f43",
+        "manifest.json": "d5df49c7873690f1c0f8991e36ea2e058aaa143739d75336fed32df41dd779c0",
+        "status.json": "bd6931deac1bd0ac879ce6d962486d5c56d458ed5a73e50a60525b8446365a95",
+        "summary.json": "71e2370fb8bf1c6d6853546a96877449283606cbdd42c0ff771ec303dbcd0a70"
+      },
+      "source_run": "/mnt/workspace/users/jinhuiye/Projects/starVLA-RSI/starVLA/anonymous_code_agent/results/robodojo/raw/2026-09-15-stack_bowls-bowl-stacking-and-push_T-t-block-alignment-codex/campaign/case-000/run",
+      "status": "completed",
+      "summary": {
+        "attempt_success_rate": 0.0,
+        "attempted": 1,
+        "benchmark": "robodojo",
+        "by_task": {
+          "stack_bowls": {
+            "attempt_success_rate": 0.0,
+            "attempted": 1,
+            "completed": 1,
+            "errors": 0,
+            "policy_calls": 51,
+            "success_rate": 0.0,
+            "successes": 0
+          }
+        },
+        "completed": 1,
+        "completion_rate": 1.0,
+        "errors": 0,
+        "policy": "code-agent-development",
+        "policy_calls": 51,
+        "run_id": "run",
+        "schema_version": "starvla-rsi.eval/v1",
+        "success_rate": 0.0,
+        "successes": 0,
+        "usage": {
+          "cached_input_tokens": null,
+          "calls": null,
+          "estimated_cost_usd": null,
+          "input_tokens": null,
+          "latency_s": 1020.5888904151507,
+          "output_tokens": null
+        }
+      },
+      "videos": [
+        {
+          "archive_reasons": [],
+          "camera": "cam_head",
+          "diagnostic": false,
+          "episode_id": "stack_bowls/arx_x5/eval-seed0/layout0",
+          "path": "media/robodojo/2026-09-14-stack_bowls-bowl-stacking-run-a187217294d6-case-000-c879d7dd/cam_head-cam_head.mp4",
+          "sha256": "8f861f3ca8da1baa2027551111e8e351c3dff6e46fa0d342ef7279253cac00af",
+          "size_bytes": 532106,
+          "source": "/mnt/workspace/users/jinhuiye/Projects/starVLA-RSI/starVLA/anonymous_code_agent/results/robodojo/raw/2026-09-15-stack_bowls-bowl-stacking-and-push_T-t-block-alignment-codex/campaign/case-000/run/episodes/stack_bowls_arx_x5_eval-seed0_layout0/artifacts/cam_head.mp4",
+          "source_relative": "episodes/stack_bowls_arx_x5_eval-seed0_layout0/artifacts/cam_head.mp4"
+        },
+        {
+          "archive_reasons": [],
+          "camera": "cam_left_wrist",
+          "diagnostic": false,
+          "episode_id": "stack_bowls/arx_x5/eval-seed0/layout0",
+          "path": "media/robodojo/2026-09-14-stack_bowls-bowl-stacking-run-a187217294d6-case-000-c879d7dd/cam_left_wrist-cam_left_wrist.mp4",
+          "sha256": "2f6357d5b31745e19810ce937fbbcd06920655cc82595eda86e7793d4c826c38",
+          "size_bytes": 975681,
+          "source": "/mnt/workspace/users/jinhuiye/Projects/starVLA-RSI/starVLA/anonymous_code_agent/results/robodojo/raw/2026-09-15-stack_bowls-bowl-stacking-and-push_T-t-block-alignment-codex/campaign/case-000/run/episodes/stack_bowls_arx_x5_eval-seed0_layout0/artifacts/cam_left_wrist.mp4",
+          "source_relative": "episodes/stack_bowls_arx_x5_eval-seed0_layout0/artifacts/cam_left_wrist.mp4"
+        },
+        {
+          "archive_reasons": [],
+          "camera": "cam_right_wrist",
+          "diagnostic": false,
+          "episode_id": "stack_bowls/arx_x5/eval-seed0/layout0",
+          "path": "media/robodojo/2026-09-14-stack_bowls-bowl-stacking-run-a187217294d6-case-000-c879d7dd/cam_right_wrist-cam_right_wrist.mp4",
+          "sha256": "b02870447b76e41e5468c3ed3e29b9a510735d93c23d1d5ad04b3a6f8e18b9b1",
+          "size_bytes": 653625,
+          "source": "/mnt/workspace/users/jinhuiye/Projects/starVLA-RSI/starVLA/anonymous_code_agent/results/robodojo/raw/2026-09-15-stack_bowls-bowl-stacking-and-push_T-t-block-alignment-codex/campaign/case-000/run/episodes/stack_bowls_arx_x5_eval-seed0_layout0/artifacts/cam_right_wrist.mp4",
+          "source_relative": "episodes/stack_bowls_arx_x5_eval-seed0_layout0/artifacts/cam_right_wrist.mp4"
+        }
+      ]
+    },
+    {
+      "action_spec": {
+        "control_hz": 25.0,
+        "frame": "native fixed-base ARX X5 joint coordinates",
+        "gripper": "continuous [0,1], 0 closed / 1 open; native scalar maps to [-0.01,0.044] m",
+        "high": [
+          10.0,
+          10.0,
+          10.0,
+          10.0,
+          10.0,
+          3.14,
+          1.0,
+          10.0,
+          10.0,
+          10.0,
+          10.0,
+          10.0,
+          3.14,
+          1.0
+        ],
+        "low": [
+          -10.0,
+          -10.0,
+          -10.0,
+          -10.0,
+          -10.0,
+          -3.14,
+          0.0,
+          -10.0,
+          -10.0,
+          -10.0,
+          -10.0,
+          -10.0,
+          -3.14,
+          0.0
+        ],
+        "mode": "robodojo_dual_x5_joint_target_14",
+        "names": [
+          "left_joint1_rad",
+          "left_joint2_rad",
+          "left_joint3_rad",
+          "left_joint4_rad",
+          "left_joint5_rad",
+          "left_joint6_rad",
+          "left_gripper_open_01",
+          "right_joint1_rad",
+          "right_joint2_rad",
+          "right_joint3_rad",
+          "right_joint4_rad",
+          "right_joint5_rad",
+          "right_joint6_rad",
+          "right_gripper_open_01"
+        ],
+        "rotation": "six absolute revolute joint targets per arm, radians",
+        "size": 14
+      },
+      "benchmark": {
+        "name": "robodojo",
+        "protocol_version": "robodojo-rgb-joint14-horizon-200calls-prefix5-nativecap-v1-zengshuang-reference-v1",
+        "source_revision": "36bfcb7c580b149c6e39ed2eb77d60689152e570",
+        "version": "36bfcb7-native"
+      },
+      "diagnostic": false,
+      "episodes": [
+        {
+          "action_decisions": 50,
+          "duration_s": 2032.9135520672426,
+          "environment_steps": 248,
+          "episode": {
+            "id": "push_T/arx_x5/eval-seed0/layout0",
+            "instruction": "Push the T-shaped block to align it precisely with the gray T-shaped pad.",
+            "metadata": {
+              "asset_policy": "zengshuang-reference-v1",
+              "asset_reference_sha256": "bcee49283722d1b80c0d95a51a44267e0fb9bbc1d76dd52ea0d0e2416e0879dd",
+              "layout_id": 0,
+              "layout_sha256": "5d6c4c37b2715479cb6a16f6d1200c5de740f1fbbaa216640b3b8828295f0b07",
+              "native_eval_seed": 0,
+              "native_horizon": 600,
+              "native_step_lim_override": null,
+              "reference_native_horizon": 600
+            },
+            "seed": 20260907,
+            "task": "push_T"
+          },
+          "error": null,
+          "metrics": {
+            "adapter_step_returns": 248,
+            "attempted_control_targets": 248,
+            "control_target_hz": 25.0,
+            "control_targets": 248,
+            "diagnostic_only": false,
+            "effective_control_target_cap": 600,
+            "first_native_success_control_target": null,
+            "native_alive_flag": false,
+            "native_benchmark_score": 0.0,
+            "native_benchmark_score_scale": "0..100",
+            "native_end_flag": true,
+            "native_horizon": 600,
+            "native_physics_counter": 3322,
+            "native_process_score": null,
+            "native_reward": 0.0,
+            "native_reward_evaluations": 248,
+            "native_step_lim_override": null,
+            "native_take_action_count": 248,
+            "physics_hz": 250.0,
+            "physics_ticks": 2480,
+            "reference_native_horizon": 600,
+            "reset_physics_ticks": 842,
+            "success": false,
+            "track": "robodojo-rgb-joint14-horizon-200calls-prefix5-nativecap-v1-zengshuang-reference-v1"
+          },
+          "policy_calls": 50,
+          "progress": {
+            "complete_step_coverage": true,
+            "first_native_success_step": null,
+            "first_native_success_timestamp": null,
+            "native_success_field": "native_success",
+            "policy_call_at_first_native_success": null
+          },
+          "source_result": "/mnt/workspace/users/jinhuiye/Projects/starVLA-RSI/starVLA/anonymous_code_agent/results/robodojo/raw/2026-09-15-stack_bowls-bowl-stacking-and-push_T-t-block-alignment-codex/campaign/case-001/run/episodes/push_T_arx_x5_eval-seed0_layout0/result.json",
+          "status": "completed",
+          "success": false,
+          "termination_reason": "environment:terminated",
+          "usage": {
+            "cached_input_tokens": null,
+            "calls": null,
+            "estimated_cost_usd": null,
+            "input_tokens": null,
+            "latency_s": 1690.1819701730274,
+            "output_tokens": null
+          }
+        }
+      ],
+      "harness_source": {
+        "file_count": 60,
+        "files_root": "harness_source/files",
+        "index_sha256": "e7270d85b17b5bb3e4959f12b1cd05e6b56c860c391d7ca632ab96d53e9ec24a",
+        "inventory_sha256": "9d42a3ffb04f31fe615aa135ac0ec6ed4e972aafe428f12854399e1836e2eec4",
+        "limitations": "Not an external-policy, prompt, simulator, asset, dependency, or loaded-memory snapshot.",
+        "path": "harness_source/index.json",
+        "scope": "harness and explicit benchmark runtime source; repository-relative layout/v2",
+        "source_root": "/mnt/workspace/users/jinhuiye/Projects/starVLA-RSI/starVLA/anonymous_code_agent/results/robodojo/raw/2026-09-15-stack_bowls-bowl-stacking-and-push_T-t-block-alignment-codex/campaign/frozen",
+        "total_bytes": 670321
+      },
+      "model_profile": {
+        "config_sha256": "ed8cc0195c356e4d7b76f5713023cfd8a2d8bd7d71a01ffcd530078ba975f31f",
+        "dependencies_sha256": "6bcd7b1e466af925f48a675be813d59068781511a7dfcaf7078735fe44edc217",
+        "factory": "starVLA.anonymous_code_agent.policy:create_policy",
+        "id": "anonymous_code_agent",
+        "profile_sha256": "a3837d382bfc0a487fbf8d6152cd32d1b9e4bf38f38ec9ca64a3c1bf2f463e09",
+        "prompt_sha256": "f163e3dce972d84edfecf20ad858aaa8f25d758be7b36debdbd26e1b3ba62f44",
+        "schema_version": "starvla-rsi.model-profile/v1",
+        "source_inventory_sha256": "46b696e04c1da28654ecbc1761ab041f109e164bd45f779aba0bda751117f30a"
+      },
+      "model_source": {
+        "file_count": 14,
+        "index_sha256": "d339ba4e2cd22fddd2bbaae339c3d197d66393ba57d101153bc0118300cb5fb6",
+        "inventory_sha256": "0d8029a79abffe1a8cf5a0e39f62ba9e74299a7957a65ddcfe7000c2313b49e7",
+        "path": "model_source/index.json",
+        "schema_version": "starvla-rsi.model-source/v2",
+        "total_bytes": 42226
+      },
+      "observation_spec": {
+        "cameras": [
+          "cam_head",
+          "cam_left_wrist",
+          "cam_right_wrist"
+        ],
+        "modalities": [
+          "rgb",
+          "language"
+        ],
+        "privileged": false,
+        "state_names": []
+      },
+      "policy": {
+        "kind": "external-code-agent",
+        "model": null,
+        "name": "code-agent-development",
+        "parameters": {
+          "absolute_paths_exported": false,
+          "directory": "/mnt/workspace/users/jinhuiye/policy-endpoints/mbx-3265575aca4b7dead126d2a0f839c9bc",
+          "endpoint_blinding": "operator_must_supply_seed_independent_root_and_opaque_endpoint",
+          "evaluation_status": "experimental",
+          "history": "current_observation_only",
+          "max_chunk_length": 5,
+          "max_response_bytes": 65536,
+          "model_profile": {
+            "config_sha256": "ed8cc0195c356e4d7b76f5713023cfd8a2d8bd7d71a01ffcd530078ba975f31f",
+            "dependencies_sha256": "6bcd7b1e466af925f48a675be813d59068781511a7dfcaf7078735fe44edc217",
+            "factory": "starVLA.anonymous_code_agent.policy:create_policy",
+            "id": "anonymous_code_agent",
+            "profile_sha256": "a3837d382bfc0a487fbf8d6152cd32d1b9e4bf38f38ec9ca64a3c1bf2f463e09",
+            "prompt_sha256": "f163e3dce972d84edfecf20ad858aaa8f25d758be7b36debdbd26e1b3ba62f44",
+            "schema_version": "starvla-rsi.model-profile/v1",
+            "source_inventory_sha256": "46b696e04c1da28654ecbc1761ab041f109e164bd45f779aba0bda751117f30a"
+          },
+          "policy_stop_rule": {
+            "early_policy_stop_exception": "safety_stop_with_nonempty_note",
+            "min_action_decisions_before_give_up": 50,
+            "scope": "policy",
+            "stop_constraint_version": "minimum-action-decisions/v2"
+          },
+          "prompt_sha256": "e838fa09a8a7077cdfd47880b9ad8da56da4d3ff720d49f3c357a2574e055c46",
+          "provider_call_limit_verified": false,
+          "public_path_base": "mailbox_root",
+          "timeout_s": 900.0,
+          "usage_source": "client_reported_or_unavailable"
+        },
+        "provider": null,
+        "version": "starvla-rsi.mailbox/v3"
+      },
+      "protocol": {
+        "budget_mode": "horizon",
+        "episode_ids": [
+          "push_T/arx_x5/eval-seed0/layout0"
+        ],
+        "episode_limit": 1,
+        "execution_feedback_version": "starvla-rsi.execution-feedback/v1",
+        "fail_fast": false,
+        "max_policy_calls": 200,
+        "max_steps": 1000,
+        "primary_budget": "first_exhausted_limit",
+        "replan_interval": 5,
+        "seed": 20260907
+      },
+      "run_id": "run",
+      "runtime": {
+        "executable": "/mnt/workspace/users/jinhuiye/Projects/rsi-direct-policy-check.0PcRrG/venv/bin/python",
+        "git": {
+          "dirty": false,
+          "evaluation_package_diff": {
+            "format": "git diff --no-ext-diff --no-textconv HEAD --binary -- <scope>",
+            "includes_untracked_files": false,
+            "scope": "starVLA/anonymous_code_agent/results/robodojo/raw/2026-09-15-stack_bowls-bowl-stacking-and-push_T-t-block-alignment-codex/campaign/frozen",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "size_bytes": 0,
+            "status": "recorded"
+          },
+          "revision": "44a539d772c6fa4489eefa6795c2c3bb9b92a4a0"
+        },
+        "hostname": "nb-tspyxddl7i-0",
+        "platform": "Linux-5.10.0-1.oe.jd_702.x86_64-x86_64-with-glibc2.39",
+        "python": "3.10.21"
+      },
+      "source_files_sha256": {
+        "episodes.jsonl": "a8e1eda222bb49a765f9933dec529be286ba5ddd1990c063f908545ae405c81f",
+        "episodes/push_T_arx_x5_eval-seed0_layout0/artifacts/cam_head.mp4": "883ed9ed922fbe0dafd5a29610344be86b830affa8f3548548efe993e0454975",
+        "episodes/push_T_arx_x5_eval-seed0_layout0/artifacts/cam_left_wrist.mp4": "6178657a1460b62c8fd6d4c925cf093e1d13453db043c411c9a5190f78efaf2d",
+        "episodes/push_T_arx_x5_eval-seed0_layout0/artifacts/cam_right_wrist.mp4": "c4fa0b14caba14580cf0313a0433a7106fb6254848d37592ec21d4b70de14b9c",
+        "episodes/push_T_arx_x5_eval-seed0_layout0/events.jsonl": "449a84ef95b21f89de8cd5e30fb655a2e6aff531637ea1dc6463db32391f9dca",
+        "episodes/push_T_arx_x5_eval-seed0_layout0/result.json": "e37353d0a57f166ac3e235b5e77356dcbb621d230498f65645efc2c0c459c5e9",
+        "manifest.json": "a40c79c3418afa1055f1979dfbeb42f175277ea87e93248e37c341510aefb9a7",
+        "status.json": "8dffbb1db664d8850eb45592a6b0f2c9ddf08eadcec3e0bd0c56dfaf31fb9b07",
+        "summary.json": "8b1fd55627604ee39deae93ba2863573c76502ebbcf2cc2182d9f1bf73035a0a"
+      },
+      "source_run": "/mnt/workspace/users/jinhuiye/Projects/starVLA-RSI/starVLA/anonymous_code_agent/results/robodojo/raw/2026-09-15-stack_bowls-bowl-stacking-and-push_T-t-block-alignment-codex/campaign/case-001/run",
+      "status": "completed",
+      "summary": {
+        "attempt_success_rate": 0.0,
+        "attempted": 1,
+        "benchmark": "robodojo",
+        "by_task": {
+          "push_T": {
+            "attempt_success_rate": 0.0,
+            "attempted": 1,
+            "completed": 1,
+            "errors": 0,
+            "policy_calls": 50,
+            "success_rate": 0.0,
+            "successes": 0
+          }
+        },
+        "completed": 1,
+        "completion_rate": 1.0,
+        "errors": 0,
+        "policy": "code-agent-development",
+        "policy_calls": 50,
+        "run_id": "run",
+        "schema_version": "starvla-rsi.eval/v1",
+        "success_rate": 0.0,
+        "successes": 0,
+        "usage": {
+          "cached_input_tokens": null,
+          "calls": null,
+          "estimated_cost_usd": null,
+          "input_tokens": null,
+          "latency_s": 1690.1819701730274,
+          "output_tokens": null
+        }
+      },
+      "videos": [
+        {
+          "archive_reasons": [],
+          "camera": "cam_head",
+          "diagnostic": false,
+          "episode_id": "push_T/arx_x5/eval-seed0/layout0",
+          "path": "media/robodojo/2026-09-14-push_T-t-block-alignment-run-c3b16f0872a7-case-001-2bfd66c0/cam_head-cam_head.mp4",
+          "sha256": "883ed9ed922fbe0dafd5a29610344be86b830affa8f3548548efe993e0454975",
+          "size_bytes": 387998,
+          "source": "/mnt/workspace/users/jinhuiye/Projects/starVLA-RSI/starVLA/anonymous_code_agent/results/robodojo/raw/2026-09-15-stack_bowls-bowl-stacking-and-push_T-t-block-alignment-codex/campaign/case-001/run/episodes/push_T_arx_x5_eval-seed0_layout0/artifacts/cam_head.mp4",
+          "source_relative": "episodes/push_T_arx_x5_eval-seed0_layout0/artifacts/cam_head.mp4"
+        },
+        {
+          "archive_reasons": [],
+          "camera": "cam_left_wrist",
+          "diagnostic": false,
+          "episode_id": "push_T/arx_x5/eval-seed0/layout0",
+          "path": "media/robodojo/2026-09-14-push_T-t-block-alignment-run-c3b16f0872a7-case-001-2bfd66c0/cam_left_wrist-cam_left_wrist.mp4",
+          "sha256": "6178657a1460b62c8fd6d4c925cf093e1d13453db043c411c9a5190f78efaf2d",
+          "size_bytes": 1593494,
+          "source": "/mnt/workspace/users/jinhuiye/Projects/starVLA-RSI/starVLA/anonymous_code_agent/results/robodojo/raw/2026-09-15-stack_bowls-bowl-stacking-and-push_T-t-block-alignment-codex/campaign/case-001/run/episodes/push_T_arx_x5_eval-seed0_layout0/artifacts/cam_left_wrist.mp4",
+          "source_relative": "episodes/push_T_arx_x5_eval-seed0_layout0/artifacts/cam_left_wrist.mp4"
+        },
+        {
+          "archive_reasons": [],
+          "camera": "cam_right_wrist",
+          "diagnostic": false,
+          "episode_id": "push_T/arx_x5/eval-seed0/layout0",
+          "path": "media/robodojo/2026-09-14-push_T-t-block-alignment-run-c3b16f0872a7-case-001-2bfd66c0/cam_right_wrist-cam_right_wrist.mp4",
+          "sha256": "c4fa0b14caba14580cf0313a0433a7106fb6254848d37592ec21d4b70de14b9c",
+          "size_bytes": 110420,
+          "source": "/mnt/workspace/users/jinhuiye/Projects/starVLA-RSI/starVLA/anonymous_code_agent/results/robodojo/raw/2026-09-15-stack_bowls-bowl-stacking-and-push_T-t-block-alignment-codex/campaign/case-001/run/episodes/push_T_arx_x5_eval-seed0_layout0/artifacts/cam_right_wrist.mp4",
+          "source_relative": "episodes/push_T_arx_x5_eval-seed0_layout0/artifacts/cam_right_wrist.mp4"
+        }
+      ]
+    }
+  ],
+  "schema_version": "starvla-rsi.result-index/v1"
+}

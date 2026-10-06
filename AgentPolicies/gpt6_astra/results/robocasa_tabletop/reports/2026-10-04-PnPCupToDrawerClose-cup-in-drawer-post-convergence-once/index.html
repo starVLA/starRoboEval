@@ -1,0 +1,318 @@
+<!doctype html><html lang="en"><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Agent method evaluation result</title><style>
+body{max-width:1100px;margin:40px auto;padding:0 20px;font:16px/1.6 system-ui;color:#183044}
+pre{background:#f1f5f8;padding:16px;overflow-wrap:anywhere;white-space:pre-wrap}
+details{margin:16px 0}summary{cursor:pointer}table{border-collapse:collapse;width:100%}
+th,td{text-align:left;padding:8px;border-bottom:1px solid #ddd}</style>
+<h1>gpt6-astra-direct — robocasa_tabletop</h1>
+<p>Run 2026-10-04-PnPCupToDrawerClose-cup-in-drawer-post-convergence-once. Method results, not a bare-model ranking.</p>
+<h2>Outcome</h2>
+<p><strong>0 / 1 successes / selected cases</strong> (0.0%). 1 errors; 0 unattempted. This denominator is the selected schedule, not necessarily the full benchmark.</p>
+<pre>{
+  &quot;scope&quot;: &quot;client_selected_schedule&quot;,
+  &quot;planned&quot;: 1,
+  &quot;unattempted&quot;: 0,
+  &quot;attempted&quot;: 1,
+  &quot;completed&quot;: 0,
+  &quot;errors&quot;: 1,
+  &quot;successes&quot;: 0,
+  &quot;policy_calls&quot;: 0,
+  &quot;rejected_actions&quot;: 0,
+  &quot;action_decisions&quot;: 0,
+  &quot;environment_steps&quot;: 0,
+  &quot;success_rate&quot;: null,
+  &quot;attempt_success_rate&quot;: 0.0,
+  &quot;selected_success_rate&quot;: 0.0,
+  &quot;rate_denominators&quot;: {
+    &quot;success_rate&quot;: &quot;completed_cases&quot;,
+    &quot;attempt_success_rate&quot;: &quot;attempted_cases&quot;,
+    &quot;selected_success_rate&quot;: &quot;selected_cases&quot;,
+    &quot;completion_rate&quot;: &quot;attempted_cases&quot;
+  },
+  &quot;completion_rate&quot;: 0.0
+}</pre>
+<h2>Method and resources</h2>
+<p>Configuration: not_supplied_in_legacy_identity_projection.</p>
+<pre>{
+  &quot;schema_version&quot;: &quot;starvla-rsi.method/v1&quot;,
+  &quot;id&quot;: &quot;gpt6-astra-direct&quot;,
+  &quot;version&quot;: &quot;codex-native/v1&quot;,
+  &quot;models&quot;: [
+    {
+      &quot;id&quot;: &quot;primary&quot;,
+      &quot;role&quot;: &quot;policy&quot;,
+      &quot;provider&quot;: &quot;openai&quot;,
+      &quot;model&quot;: &quot;gpt-6-astra&quot;,
+      &quot;version&quot;: null
+    }
+  ],
+  &quot;configuration&quot;: {}
+}</pre>
+<pre>{
+  &quot;aggregate_usage&quot;: {
+    &quot;calls&quot;: 0,
+    &quot;input_tokens&quot;: 0,
+    &quot;output_tokens&quot;: 0,
+    &quot;cached_input_tokens&quot;: 0,
+    &quot;estimated_cost_usd&quot;: 0.0,
+    &quot;latency_s&quot;: 0.0
+  },
+  &quot;component_usage&quot;: {
+    &quot;primary&quot;: {
+      &quot;calls&quot;: 0,
+      &quot;input_tokens&quot;: 0,
+      &quot;output_tokens&quot;: 0,
+      &quot;cached_input_tokens&quot;: 0,
+      &quot;estimated_cost_usd&quot;: 0.0,
+      &quot;latency_s&quot;: 0.0
+    }
+  }
+}</pre>
+<h2>Interaction recording</h2><p>Optional; recording availability does not affect publication eligibility.</p>
+<pre>{
+  &quot;availability&quot;: &quot;declared_settings_only&quot;,
+  &quot;configuration&quot;: {
+    &quot;source_capture&quot;: &quot;internal source/config snapshots retained independently of preset&quot;,
+    &quot;mode&quot;: &quot;standard&quot;,
+    &quot;scope&quot;: &quot;client-retention; server-native capture configured separately&quot;,
+    &quot;schema_version&quot;: &quot;starvla-rsi.recording/v1&quot;,
+    &quot;videos&quot;: true,
+    &quot;interactions&quot;: true,
+    &quot;images&quot;: true,
+    &quot;tool_traces&quot;: true,
+    &quot;model_io&quot;: true
+  },
+  &quot;publication_requirement&quot;: false
+}</pre>
+<h2>Episodes</h2>
+<details><summary>gr1_unified/PnPCupToDrawerClose_GR1ArmsAndWaistFourierHands_Env · tabletop-task00-seed20260907-attempt1 · error</summary>
+<pre>{
+  &quot;id&quot;: &quot;tabletop-task00-seed20260907-attempt1&quot;,
+  &quot;task&quot;: &quot;gr1_unified/PnPCupToDrawerClose_GR1ArmsAndWaistFourierHands_Env&quot;,
+  &quot;seed&quot;: 20260907,
+  &quot;status&quot;: &quot;error&quot;,
+  &quot;success&quot;: null,
+  &quot;termination_reason&quot;: &quot;error:infrastructure&quot;,
+  &quot;counters&quot;: {
+    &quot;policy_calls&quot;: 0,
+    &quot;action_decisions&quot;: 0,
+    &quot;environment_steps&quot;: 0,
+    &quot;rejected_actions&quot;: 0
+  },
+  &quot;duration_s&quot;: 1.025924582965672,
+  &quot;usage&quot;: {
+    &quot;calls&quot;: 0,
+    &quot;input_tokens&quot;: 0,
+    &quot;output_tokens&quot;: 0,
+    &quot;cached_input_tokens&quot;: 0,
+    &quot;estimated_cost_usd&quot;: 0.0,
+    &quot;latency_s&quot;: 0.0
+  },
+  &quot;component_usage&quot;: {
+    &quot;primary&quot;: {
+      &quot;calls&quot;: 0,
+      &quot;input_tokens&quot;: 0,
+      &quot;output_tokens&quot;: 0,
+      &quot;cached_input_tokens&quot;: 0,
+      &quot;estimated_cost_usd&quot;: 0.0,
+      &quot;latency_s&quot;: 0.0
+    }
+  },
+  &quot;native_metrics&quot;: {},
+  &quot;error&quot;: {
+    &quot;category&quot;: &quot;infrastructure&quot;,
+    &quot;type&quot;: &quot;SimServerError&quot;
+  },
+  &quot;recording&quot;: {
+    &quot;availability&quot;: &quot;declared_settings_only&quot;,
+    &quot;configuration&quot;: {
+      &quot;source_capture&quot;: &quot;internal source/config snapshots retained independently of preset&quot;,
+      &quot;mode&quot;: &quot;standard&quot;,
+      &quot;scope&quot;: &quot;client-retention; server-native capture configured separately&quot;,
+      &quot;schema_version&quot;: &quot;starvla-rsi.recording/v1&quot;,
+      &quot;videos&quot;: true,
+      &quot;interactions&quot;: true,
+      &quot;images&quot;: true,
+      &quot;tool_traces&quot;: true,
+      &quot;model_io&quot;: true,
+      &quot;agent_events_written&quot;: 0,
+      &quot;warnings&quot;: []
+    },
+    &quot;publication_requirement&quot;: false
+  }
+}</pre>
+</details>
+<details><summary>Benchmark, protocol and robot capabilities</summary>
+<pre>{
+  &quot;benchmark&quot;: {
+    &quot;name&quot;: &quot;robocasa_tabletop&quot;,
+    &quot;version&quot;: &quot;0.3.0&quot;,
+    &quot;protocol_version&quot;: &quot;gr1-tabletop-pilot-0-19/rgb256-qpos29/control-1000/v2&quot;,
+    &quot;source_revision&quot;: &quot;4840e671596f93ca03651524b9f72ffb1aadfeff&quot;
+  },
+  &quot;protocol&quot;: {
+    &quot;budget_mode&quot;: &quot;horizon&quot;,
+    &quot;primary_budget&quot;: &quot;first_exhausted_limit&quot;,
+    &quot;invalid_action_handling&quot;: &quot;feedback&quot;,
+    &quot;usage_accounting_version&quot;: &quot;starvla-rsi.method-usage/v1&quot;,
+    &quot;max_steps&quot;: 1000,
+    &quot;max_policy_calls&quot;: 200,
+    &quot;replan_interval&quot;: 5
+  },
+  &quot;contracts&quot;: {
+    &quot;action_spec&quot;: {
+      &quot;mode&quot;: &quot;absolute_joint_position&quot;,
+      &quot;frame&quot;: &quot;robot joint coordinates; absolute position targets in radians; no Cartesian pose action&quot;,
+      &quot;rotation&quot;: &quot;joint angles in radians; no Euler/axis-angle end-effector command&quot;,
+      &quot;gripper&quot;: &quot;6 Fourier position commands per hand: pinky, ring, middle, index, thumb pitch, thumb yaw; native expansion [0,0,1,1,2,2,3,3,4,4,5]; paired limits intersected; no clipping&quot;,
+      &quot;names&quot;: [
+        &quot;robot0_l_shoulder_pitch&quot;,
+        &quot;robot0_l_shoulder_roll&quot;,
+        &quot;robot0_l_shoulder_yaw&quot;,
+        &quot;robot0_l_elbow_pitch&quot;,
+        &quot;robot0_l_wrist_yaw&quot;,
+        &quot;robot0_l_wrist_roll&quot;,
+        &quot;robot0_l_wrist_pitch&quot;,
+        &quot;robot0_r_shoulder_pitch&quot;,
+        &quot;robot0_r_shoulder_roll&quot;,
+        &quot;robot0_r_shoulder_yaw&quot;,
+        &quot;robot0_r_elbow_pitch&quot;,
+        &quot;robot0_r_wrist_yaw&quot;,
+        &quot;robot0_r_wrist_roll&quot;,
+        &quot;robot0_r_wrist_pitch&quot;,
+        &quot;gripper0_left_L_pinky_intermediate_joint+gripper0_left_L_pinky_proximal_joint&quot;,
+        &quot;gripper0_left_L_ring_intermediate_joint+gripper0_left_L_ring_proximal_joint&quot;,
+        &quot;gripper0_left_L_middle_intermediate_joint+gripper0_left_L_middle_proximal_joint&quot;,
+        &quot;gripper0_left_L_index_intermediate_joint+gripper0_left_L_index_proximal_joint&quot;,
+        &quot;gripper0_left_L_thumb_distal_joint+gripper0_left_L_thumb_proximal_pitch_joint&quot;,
+        &quot;gripper0_left_L_thumb_proximal_yaw_joint&quot;,
+        &quot;gripper0_right_R_pinky_intermediate_joint+gripper0_right_R_pinky_proximal_joint&quot;,
+        &quot;gripper0_right_R_ring_intermediate_joint+gripper0_right_R_ring_proximal_joint&quot;,
+        &quot;gripper0_right_R_middle_intermediate_joint+gripper0_right_R_middle_proximal_joint&quot;,
+        &quot;gripper0_right_R_index_intermediate_joint+gripper0_right_R_index_proximal_joint&quot;,
+        &quot;gripper0_right_R_thumb_distal_joint+gripper0_right_R_thumb_proximal_pitch_joint&quot;,
+        &quot;gripper0_right_R_thumb_proximal_yaw_joint&quot;,
+        &quot;robot0_torso_waist_yaw&quot;,
+        &quot;robot0_torso_waist_pitch&quot;,
+        &quot;robot0_torso_waist_roll&quot;
+      ],
+      &quot;size&quot;: 29,
+      &quot;control_hz&quot;: 20.0,
+      &quot;low&quot;: [
+        -3,
+        0,
+        -3,
+        -3,
+        -3,
+        -1.5,
+        -1.5,
+        -3,
+        -3,
+        -3,
+        -3,
+        -3,
+        -1.5,
+        -1.5,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        -1.05,
+        -0.52,
+        -0.7
+      ],
+      &quot;high&quot;: [
+        3,
+        3,
+        3,
+        0,
+        3,
+        1.5,
+        1.5,
+        3,
+        0,
+        3,
+        0,
+        3,
+        1.5,
+        1.5,
+        1.57,
+        1.57,
+        1.57,
+        1.57,
+        1.22,
+        1.74,
+        1.57,
+        1.57,
+        1.57,
+        1.57,
+        1.22,
+        1.74,
+        1.05,
+        1.22,
+        0.7
+      ]
+    },
+    &quot;observation_spec&quot;: {
+      &quot;control_feedback_schema&quot;: null,
+      &quot;cameras&quot;: [
+        &quot;ego_view_bg_crop_pad_res256_freq20&quot;
+      ],
+      &quot;state_names&quot;: [
+        &quot;robot0_l_shoulder_pitch&quot;,
+        &quot;robot0_l_shoulder_roll&quot;,
+        &quot;robot0_l_shoulder_yaw&quot;,
+        &quot;robot0_l_elbow_pitch&quot;,
+        &quot;robot0_l_wrist_yaw&quot;,
+        &quot;robot0_l_wrist_roll&quot;,
+        &quot;robot0_l_wrist_pitch&quot;,
+        &quot;robot0_r_shoulder_pitch&quot;,
+        &quot;robot0_r_shoulder_roll&quot;,
+        &quot;robot0_r_shoulder_yaw&quot;,
+        &quot;robot0_r_elbow_pitch&quot;,
+        &quot;robot0_r_wrist_yaw&quot;,
+        &quot;robot0_r_wrist_roll&quot;,
+        &quot;robot0_r_wrist_pitch&quot;,
+        &quot;gripper0_left_L_pinky_intermediate_joint&quot;,
+        &quot;gripper0_left_L_ring_intermediate_joint&quot;,
+        &quot;gripper0_left_L_middle_intermediate_joint&quot;,
+        &quot;gripper0_left_L_index_intermediate_joint&quot;,
+        &quot;gripper0_left_L_thumb_proximal_pitch_joint&quot;,
+        &quot;gripper0_left_L_thumb_proximal_yaw_joint&quot;,
+        &quot;gripper0_right_R_pinky_intermediate_joint&quot;,
+        &quot;gripper0_right_R_ring_intermediate_joint&quot;,
+        &quot;gripper0_right_R_middle_intermediate_joint&quot;,
+        &quot;gripper0_right_R_index_intermediate_joint&quot;,
+        &quot;gripper0_right_R_thumb_proximal_pitch_joint&quot;,
+        &quot;gripper0_right_R_thumb_proximal_yaw_joint&quot;,
+        &quot;robot0_torso_waist_yaw&quot;,
+        &quot;robot0_torso_waist_pitch&quot;,
+        &quot;robot0_torso_waist_roll&quot;
+      ],
+      &quot;modalities&quot;: [
+        &quot;language&quot;,
+        &quot;rgb&quot;,
+        &quot;joint_position&quot;
+      ],
+      &quot;privileged&quot;: false
+    }
+  }
+}</pre>
+</details>
+<h2>Interpretation</h2><ul>
+<li>Interaction recording is optional and is not a publication requirement.</li>
+<li>No event, source, provider or native execution audit is implied by this presentation.</li>
+<li>The denominator is the client-selected schedule, not necessarily the entire benchmark.</li>
+<li>Missing usage is unknown, not zero; model composition and usage are reported declarations.</li>
+<li>Native metrics are included only when explicitly selected; no media or raw traces are copied.</li>
+<li>Review public method configuration and text before publishing; key filtering is not secret detection.</li>
+</ul></html>

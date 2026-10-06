@@ -1,0 +1,43 @@
+{
+  "schema_version": "starvla-rsi.sample-media/v1",
+  "run_id": "2026-09-20-libero_spatial-task0-init0-black-bowl-on-plate-bench-server-native-v1-sample-launch-env-fixed",
+  "path_base": "libero result directory",
+  "files": [
+    {
+      "camera": "agentview",
+      "path": "media/2026-09-20-libero_spatial-task0-init0-black-bowl-on-plate-bench-server-native-v1-sample-launch-env-fixed/agentview.mp4",
+      "bytes": 238691,
+      "sha256": "27fc35adb33ca008354acf3684a041a5c3d56a972b8bd2b41ec0c98561a3e3e1",
+      "frames": 426,
+      "width": 256,
+      "height": 256,
+      "fps": 20.0,
+      "decode_verified": true,
+      "strictly_increasing_pts": true,
+      "source_paths": [
+        "raw/2026-09-20-libero_spatial-task0-init0-black-bowl-on-plate-bench-server-native-v1-sample-launch-env-fixed/episodes/libero_spatial-task00-init00/artifacts/sim_server_files/agentview.mp4",
+        "raw/2026-09-20-libero_spatial-task0-init0-black-bowl-on-plate-bench-server-native-v1-sample-launch-env-fixed/client/episodes/libero_spatial-task00-init00/artifacts/sim_server_files/agentview.mp4"
+      ]
+    },
+    {
+      "camera": "robot0_eye_in_hand",
+      "path": "media/2026-09-20-libero_spatial-task0-init0-black-bowl-on-plate-bench-server-native-v1-sample-launch-env-fixed/robot0_eye_in_hand.mp4",
+      "bytes": 273293,
+      "sha256": "cfd7e498def1bcc808a0d8aecc2e8255eb5ff6c2ac71d7073f710d930ad44815",
+      "frames": 426,
+      "width": 256,
+      "height": 256,
+      "fps": 20.0,
+      "decode_verified": true,
+      "strictly_increasing_pts": true,
+      "source_paths": [
+        "raw/2026-09-20-libero_spatial-task0-init0-black-bowl-on-plate-bench-server-native-v1-sample-launch-env-fixed/episodes/libero_spatial-task00-init00/artifacts/sim_server_files/robot0_eye_in_hand.mp4",
+        "raw/2026-09-20-libero_spatial-task0-init0-black-bowl-on-plate-bench-server-native-v1-sample-launch-env-fixed/client/episodes/libero_spatial-task00-init00/artifacts/sim_server_files/robot0_eye_in_hand.mp4"
+      ]
+    }
+  ],
+  "limitations": [
+    "Both cameras were delivered to the policy.",
+    "Generated media are Git-ignored byte-checked presentation copies; raw files are unchanged."
+  ]
+}

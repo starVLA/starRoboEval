@@ -1,0 +1,307 @@
+{
+  "files": [
+    {
+      "path": "libero/libero/__init__.py",
+      "sha256": "dbdfb0aa59bda922a1b95e14b0c621db5ae9542810aeb3298b4d5e9fd549bb46",
+      "size_bytes": 3723
+    },
+    {
+      "path": "libero/libero/benchmark/__init__.py",
+      "sha256": "70ed74d8a05cdc0808d0347536781e4a0e3d8fec45437f06e7b570f84b94e4e9",
+      "size_bytes": 10551
+    },
+    {
+      "path": "libero/libero/benchmark/libero_suite_task_map.py",
+      "sha256": "41640d2f542169b400be7e94249e3b1f862e7500745dc318bab49b19576b31ac",
+      "size_bytes": 963396
+    },
+    {
+      "path": "libero/libero/benchmark/mu_creation.py",
+      "sha256": "1aca2195e1b5ffb91ff22becb08763a060697584d887dd65fa1bc40ec99558fa",
+      "size_bytes": 49217
+    },
+    {
+      "path": "libero/libero/benchmark/task_classification.json",
+      "sha256": "faa87cce3e3ba434da01df7c77523a391b5f2912e4774330b0aa1be5f6a999e6",
+      "size_bytes": 1994795
+    },
+    {
+      "path": "libero/libero/envs/__init__.py",
+      "sha256": "2b82b83c092339cf9b7881d762c8357010a42073e18c99f8f044b3ab9cd31df5",
+      "size_bytes": 298
+    },
+    {
+      "path": "libero/libero/envs/arenas/__init__.py",
+      "sha256": "a148bff0a3b0eb37b1d9d22579fbf3b05c7a26753ea026f5621576aa3f82fcb1",
+      "size_bytes": 259
+    },
+    {
+      "path": "libero/libero/envs/arenas/coffee_table_arena.py",
+      "sha256": "a1321848013495e1194c495eecb6c9da36e2260ce64ec636aea6f404e35abc04",
+      "size_bytes": 1107
+    },
+    {
+      "path": "libero/libero/envs/arenas/empty_arena.py",
+      "sha256": "1032b22ff518a37dd94609a525291082e1ac7151abc2d509e76b588625437260",
+      "size_bytes": 1087
+    },
+    {
+      "path": "libero/libero/envs/arenas/kitchen_arena.py",
+      "sha256": "fab3692ad931ce3e910b318626cd3d1f8c67a0100fbdb9fb28b6118fe42ec8f1",
+      "size_bytes": 5109
+    },
+    {
+      "path": "libero/libero/envs/arenas/living_room_arena.py",
+      "sha256": "8267ca85d85a4b83815543f1f5405002da81b0462259c1ca45a146b612277581",
+      "size_bytes": 1638
+    },
+    {
+      "path": "libero/libero/envs/arenas/study_arena.py",
+      "sha256": "274c663111069f77795151667e962afaa78ab43ea45d206f6b202c8cfba40387",
+      "size_bytes": 4473
+    },
+    {
+      "path": "libero/libero/envs/arenas/style.py",
+      "sha256": "0e3960b691dd2c36b3bc0920d83d37bc9edcb69b29d101459944fa5bad6f01c4",
+      "size_bytes": 18999
+    },
+    {
+      "path": "libero/libero/envs/arenas/table_arena.py",
+      "sha256": "a47a23d3736d35b34b279f90f267f9f3fa2426431a96c8f038d18ed44cc9a834",
+      "size_bytes": 5102
+    },
+    {
+      "path": "libero/libero/envs/base_object.py",
+      "sha256": "88ee0d4b2a39f39437d97fb12ec08831cb5064e23a7456d2f882e3baab246f1a",
+      "size_bytes": 645
+    },
+    {
+      "path": "libero/libero/envs/bddl_base_domain.py",
+      "sha256": "c2411809bc7b49cbaac8a677c8eea1fa9861539a5bf517c3b56a5e78065fd4e8",
+      "size_bytes": 32663
+    },
+    {
+      "path": "libero/libero/envs/bddl_utils.py",
+      "sha256": "f8148a5054e7818cee1ceddda300ff9f15272f8e6600389abd38f102e477cd8c",
+      "size_bytes": 6232
+    },
+    {
+      "path": "libero/libero/envs/env_wrapper.py",
+      "sha256": "e91d7b7b35cc3ad2b073606c99860def6b3ac43b66eba00ef0ddb6bfd8f39c3c",
+      "size_bytes": 18963
+    },
+    {
+      "path": "libero/libero/envs/object_states/__init__.py",
+      "sha256": "1fb9ad68a61066a7a4986f3f5f8610ba4d725b290e3d8944ab628d3e9f8a2d9f",
+      "size_bytes": 34
+    },
+    {
+      "path": "libero/libero/envs/object_states/base_object_states.py",
+      "sha256": "ca6f53123336b6487bdb4feb02534ddb3a0627a4b847fe89da4460520ef01366",
+      "size_bytes": 8215
+    },
+    {
+      "path": "libero/libero/envs/objects/__init__.py",
+      "sha256": "79437c02c9fe8077ef2eb246a6f7fe60e166dece8c66be548ea22b881f831956",
+      "size_bytes": 457
+    },
+    {
+      "path": "libero/libero/envs/objects/articulated_objects.py",
+      "sha256": "f5187b0381d69a2a8736c1dcb646e5fa7c138a42950f92e30c21c2efaed52faa",
+      "size_bytes": 8126
+    },
+    {
+      "path": "libero/libero/envs/objects/custom_objects.py",
+      "sha256": "30551a907a53ffa2af8fd76c61167e0972dbe3a273a6f0068aa99ada885f648e",
+      "size_bytes": 558503
+    },
+    {
+      "path": "libero/libero/envs/objects/google_scanned_objects.py",
+      "sha256": "626e25dfa8b102f7f7b406ef6a997003f1308b48cf52e7c22762e9eb86a1ec4c",
+      "size_bytes": 2457
+    },
+    {
+      "path": "libero/libero/envs/objects/hope_objects.py",
+      "sha256": "70ee607faf5dca4f69c5db96fbf79080990b7c39a0f08d99b074c67f0acbd62d",
+      "size_bytes": 6814
+    },
+    {
+      "path": "libero/libero/envs/objects/site_object.py",
+      "sha256": "4907bf2550945c395b85fd92725763ada4da533ad50966eb179e637dabeeebf6",
+      "size_bytes": 3028
+    },
+    {
+      "path": "libero/libero/envs/objects/target_zones.py",
+      "sha256": "49a14627103648fbb620c3a6c1ae14f52fae6e2f4db81b0074e602f01aaf7205",
+      "size_bytes": 3005
+    },
+    {
+      "path": "libero/libero/envs/objects/turbosquid_objects.py",
+      "sha256": "4de4205eabb588600fd9669f6ee6e2ef12e47e13d9b421257215d34f836f9804",
+      "size_bytes": 5346
+    },
+    {
+      "path": "libero/libero/envs/predicates/__init__.py",
+      "sha256": "e059a52d635ae4bdfe0e4bd6f0a0ca9b53a04444b39b53664fffb38d0838679e",
+      "size_bytes": 888
+    },
+    {
+      "path": "libero/libero/envs/predicates/base_predicates.py",
+      "sha256": "319137e95330dbb22a266a8dceb8110f18413c2bf17461550222228c4bc310a1",
+      "size_bytes": 2650
+    },
+    {
+      "path": "libero/libero/envs/problems/__init__.py",
+      "sha256": "2d1980568bf81fe7c27f62ed59a2c0376722f726654eb07ced6ea8c6bce017bc",
+      "size_bytes": 489
+    },
+    {
+      "path": "libero/libero/envs/problems/libero_coffee_table_manipulation.py",
+      "sha256": "a05e5f00f706fe12776c42030fc048192e2dc8873504e374ea4ec362a1014713",
+      "size_bytes": 18234
+    },
+    {
+      "path": "libero/libero/envs/problems/libero_floor_manipulation.py",
+      "sha256": "78dc749046cd3dfcbbb4f714abefd9c6e18bc3d19f84a2be46387e82c04f5c34",
+      "size_bytes": 1391544
+    },
+    {
+      "path": "libero/libero/envs/problems/libero_kitchen_tabletop_manipulation.py",
+      "sha256": "7b8b2cd98ac778620c497251d99fe63cfecfeaafd31eb8adcf9d9e86eb23860e",
+      "size_bytes": 1598591
+    },
+    {
+      "path": "libero/libero/envs/problems/libero_living_room_tabletop_manipulation.py",
+      "sha256": "f1feac4c0f2f75f5d29a304d56e0c553824d3c5591d9ee0a65d19cf98cdf175f",
+      "size_bytes": 1566126
+    },
+    {
+      "path": "libero/libero/envs/problems/libero_study_tabletop_manipulation.py",
+      "sha256": "b94754ffd74a236c64c049c806d129a8556162c6b5146fc3660f2c2130fc25a4",
+      "size_bytes": 1525951
+    },
+    {
+      "path": "libero/libero/envs/problems/libero_tabletop_manipulation.py",
+      "sha256": "6f97cfbaaea1fed9c7ba2711b75558ae97d3559d5199d15edeef0ff38648b0ba",
+      "size_bytes": 1517828
+    },
+    {
+      "path": "libero/libero/envs/regions/__init__.py",
+      "sha256": "c1259231f5f2bf1499b684187c733db30503a6cc864de30df2513665f59c876f",
+      "size_bytes": 871179
+    },
+    {
+      "path": "libero/libero/envs/regions/base_region_sampler.py",
+      "sha256": "08c12685b443d723bdffc3e1820cfb1a9b54eeda54a261ccaeacb7f04f9ab88d",
+      "size_bytes": 36263
+    },
+    {
+      "path": "libero/libero/envs/regions/object_property_sampler.py",
+      "sha256": "051fbce5a9aadcdf26bd42b447c1b677e610e0e539132807a3ffb578b6feab60",
+      "size_bytes": 4476
+    },
+    {
+      "path": "libero/libero/envs/regions/workspace_region_sampler.py",
+      "sha256": "66b8ce7f7eb18e316fdc1a44a4210ee0a25a24e9a9d49be88dde970960a58b75",
+      "size_bytes": 9770
+    },
+    {
+      "path": "libero/libero/envs/robots/__init__.py",
+      "sha256": "9a73aa9ea03903b1f653c475523eb471ad7cc2a1cccf9b0ed781f1f54e6813e4",
+      "size_bytes": 58873
+    },
+    {
+      "path": "libero/libero/envs/robots/mounted_panda.py",
+      "sha256": "4e566d72262a45fca93609092fcfd9b8e4ad3360dc0fc24f59416eaa738144e7",
+      "size_bytes": 127158
+    },
+    {
+      "path": "libero/libero/envs/robots/new_init.py",
+      "sha256": "e353ad811ae7d1e02bea163c1b216e723f503c5e03714a6d8e014271ec79eec7",
+      "size_bytes": 6493
+    },
+    {
+      "path": "libero/libero/envs/robots/new_register.py",
+      "sha256": "3c0afe7fc1bc3d55f114106e9f0184d8f52b74b9a45236b5293c253b55135e5d",
+      "size_bytes": 1377
+    },
+    {
+      "path": "libero/libero/envs/robots/on_the_ground_panda.py",
+      "sha256": "8e58f81760f11bbeb23cd165fabe37eaef024348cdf547fc9c84ca861a437a5a",
+      "size_bytes": 131172
+    },
+    {
+      "path": "libero/libero/envs/textures.py",
+      "sha256": "bcc631c6da38a148db316862d847222361ddc0416277dd6c860c70a3c437bf17",
+      "size_bytes": 2985
+    },
+    {
+      "path": "libero/libero/envs/utils.py",
+      "sha256": "81813480479dbd7fd938479dcdc17c258608b3ea4efdefc3e13aff100a89fd6a",
+      "size_bytes": 12174
+    },
+    {
+      "path": "libero/libero/envs/venv.py",
+      "sha256": "a970353a592190152f313424738b05457f8e10cbafc7303c756b85aa9425d1e7",
+      "size_bytes": 35315
+    },
+    {
+      "path": "libero/libero/utils/__init__.py",
+      "sha256": "fb382c7a116e6b9da49c6b8c53209f7a2825a12a640f3b007b663435ae19ce46",
+      "size_bytes": 1738
+    },
+    {
+      "path": "libero/libero/utils/bddl_generation_utils.py",
+      "sha256": "2ff3fe4d5c72358970f6e3a1f38ceabe6098b92949d5fc8b1c209db74085eca8",
+      "size_bytes": 13546
+    },
+    {
+      "path": "libero/libero/utils/dataset_utils.py",
+      "sha256": "e082f99790ebaabb65b762fb59727b93f3ca7addb3b0d3fea56dfe9cec97c81a",
+      "size_bytes": 3877
+    },
+    {
+      "path": "libero/libero/utils/download_utils.py",
+      "sha256": "614d4233e633bd3ba98377bcad90f38f70b5b8218b1825dda2b943d4ba302dbc",
+      "size_bytes": 8877
+    },
+    {
+      "path": "libero/libero/utils/log_utils.py",
+      "sha256": "b1e0e938dba6c5d6273b4aee3c7489a486ee53b1e450e3efba8601547402d8e1",
+      "size_bytes": 1445
+    },
+    {
+      "path": "libero/libero/utils/mu_utils.py",
+      "sha256": "98fd321045dc5687722c89a79e64a7a3583b47cbed948aebfac98e3243d18bc9",
+      "size_bytes": 4520
+    },
+    {
+      "path": "libero/libero/utils/object_utils.py",
+      "sha256": "e001887c73726b4ae87e6f2c4931135cc4e60d707b2dc668bb77360bef9b00b6",
+      "size_bytes": 1876
+    },
+    {
+      "path": "libero/libero/utils/task_generation_utils.py",
+      "sha256": "262c952f6484bbc2f39ee33e634662ed47b8e564509df737a3dbad01cb23301a",
+      "size_bytes": 3420
+    },
+    {
+      "path": "libero/libero/utils/time_utils.py",
+      "sha256": "b853805998ca83717dbf14e3d7e4e724fc3979b9ca18a3bd6c9bd25d8d7029de",
+      "size_bytes": 318
+    },
+    {
+      "path": "libero/libero/utils/utils.py",
+      "sha256": "30e78e4f05a9ef25d6ccf55e3d7ab5739b39f58c098a9ab91b78fb57919ea6ba",
+      "size_bytes": 2257
+    },
+    {
+      "path": "libero/libero/utils/video_utils.py",
+      "sha256": "bf049b7541a2df044f0338d00c8b005e4bc24cc79d698cc4683c457bac2ffc90",
+      "size_bytes": 2965
+    }
+  ],
+  "schema_version": "starvla-rsi.libero-plus-native-source/v1",
+  "scope": "tracked Python under libero/libero and native task classification; not all assets",
+  "upstream_revision": "4976dc30028e805ff8094b55501d532c48fec182"
+}

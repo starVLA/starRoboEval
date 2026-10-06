@@ -1,0 +1,335 @@
+{
+  "created_at": "2026-09-15T09:56:18.234616+00:00",
+  "limitations": [
+    "Index of the explicit closed source list, not full benchmark coverage or a merged model score.",
+    "Original manifests, results, source packages and paths remain unchanged.",
+    "Hashes cover the listed records and selected videos, not all source/assets/wire artifacts.",
+    "Native first success is read from existing step logs; incomplete evidence remains null.",
+    "Diagnostic runs retain native outcomes as infrastructure evidence, not model capability scores.",
+    "Model/provider identity, accounting and isolation are not retroactively verified."
+  ],
+  "model": null,
+  "namespace": "anonymous_code_agent",
+  "provider": null,
+  "runs": [
+    {
+      "action_spec": {
+        "control_hz": 20,
+        "frame": "EEF delta: robot base frame, unit=0.05m; base forward/side: current base frame, unit=1m/s; yaw unit=1.5rad/s; torso delta unit=0.05m",
+        "gripper": "binary 0=open, 1=close; native -1/+1; no fractional values",
+        "high": [
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0
+        ],
+        "low": [
+          -1.0,
+          -1.0,
+          -1.0,
+          -1.0,
+          -1.0,
+          -1.0,
+          0.0,
+          -1.0,
+          -1.0,
+          -1.0,
+          -1.0,
+          0.0
+        ],
+        "mode": "robocasa365.pandaomron.hybrid_mobile_base.native12/v1",
+        "names": [
+          "eef_dx",
+          "eef_dy",
+          "eef_dz",
+          "eef_drx",
+          "eef_dry",
+          "eef_drz",
+          "gripper_close",
+          "base_forward",
+          "base_side",
+          "base_yaw",
+          "torso_delta",
+          "base_mode"
+        ],
+        "rotation": "base-frame axis-angle delta, unit=0.5rad; binary base_mode 0=achieved arm goal, 1=desired arm goal",
+        "size": 12
+      },
+      "benchmark": {
+        "name": "robocasa365",
+        "protocol_version": "target-first2-development/rgb/decision-200-prefix-5/v1",
+        "source_revision": "b4684e6ee37d377cc392e98302a6b916d588b415",
+        "version": "1.0.1"
+      },
+      "diagnostic": false,
+      "episodes": [
+        {
+          "action_decisions": 9,
+          "duration_s": 351.19022176321596,
+          "environment_steps": 41,
+          "episode": {
+            "id": "robocasa365-task01-attempt01",
+            "instruction": "Navigate to the target fixture.",
+            "metadata": {
+              "attempt": 1,
+              "budget_mode": "decisions",
+              "environment_step_cap": 1000,
+              "evaluation_horizon": 1000,
+              "instruction_source": "native language replaces generic instruction at reset",
+              "max_policy_calls": 200,
+              "native_horizon": 450,
+              "native_horizon_source": "pinned_robocasa1.0.1_dataset_registry",
+              "official_leaderboard_protocol": false,
+              "replan_interval": 5,
+              "split": "target",
+              "task_id": 1,
+              "task_set": "atomic_seen"
+            },
+            "seed": 20260907,
+            "task": "NavigateKitchen"
+          },
+          "error": null,
+          "metrics": {
+            "budget_mode": "decisions",
+            "environment_step_cap": 1000,
+            "evaluation_horizon": 1000,
+            "explicit_resets": 1,
+            "first_success_elapsed_s": null,
+            "first_success_step": null,
+            "max_policy_calls": 200,
+            "native_horizon": 450,
+            "native_horizon_source": "pinned_robocasa1.0.1_dataset_registry",
+            "native_steps": 41,
+            "native_success_final": false,
+            "official_leaderboard_protocol": false,
+            "replan_interval": 5,
+            "score_semantics": "final_native_success; stop_at_first_native_success",
+            "success": false,
+            "success_ever": false
+          },
+          "policy_calls": 10,
+          "progress": {
+            "complete_step_coverage": true,
+            "first_native_success_step": null,
+            "first_native_success_timestamp": null,
+            "native_success_field": "native_success",
+            "policy_call_at_first_native_success": null
+          },
+          "source_result": "/mnt/workspace/users/jinhuiye/Projects/starVLA-RSI/starVLA/anonymous_code_agent/results/robocasa365/raw/2026-09-15-NavigateKitchen-navigate-to-kitchen-fixture-sim-server-v1/evaluator/NavigateKitchen-navigate-to-kitchen-fixture-direct-control/episodes/robocasa365-task01-attempt01/result.json",
+          "status": "completed",
+          "success": false,
+          "termination_reason": "policy:safety_stop",
+          "usage": {
+            "cached_input_tokens": null,
+            "calls": null,
+            "estimated_cost_usd": null,
+            "input_tokens": null,
+            "latency_s": 298.5961494608782,
+            "output_tokens": null
+          }
+        }
+      ],
+      "harness_source": {
+        "file_count": 72,
+        "files_root": "harness_source/files",
+        "index_sha256": "2abb4fba510fce41e2595edb47a9393733374f927a61f4ef3e60ecb801ad4f76",
+        "inventory_sha256": "0cca33b672be2d1c459a1054df18b9c5dca08b3eda610a73fe36ad0fabe55995",
+        "limitations": "Not an external-policy, prompt, simulator, asset, dependency, or loaded-memory snapshot.",
+        "path": "harness_source/index.json",
+        "scope": "harness and explicit benchmark runtime source; repository-relative layout/v2",
+        "source_root": "/mnt/workspace/users/jinhuiye/Projects/rsi-sim-server-check.Wt9Ont/source-final",
+        "total_bytes": 729880
+      },
+      "model_profile": {
+        "config_sha256": "ed8cc0195c356e4d7b76f5713023cfd8a2d8bd7d71a01ffcd530078ba975f31f",
+        "dependencies_sha256": "6bcd7b1e466af925f48a675be813d59068781511a7dfcaf7078735fe44edc217",
+        "factory": "starVLA.anonymous_code_agent.policy:create_policy",
+        "id": "anonymous_code_agent",
+        "profile_sha256": "a3837d382bfc0a487fbf8d6152cd32d1b9e4bf38f38ec9ca64a3c1bf2f463e09",
+        "prompt_sha256": "f163e3dce972d84edfecf20ad858aaa8f25d758be7b36debdbd26e1b3ba62f44",
+        "schema_version": "starvla-rsi.model-profile/v1",
+        "source_inventory_sha256": "46b696e04c1da28654ecbc1761ab041f109e164bd45f779aba0bda751117f30a"
+      },
+      "model_source": {
+        "file_count": 14,
+        "index_sha256": "7cc9823963f1826b3532c0e9c8a643c513bd224814032d88649425232b62afeb",
+        "inventory_sha256": "0a2c1ee4b87d30971173a5795edc1734de22e48568fea7697c150d48516f3e61",
+        "path": "model_source/index.json",
+        "schema_version": "starvla-rsi.model-source/v2",
+        "total_bytes": 40847
+      },
+      "observation_spec": {
+        "cameras": [
+          "robot0_agentview_left",
+          "robot0_agentview_right",
+          "robot0_eye_in_hand"
+        ],
+        "modalities": [
+          "language",
+          "rgb"
+        ],
+        "privileged": false,
+        "state_names": []
+      },
+      "policy": {
+        "kind": "external-code-agent",
+        "model": null,
+        "name": "code-agent-development",
+        "parameters": {
+          "absolute_paths_exported": false,
+          "directory": "/mnt/workspace/users/jinhuiye/policy-endpoints/mbx-7b7507b09f981fed2afe5235e3570bbf",
+          "endpoint_blinding": "operator_must_supply_seed_independent_root_and_opaque_endpoint",
+          "evaluation_status": "experimental",
+          "history": "current_observation_only",
+          "max_chunk_length": 5,
+          "max_response_bytes": 65536,
+          "model_profile": {
+            "config_sha256": "ed8cc0195c356e4d7b76f5713023cfd8a2d8bd7d71a01ffcd530078ba975f31f",
+            "dependencies_sha256": "6bcd7b1e466af925f48a675be813d59068781511a7dfcaf7078735fe44edc217",
+            "factory": "starVLA.anonymous_code_agent.policy:create_policy",
+            "id": "anonymous_code_agent",
+            "profile_sha256": "a3837d382bfc0a487fbf8d6152cd32d1b9e4bf38f38ec9ca64a3c1bf2f463e09",
+            "prompt_sha256": "f163e3dce972d84edfecf20ad858aaa8f25d758be7b36debdbd26e1b3ba62f44",
+            "schema_version": "starvla-rsi.model-profile/v1",
+            "source_inventory_sha256": "46b696e04c1da28654ecbc1761ab041f109e164bd45f779aba0bda751117f30a"
+          },
+          "policy_stop_rule": {
+            "early_policy_stop_exception": "safety_stop_with_nonempty_note",
+            "min_action_decisions_before_give_up": 0,
+            "scope": "policy",
+            "stop_constraint_version": "minimum-action-decisions/v2"
+          },
+          "prompt_sha256": "57b566ed0ec8da2055633a71ce4b66f9010bcdc627f50e86fe93d179cd44ddce",
+          "provider_call_limit_verified": false,
+          "public_path_base": "mailbox_root",
+          "timeout_s": 900.0,
+          "usage_source": "client_reported_or_unavailable"
+        },
+        "provider": null,
+        "version": "starvla-rsi.mailbox/v3"
+      },
+      "protocol": {
+        "budget_mode": "decisions",
+        "episode_ids": [
+          "robocasa365-task01-attempt01"
+        ],
+        "episode_limit": 1,
+        "execution_feedback_version": "starvla-rsi.execution-feedback/v1",
+        "fail_fast": false,
+        "max_policy_calls": 200,
+        "max_steps": 1000,
+        "primary_budget": "policy_decisions",
+        "replan_interval": 5,
+        "seed": 20260907
+      },
+      "run_id": "NavigateKitchen-navigate-to-kitchen-fixture-direct-control",
+      "runtime": {
+        "executable": "/mnt/workspace/users/jinhuiye/Projects/rsi-direct-policy-check.0PcRrG/venv/bin/python",
+        "git": {
+          "dirty": null,
+          "evaluation_package_diff": {
+            "includes_untracked_files": false,
+            "reason": "git_checkout_unavailable",
+            "scope": "installed harness package",
+            "sha256": null,
+            "status": "unavailable"
+          },
+          "revision": null
+        },
+        "hostname": "nb-wtwrsl1eki-0",
+        "platform": "Linux-5.10.0-1.oe.jd_702.x86_64-x86_64-with-glibc2.39",
+        "python": "3.10.21"
+      },
+      "source_files_sha256": {
+        "episodes.jsonl": "f564706de9635ae27063521ce875ee022387d2a971df8a4191bf393d872af6b1",
+        "episodes/robocasa365-task01-attempt01/artifacts/sim_server_files/robot0_agentview_left.mp4": "ea01e42a5977174f8c669605cf073f872d9f8c86fba7e138c8bf6fa7652be50e",
+        "episodes/robocasa365-task01-attempt01/artifacts/sim_server_files/robot0_agentview_right.mp4": "f1f7f186235aae2fd5405d4a1dd359e9ad1af42aa0754b9d36095dc9d71e0fd5",
+        "episodes/robocasa365-task01-attempt01/artifacts/sim_server_files/robot0_eye_in_hand.mp4": "b7f7169813ad79c7b8d62f70a073dc879e181ab3c461546090469c72b92302e2",
+        "episodes/robocasa365-task01-attempt01/events.jsonl": "2f0eff4cc86e3602d1feb60bf51cfc1e10896da206756578e3940c14cf382a13",
+        "episodes/robocasa365-task01-attempt01/result.json": "f5fe4979231d3e4bdfc39c8b17d6065e9a5612e2d557f35debf866dd33f83dcc",
+        "manifest.json": "3c64069866399998a4ea5fe53be35ae21f49d0e0c99becfd6b36cb6835d28199",
+        "status.json": "173ba6c9e0f049a24556f3806cccc854b5484af8864d6e7692a06f229a0c240c",
+        "summary.json": "35ce0870a25df54079e377803e8ee4bd63c05d5b90233acb9d18467427b4def6"
+      },
+      "source_run": "/mnt/workspace/users/jinhuiye/Projects/starVLA-RSI/starVLA/anonymous_code_agent/results/robocasa365/raw/2026-09-15-NavigateKitchen-navigate-to-kitchen-fixture-sim-server-v1/evaluator/NavigateKitchen-navigate-to-kitchen-fixture-direct-control",
+      "status": "completed",
+      "summary": {
+        "attempt_success_rate": 0.0,
+        "attempted": 1,
+        "benchmark": "robocasa365",
+        "by_task": {
+          "NavigateKitchen": {
+            "attempt_success_rate": 0.0,
+            "attempted": 1,
+            "completed": 1,
+            "errors": 0,
+            "policy_calls": 10,
+            "success_rate": 0.0,
+            "successes": 0
+          }
+        },
+        "completed": 1,
+        "completion_rate": 1.0,
+        "errors": 0,
+        "policy": "code-agent-development",
+        "policy_calls": 10,
+        "run_id": "NavigateKitchen-navigate-to-kitchen-fixture-direct-control",
+        "schema_version": "starvla-rsi.eval/v1",
+        "success_rate": 0.0,
+        "successes": 0,
+        "usage": {
+          "cached_input_tokens": null,
+          "calls": null,
+          "estimated_cost_usd": null,
+          "input_tokens": null,
+          "latency_s": 298.5961494608782,
+          "output_tokens": null
+        }
+      },
+      "videos": [
+        {
+          "archive_reasons": [],
+          "camera": "robot0_agentview_left",
+          "diagnostic": false,
+          "episode_id": "robocasa365-task01-attempt01",
+          "path": "media/robocasa365/2026-09-15-NavigateKitchen-kitchen-navigation-NavigateKitchen-navigate-to-kitchen-fixture-direct-control-06051ad199cf-evaluator-13b982ee/robot0_agentview_left-robot0_agentview_left.mp4",
+          "sha256": "ea01e42a5977174f8c669605cf073f872d9f8c86fba7e138c8bf6fa7652be50e",
+          "size_bytes": 127044,
+          "source": "/mnt/workspace/users/jinhuiye/Projects/starVLA-RSI/starVLA/anonymous_code_agent/results/robocasa365/raw/2026-09-15-NavigateKitchen-navigate-to-kitchen-fixture-sim-server-v1/evaluator/NavigateKitchen-navigate-to-kitchen-fixture-direct-control/episodes/robocasa365-task01-attempt01/artifacts/sim_server_files/robot0_agentview_left.mp4",
+          "source_relative": "episodes/robocasa365-task01-attempt01/artifacts/sim_server_files/robot0_agentview_left.mp4"
+        },
+        {
+          "archive_reasons": [],
+          "camera": "robot0_agentview_right",
+          "diagnostic": false,
+          "episode_id": "robocasa365-task01-attempt01",
+          "path": "media/robocasa365/2026-09-15-NavigateKitchen-kitchen-navigation-NavigateKitchen-navigate-to-kitchen-fixture-direct-control-06051ad199cf-evaluator-13b982ee/robot0_agentview_right-robot0_agentview_right.mp4",
+          "sha256": "f1f7f186235aae2fd5405d4a1dd359e9ad1af42aa0754b9d36095dc9d71e0fd5",
+          "size_bytes": 121069,
+          "source": "/mnt/workspace/users/jinhuiye/Projects/starVLA-RSI/starVLA/anonymous_code_agent/results/robocasa365/raw/2026-09-15-NavigateKitchen-navigate-to-kitchen-fixture-sim-server-v1/evaluator/NavigateKitchen-navigate-to-kitchen-fixture-direct-control/episodes/robocasa365-task01-attempt01/artifacts/sim_server_files/robot0_agentview_right.mp4",
+          "source_relative": "episodes/robocasa365-task01-attempt01/artifacts/sim_server_files/robot0_agentview_right.mp4"
+        },
+        {
+          "archive_reasons": [],
+          "camera": "robot0_eye_in_hand",
+          "diagnostic": false,
+          "episode_id": "robocasa365-task01-attempt01",
+          "path": "media/robocasa365/2026-09-15-NavigateKitchen-kitchen-navigation-NavigateKitchen-navigate-to-kitchen-fixture-direct-control-06051ad199cf-evaluator-13b982ee/robot0_eye_in_hand-robot0_eye_in_hand.mp4",
+          "sha256": "b7f7169813ad79c7b8d62f70a073dc879e181ab3c461546090469c72b92302e2",
+          "size_bytes": 95057,
+          "source": "/mnt/workspace/users/jinhuiye/Projects/starVLA-RSI/starVLA/anonymous_code_agent/results/robocasa365/raw/2026-09-15-NavigateKitchen-navigate-to-kitchen-fixture-sim-server-v1/evaluator/NavigateKitchen-navigate-to-kitchen-fixture-direct-control/episodes/robocasa365-task01-attempt01/artifacts/sim_server_files/robot0_eye_in_hand.mp4",
+          "source_relative": "episodes/robocasa365-task01-attempt01/artifacts/sim_server_files/robot0_eye_in_hand.mp4"
+        }
+      ]
+    }
+  ],
+  "schema_version": "starvla-rsi.result-index/v1"
+}

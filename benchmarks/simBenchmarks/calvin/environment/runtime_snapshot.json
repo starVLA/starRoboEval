@@ -1,0 +1,30 @@
+{
+  "schema_version": "starvla-rsi.calvin-runtime/v1",
+  "python": [3, 10],
+  "platform": "Linux x86_64",
+  "native_revisions": {
+    ".": "fa03f01f19c65920e18cf37398a9ce859274af76",
+    "calvin_env": "1431a46bd36bde5903fb6345e68b5ccc30def666",
+    "calvin_env/tacto": "dd53360d9a8c186f0d6439372ec0be0fa5e21731"
+  },
+  "native_regular_file_counts": {".": 158, "calvin_env": 287, "calvin_env/tacto": 188},
+  "native_files": {
+    "calvin_models/calvin_agent/evaluation/utils.py": "35e444a68a4a2cc9a8b3195a4f9ad957c2384d7096306e113557d3c0dd8788e8",
+    "calvin_models/calvin_agent/evaluation/evaluate_policy.py": "b85dfdbfe5dffc79c75ee744a946eeeb04142bbd8a832ba45842a9fb3ad7aacf",
+    "calvin_models/conf/callbacks/rollout/tasks/new_playtable_tasks.yaml": "6e905de3ca05118efdd8a51f8a7756ec6e61ffdb2b9b6a2843f0b7e0e9e51dcf",
+    "calvin_models/conf/annotations/new_playtable_validation.yaml": "d14b0bf960f65158c5815b10ff11d2464073f26ac9b62c9f54e5c90ca352ccfa"
+  },
+  "debug_config": {"path": "validation/.hydra/merged_config.yaml", "bytes": 7287, "sha256": "75c1c15067e4bd543d1b69a654769836f6cbbf55c4e44ae30da255c45609523f"},
+  "original_debug_archive": {"bytes": 1299150917, "sha256": "c66d09147e2c806b244f18ea7d61e388d4dac11f828929779437f728d03e1204", "runtime_scope": "only original merged_config.yaml is read from the dataset; demonstrations are never loaded; archive identity is preparation provenance, not an every-reset full dataset byte audit"},
+  "package_binary_sha256": {
+    "pybullet": {
+      "eglRenderer.cpython-310-x86_64-linux-gnu.so": "6ad9aa3ef3fc2909869b7743f3fca9f342c05c732ed6d1268d476ba917cbff1c",
+      "pybullet.cpython-310-x86_64-linux-gnu.so": "54596239c69a8ed206759da5388dc69e3b9820815100fb20819d4fabdcda0bcf"
+    },
+    "opencv-python-headless": {
+      "cv2/cv2.abi3.so": "68fee49d266a95e730c1cb17d913a39a93ab5c50bee1581600f453026f9c7b8d",
+      "opencv_python_headless.libs/libopenblas-r0-f650aae0.3.3.so": "79ec02b53f573cd7116a89f04c397473018e7fda05720b354d43505c19d47958"
+    }
+  },
+  "scope": "clean Git tree plus actual regular source/asset bytes; pinned dependency versions and named binary bytes; not loaded-memory, driver, or every transitive shared-library attestation"
+}

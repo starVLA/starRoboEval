@@ -1,0 +1,11 @@
+# Native server environment; Python 3.10 or 3.11 (NumPy 1.24.4 has no 3.12 wheel).
+# All MetaWorld code and bundled assets are additionally checked by package_pin.json.
+metaworld==3.1.1
+mujoco==3.3.0
+gymnasium==1.3.0
+numpy==1.24.4
+# Gymnasium's optional MuJoCo renderer imports packaging.version at runtime.
+packaging==26.2
+imageio==2.37.4
+imageio-ffmpeg==0.6.0
+Pillow==12.2.0

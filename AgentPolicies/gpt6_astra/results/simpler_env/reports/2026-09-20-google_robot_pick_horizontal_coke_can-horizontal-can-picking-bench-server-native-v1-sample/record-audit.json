@@ -1,0 +1,44 @@
+{
+  "schema_version": "starvla-rsi.sample-audit-summary/v1",
+  "run_id": "2026-09-20-google_robot_pick_horizontal_coke_can-horizontal-can-picking-bench-server-native-v1-sample",
+  "record_consistency": "passed",
+  "auditor": {
+    "path": "harness/audits/closed_run.py",
+    "sha256": "9a7c4020095ba6a6534c73ba869190aaa647e04cabc4a512d887590fa27b8141"
+  },
+  "source_files_verified": 131,
+  "model_source_files_verified": 29,
+  "episodes": [
+    {
+      "action_chunks": 100,
+      "action_decisions": 100,
+      "controls": 103,
+      "decisions_returned": 100,
+      "decisions_started": 101,
+      "episode_id": "google_robot_pick_horizontal_coke_can-000000",
+      "rejected_actions": 0,
+      "status": "error",
+      "stop_decisions": 0,
+      "success": null,
+      "termination_reason": "error:infrastructure"
+    }
+  ],
+  "media_checks": {
+    "video_count": 1,
+    "frames_per_video": 104,
+    "fps": 3.0,
+    "resolution": [
+      640,
+      512
+    ],
+    "decode_verified": true,
+    "increasing_pts": true,
+    "original_server_local_client_exported_client_hashes_match": true
+  },
+  "limitations": [
+    "Read-only runner-record consistency, not native benchmark parity or execution attestation.",
+    "Does not follow mailbox, video or native asset paths; independent artifact audit is separate.",
+    "No OS isolation or trusted model/provider/usage attestation.",
+    "A consistent error or failed task is not a successful task."
+  ]
+}

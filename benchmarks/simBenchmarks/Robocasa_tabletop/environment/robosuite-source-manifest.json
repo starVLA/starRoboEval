@@ -1,0 +1,1567 @@
+{
+  "revision": "51cc01785bab80ffeed20da15e67d7dd4140e76a",
+  "source": "H200 read-only git archive from clean checkout",
+  "excluded_prefix": "robosuite/models/assets/",
+  "files": {
+    ".github/ISSUE_TEMPLATE/bug-report.yml": {
+      "mode": "100644",
+      "git_blob_sha1": "d9f0405f664e5fb698461c68037ad3f4fc52625b"
+    },
+    ".github/ISSUE_TEMPLATE/feature-request.yml": {
+      "mode": "100644",
+      "git_blob_sha1": "2de61de1a0c7d1d3265b2551b50006eb6ad6532c"
+    },
+    ".github/PULL_REQUEST_TEMPLATE.md": {
+      "mode": "100644",
+      "git_blob_sha1": "808ae1331272c35f7cf4f7e06698259fce8a8f1d"
+    },
+    ".github/workflows/pre-commit.yaml": {
+      "mode": "100644",
+      "git_blob_sha1": "ae7616913c104780096ba3fc07f69f014162ced3"
+    },
+    ".github/workflows/run-tests.yaml": {
+      "mode": "100644",
+      "git_blob_sha1": "118cc3d6af8362502322335169a1d2da406b5e97"
+    },
+    ".github/workflows/update-docs.yaml": {
+      "mode": "100644",
+      "git_blob_sha1": "50bbbf6a58a705d9f116f5bbbc0c2b35ff234027"
+    },
+    ".github/workflows/update-pypi.yaml": {
+      "mode": "100644",
+      "git_blob_sha1": "dfb263546a44571e36a1e9279232cd3f022176a5"
+    },
+    ".gitignore": {
+      "mode": "100644",
+      "git_blob_sha1": "17b247decf891d82ad0658f905dca7407df87e01"
+    },
+    ".pre-commit-config.yaml": {
+      "mode": "100644",
+      "git_blob_sha1": "3ee0adfbf171294a9bcba92ca2cf2c01e970e84a"
+    },
+    "AUTHORS": {
+      "mode": "100644",
+      "git_blob_sha1": "b0a0f4c9c343b7841aec417ebcdcbe535b7dffa5"
+    },
+    "CONTRIBUTING.md": {
+      "mode": "100644",
+      "git_blob_sha1": "6c85921f8091257d0a7c564aef74d0f01206831b"
+    },
+    "LICENSE": {
+      "mode": "100644",
+      "git_blob_sha1": "e20189628cc282626830a7855edf722de38dc700"
+    },
+    "MANIFEST.in": {
+      "mode": "100644",
+      "git_blob_sha1": "fa3a4c99e41758a1e0515f0d281e07a36374add4"
+    },
+    "README.md": {
+      "mode": "100644",
+      "git_blob_sha1": "742c86ae6861eb75b1ad70bb2ebbafae812170b0"
+    },
+    "docs/.gitignore": {
+      "mode": "100644",
+      "git_blob_sha1": "e35d8850c9688b1ce82711694692cc574a799396"
+    },
+    "docs/Makefile": {
+      "mode": "100644",
+      "git_blob_sha1": "5e3fc7487d90a778bedd1e65f110dc858d58ac8e"
+    },
+    "docs/_static/css/theme.css": {
+      "mode": "100644",
+      "git_blob_sha1": "07d5ef3766a2eca6afd9d0a614d88b9c7bd30f60"
+    },
+    "docs/_static/js/custom.js": {
+      "mode": "100644",
+      "git_blob_sha1": "8489b8f02a97a11c230678865f0c7957e7bcd4c0"
+    },
+    "docs/_static/theme_overrides.css": {
+      "mode": "100644",
+      "git_blob_sha1": "174fade5f219b8b87141bae4c0f68f1ab10aba79"
+    },
+    "docs/acknowledgement.md": {
+      "mode": "100644",
+      "git_blob_sha1": "9fcddaf736e77862fc77fb6b5b04b0c31f10829e"
+    },
+    "docs/algorithms/benchmarking.md": {
+      "mode": "100644",
+      "git_blob_sha1": "a304460a4512f7539999a1772926f3e4749a098a"
+    },
+    "docs/algorithms/demonstrations.md": {
+      "mode": "100644",
+      "git_blob_sha1": "def623be3809be407e784ae021f763653d174393"
+    },
+    "docs/algorithms/sim2real.md": {
+      "mode": "100644",
+      "git_blob_sha1": "e619a5932a5813cefdca6e8c5a4abeab8c222e0e"
+    },
+    "docs/basicusage.md": {
+      "mode": "100644",
+      "git_blob_sha1": "5869369fd01057b6644d29af6719cd29e3b2883e"
+    },
+    "docs/changelog.md": {
+      "mode": "100644",
+      "git_blob_sha1": "ef262c5c460ce11680580ad73fe2033a5e82d0f2"
+    },
+    "docs/conf.py": {
+      "mode": "100755",
+      "git_blob_sha1": "42d599d71303969a04de4f05379baad12a205707"
+    },
+    "docs/demos.md": {
+      "mode": "100644",
+      "git_blob_sha1": "bba2ef4e820f365df04070437af9da70909f45bd"
+    },
+    "docs/images/benchmarking/benchmarking_results.png": {
+      "mode": "100644",
+      "git_blob_sha1": "3bd5f772ff0808681084e0f722ad812f1d50a9cf"
+    },
+    "docs/images/controller_table.png": {
+      "mode": "100644",
+      "git_blob_sha1": "e6d64cb6bd9216fca33a9f8688538a067ae2fde8"
+    },
+    "docs/images/domain_randomization.png": {
+      "mode": "100644",
+      "git_blob_sha1": "66035f25c03cff702647bdf6d3eb4c9b2c0ae022"
+    },
+    "docs/images/env_door.png": {
+      "mode": "100644",
+      "git_blob_sha1": "acb5ea232ee74fc9de2a1057c2981ba88d042a2a"
+    },
+    "docs/images/env_lift.png": {
+      "mode": "100644",
+      "git_blob_sha1": "a39819adfc94d8db69491ceef5f3135207d5d687"
+    },
+    "docs/images/env_nut_assembly.png": {
+      "mode": "100644",
+      "git_blob_sha1": "1a80c37e352d850bba3ce337e9294329db28edbe"
+    },
+    "docs/images/env_pick_place.png": {
+      "mode": "100644",
+      "git_blob_sha1": "59d284ce91c97d8f7ff3e50ea609fc1ef8f1b5bb"
+    },
+    "docs/images/env_stack.png": {
+      "mode": "100644",
+      "git_blob_sha1": "14554cf9675522adf87702a62b931a1961e7c01e"
+    },
+    "docs/images/env_two_arm_handover.png": {
+      "mode": "100644",
+      "git_blob_sha1": "be5f435950b2ef9758247b64d20fbe1cf3a5b7bb"
+    },
+    "docs/images/env_two_arm_lift.png": {
+      "mode": "100644",
+      "git_blob_sha1": "2ab8ec01dca6ee58e76d82366b51d5573eb381f2"
+    },
+    "docs/images/env_two_arm_peg_in_hole.png": {
+      "mode": "100644",
+      "git_blob_sha1": "6c204eef87e0b4cbfbcae95fa224eda9dc4b5b6b"
+    },
+    "docs/images/env_wipe.png": {
+      "mode": "100644",
+      "git_blob_sha1": "3a469a2b77dd222720771c524b65a56aaf6f0d61"
+    },
+    "docs/images/figures.pptx": {
+      "mode": "100644",
+      "git_blob_sha1": "e094f1fbab3a974fc29719d59e573b521afbbb9e"
+    },
+    "docs/images/gallery.png": {
+      "mode": "100644",
+      "git_blob_sha1": "912cd57ea49d5f0d90b35f4f2a6ec43e0024cbff"
+    },
+    "docs/images/gr1_cereal_mujoco.png": {
+      "mode": "100644",
+      "git_blob_sha1": "08a58e70e500e0125369269508153ff2f542919e"
+    },
+    "docs/images/gr1_cereal_path_tracing.png": {
+      "mode": "100644",
+      "git_blob_sha1": "bf2bea706891d01bd6a3a638aa9c17faa2db63e6"
+    },
+    "docs/images/gr1_cereal_ray_tracing.png": {
+      "mode": "100644",
+      "git_blob_sha1": "eb412f5150972e4510db7685353300bdaa9d2b4e"
+    },
+    "docs/images/gripper_collection.png": {
+      "mode": "100644",
+      "git_blob_sha1": "09558d34c7c4cebb5fa93c9d78e71cddcff5f811"
+    },
+    "docs/images/models/bd_gripper.png": {
+      "mode": "100644",
+      "git_blob_sha1": "bc0de2268c339a3b553ecd17010fe0f74ded7869"
+    },
+    "docs/images/models/inspire_hands.png": {
+      "mode": "100644",
+      "git_blob_sha1": "5c2e6583800a3997efbad30a6b52e2e60be0d1a7"
+    },
+    "docs/images/models/jaco_gripper.png": {
+      "mode": "100644",
+      "git_blob_sha1": "7a69d782b3ad21d6d6dac2e9393bc2c588929d77"
+    },
+    "docs/images/models/omron_base.png": {
+      "mode": "100644",
+      "git_blob_sha1": "8d6e6e4d24cfb35615f69c9ae5805abad70b8112"
+    },
+    "docs/images/models/panda_gripper.png": {
+      "mode": "100644",
+      "git_blob_sha1": "d5a8b1278031d03e915f2577dea92b5993bfbd7f"
+    },
+    "docs/images/models/rethink_base.png": {
+      "mode": "100644",
+      "git_blob_sha1": "b4bc84dcea20070c29cd95e64de78ae5318a9427"
+    },
+    "docs/images/models/rethink_gripper.png": {
+      "mode": "100644",
+      "git_blob_sha1": "b0f3b54f793a410f6eebbcd3f978793ae8a73e98"
+    },
+    "docs/images/models/rethink_minimal_base.png": {
+      "mode": "100644",
+      "git_blob_sha1": "2e478a41c266a60dce47cc8770a2c38414fe0a56"
+    },
+    "docs/images/models/robot_model_Baxter.png": {
+      "mode": "100644",
+      "git_blob_sha1": "f301686a1ae817a35403cf8a903352d0b3c0f79e"
+    },
+    "docs/images/models/robot_model_Baxter_isaac.png": {
+      "mode": "100644",
+      "git_blob_sha1": "19d0a38e44fe8298e1a2c01992c910b1c5bd89de"
+    },
+    "docs/images/models/robot_model_GR1_isaac.png": {
+      "mode": "100644",
+      "git_blob_sha1": "d4e7bc887e10f80e563a7ea94e8ccb43ec4a287e"
+    },
+    "docs/images/models/robot_model_IIWA.png": {
+      "mode": "100644",
+      "git_blob_sha1": "f6511739975d14e603ea72d6300fb3f92c73d51b"
+    },
+    "docs/images/models/robot_model_IIWA_isaac.png": {
+      "mode": "100644",
+      "git_blob_sha1": "4405930fa810ed85239287ebf9fe0742872e14ba"
+    },
+    "docs/images/models/robot_model_Jaco.png": {
+      "mode": "100644",
+      "git_blob_sha1": "eca72e0fb3eac1f6ccc2be5dd3011dcc3e494283"
+    },
+    "docs/images/models/robot_model_Jaco_isaac.png": {
+      "mode": "100644",
+      "git_blob_sha1": "16faef99c56e1aa1702ed4bf3db18ec6cca1c8cb"
+    },
+    "docs/images/models/robot_model_Kinova3.png": {
+      "mode": "100644",
+      "git_blob_sha1": "33b5452bc8ccef84aa2e8313b2294e02332e4710"
+    },
+    "docs/images/models/robot_model_Kinova3_isaac.png": {
+      "mode": "100644",
+      "git_blob_sha1": "34612c3b124847e74c33f0867bbd4682cb7973c1"
+    },
+    "docs/images/models/robot_model_Panda.png": {
+      "mode": "100644",
+      "git_blob_sha1": "48cde48128231c863b07718aab1ad61c05ddaa45"
+    },
+    "docs/images/models/robot_model_Panda_isaac.png": {
+      "mode": "100644",
+      "git_blob_sha1": "879d2892cc51426773c1e01151f4ef0a77299f30"
+    },
+    "docs/images/models/robot_model_Sawyer.png": {
+      "mode": "100644",
+      "git_blob_sha1": "583a040ef4b6a8c3993eb19f34ff46ace26671d7"
+    },
+    "docs/images/models/robot_model_Sawyer_isaac.png": {
+      "mode": "100644",
+      "git_blob_sha1": "4fda630357cd57190b899012d5ddd3e419701494"
+    },
+    "docs/images/models/robot_model_Spot_isaac.png": {
+      "mode": "100644",
+      "git_blob_sha1": "36931c17893eddb3e36c7b362b21fdb0d6e9b45a"
+    },
+    "docs/images/models/robot_model_Tiago_isaac.png": {
+      "mode": "100644",
+      "git_blob_sha1": "cff29eaf29c0bcd6d04620d0b8c748ff42307b81"
+    },
+    "docs/images/models/robot_model_UR5e.png": {
+      "mode": "100644",
+      "git_blob_sha1": "6c76ced78257f3ee7707153f55be649ac3990b57"
+    },
+    "docs/images/models/robot_model_UR5e_isaac.png": {
+      "mode": "100644",
+      "git_blob_sha1": "b50327b6a6282512b0e74931e25f7c4ce262df69"
+    },
+    "docs/images/models/robotiq140_gripper.png": {
+      "mode": "100644",
+      "git_blob_sha1": "4d316fcf4c38e2a20bac5c49a5e950206a2b869c"
+    },
+    "docs/images/models/robotiq85_gripper.png": {
+      "mode": "100644",
+      "git_blob_sha1": "c2bd9052d978a3815b766168acbe3386034a7fd6"
+    },
+    "docs/images/models/robotiq_three_gripper.png": {
+      "mode": "100644",
+      "git_blob_sha1": "d02794d88a8b8c653c34c067a995d50c96a588c6"
+    },
+    "docs/images/models/spot_base.png": {
+      "mode": "100644",
+      "git_blob_sha1": "21c863eea0ed797c5addf0a6fa639cccf969bcb9"
+    },
+    "docs/images/models/wiping_gripper.png": {
+      "mode": "100644",
+      "git_blob_sha1": "b2c244b379bce59b2dc40703947c3665de6e1187"
+    },
+    "docs/images/module_overview.png": {
+      "mode": "100644",
+      "git_blob_sha1": "d31460f3b6ba8e0f61982f4a08c02912a589a4cb"
+    },
+    "docs/images/renderers/renderers.png": {
+      "mode": "100644",
+      "git_blob_sha1": "a2619e03297c311c2b8d4fac14ebc4adc7945fcc"
+    },
+    "docs/images/renderers/vision_modalities_igibson.png": {
+      "mode": "100644",
+      "git_blob_sha1": "1b5ce0ebc4aa1bf1a1b4cc43302da12d1eb9b92e"
+    },
+    "docs/images/renderers/vision_modalities_nvisii.png": {
+      "mode": "100644",
+      "git_blob_sha1": "251c3d67ffa917e22010b012b63924e84722904b"
+    },
+    "docs/images/robot_module.png": {
+      "mode": "100644",
+      "git_blob_sha1": "7b71bbb5bae2543f0d9952ea95fdd9db517d4a1b"
+    },
+    "docs/images/robots_module_v15.png": {
+      "mode": "100644",
+      "git_blob_sha1": "b6644fd9e3191ae128dfcc8faee7cea1cbd9e74f"
+    },
+    "docs/index.rst": {
+      "mode": "100644",
+      "git_blob_sha1": "6d7c06c60765f0154b87e43c6b96103ceee52fd5"
+    },
+    "docs/installation.md": {
+      "mode": "100644",
+      "git_blob_sha1": "388f08a43897ce3d9ebbfaf446be193c52eeeb3f"
+    },
+    "docs/modeling/arena.rst": {
+      "mode": "100644",
+      "git_blob_sha1": "4889c05894ee59f517af8b91f394ab8b2e48cea1"
+    },
+    "docs/modeling/mujoco_model.rst": {
+      "mode": "100644",
+      "git_blob_sha1": "f164ac83a17b3c2b60d421cf408bfac5deb65cdb"
+    },
+    "docs/modeling/object_model.rst": {
+      "mode": "100644",
+      "git_blob_sha1": "12c8a46596d861236c27cb212efdadddd52c136a"
+    },
+    "docs/modeling/robot_model.rst": {
+      "mode": "100644",
+      "git_blob_sha1": "71673dad784a8561aef91ee7ff9b404d6fbcc099"
+    },
+    "docs/modeling/task.rst": {
+      "mode": "100644",
+      "git_blob_sha1": "5e7338ae6acf0adb7441d403d413f32286f5e661"
+    },
+    "docs/modules/controllers.rst": {
+      "mode": "100644",
+      "git_blob_sha1": "47ba76c3be3cd5cb51c2474adf8218b449a7953e"
+    },
+    "docs/modules/devices.md": {
+      "mode": "100644",
+      "git_blob_sha1": "590f1c6aec58ba9c0aa173be1d1fd5b503317140"
+    },
+    "docs/modules/environments.md": {
+      "mode": "100644",
+      "git_blob_sha1": "50583c32e94856e2a136b45ad4b27be4c594c2f7"
+    },
+    "docs/modules/objects.md": {
+      "mode": "100644",
+      "git_blob_sha1": "6bd907acb23f05d8441a609818bc33315259c714"
+    },
+    "docs/modules/overview.md": {
+      "mode": "100644",
+      "git_blob_sha1": "08dfadd74a807e05fecebfebf45292c5f1cff0a6"
+    },
+    "docs/modules/renderers.md": {
+      "mode": "100644",
+      "git_blob_sha1": "85aea0eab820e150aef38ea9d01a2621df6230cb"
+    },
+    "docs/modules/robots.rst": {
+      "mode": "100644",
+      "git_blob_sha1": "70a20f5c663d10d216696d62d881840aa6e9261a"
+    },
+    "docs/modules/sensors.md": {
+      "mode": "100644",
+      "git_blob_sha1": "4c5bf7e3a5b9eb0637fddc3434adc8533b3f3ab4"
+    },
+    "docs/overview.md": {
+      "mode": "100644",
+      "git_blob_sha1": "8fdf7606f7e2bc31e16c750b93b8a9a7246f2f47"
+    },
+    "docs/references.md": {
+      "mode": "100644",
+      "git_blob_sha1": "ecc31305d838842763093b6f9b3d4ef30bbb5bb4"
+    },
+    "docs/robosuite_color.png": {
+      "mode": "100644",
+      "git_blob_sha1": "cad7964f13590cec2590de26fda5a6b23d5100cf"
+    },
+    "docs/simulation/controller.rst": {
+      "mode": "100644",
+      "git_blob_sha1": "9997e0d363825b0a9229f25588356bc49e842677"
+    },
+    "docs/simulation/device.rst": {
+      "mode": "100644",
+      "git_blob_sha1": "c7c1ead6dc096c687c305b4b19693dbc98398cc6"
+    },
+    "docs/simulation/environment.rst": {
+      "mode": "100644",
+      "git_blob_sha1": "2773c2722162511cb86be44e68dc844c69448f01"
+    },
+    "docs/simulation/robot.rst": {
+      "mode": "100644",
+      "git_blob_sha1": "fbe2cb813eee7bdbd52e35974503e2500c6bd575"
+    },
+    "docs/source/robosuite.controllers.composite.rst": {
+      "mode": "100644",
+      "git_blob_sha1": "2af588cbc6a1f09f57cc33ada40e35f1ab16199f"
+    },
+    "docs/source/robosuite.controllers.interpolators.rst": {
+      "mode": "100644",
+      "git_blob_sha1": "0c8afe8ace6db5c22d71c2edf9092e5beb80daf6"
+    },
+    "docs/source/robosuite.controllers.parts.arm.rst": {
+      "mode": "100644",
+      "git_blob_sha1": "605af3e1632765aa6b142fbc389f1e69db5690c7"
+    },
+    "docs/source/robosuite.controllers.parts.generic.rst": {
+      "mode": "100644",
+      "git_blob_sha1": "acfe59215fc7962bd5cdab7d7c371723dda5a471"
+    },
+    "docs/source/robosuite.controllers.parts.gripper.rst": {
+      "mode": "100644",
+      "git_blob_sha1": "8652c23a0c7fd169ec190b9b3faa0ffac40e73dd"
+    },
+    "docs/source/robosuite.controllers.parts.mobile_base.rst": {
+      "mode": "100644",
+      "git_blob_sha1": "cb897b199a9d12a8191e249d543e40a3419d5a6f"
+    },
+    "docs/source/robosuite.controllers.parts.rst": {
+      "mode": "100644",
+      "git_blob_sha1": "333df06bba13422390a2ff6e83e52738dd010d9f"
+    },
+    "docs/source/robosuite.controllers.rst": {
+      "mode": "100644",
+      "git_blob_sha1": "8eb30b4c4a9102934f00df5a185a8d5221ec541d"
+    },
+    "docs/source/robosuite.devices.rst": {
+      "mode": "100644",
+      "git_blob_sha1": "9a9605c42a7872390a7b4a5bbdba4a861e382463"
+    },
+    "docs/source/robosuite.environments.manipulation.rst": {
+      "mode": "100644",
+      "git_blob_sha1": "728e45aae9d96bdca01256df76e7e8da5c74d925"
+    },
+    "docs/source/robosuite.environments.rst": {
+      "mode": "100644",
+      "git_blob_sha1": "7af0754e1ce6ac5ac84aa00d3e2751ecb69b4b5d"
+    },
+    "docs/source/robosuite.models.arenas.rst": {
+      "mode": "100644",
+      "git_blob_sha1": "54b12506d59c41cc7bfec8ef6c1decd711d3ba0d"
+    },
+    "docs/source/robosuite.models.bases.rst": {
+      "mode": "100644",
+      "git_blob_sha1": "aca6fd371fe3b7aa5acf24930f4fd1d00fb7bc18"
+    },
+    "docs/source/robosuite.models.grippers.rst": {
+      "mode": "100644",
+      "git_blob_sha1": "e0edddcb53ff6dea4b8a994c190004a87e095617"
+    },
+    "docs/source/robosuite.models.mounts.rst": {
+      "mode": "100644",
+      "git_blob_sha1": "bad7024063331ed0e285785fe6d274e9c488b959"
+    },
+    "docs/source/robosuite.models.objects.composite.rst": {
+      "mode": "100644",
+      "git_blob_sha1": "d182bd09092d53b593d3113a819be510d36fe2b7"
+    },
+    "docs/source/robosuite.models.objects.composite_body.rst": {
+      "mode": "100644",
+      "git_blob_sha1": "1bf48f8a776db2c56b50c9f6e48aca465ab6fa62"
+    },
+    "docs/source/robosuite.models.objects.group.rst": {
+      "mode": "100644",
+      "git_blob_sha1": "a1caaedbee8da53bafd81a060718734b06a8a31a"
+    },
+    "docs/source/robosuite.models.objects.primitive.rst": {
+      "mode": "100644",
+      "git_blob_sha1": "0e16a8294ef81eee868b8479186c6dfd147b7503"
+    },
+    "docs/source/robosuite.models.objects.rst": {
+      "mode": "100644",
+      "git_blob_sha1": "c820d2fcd4e8f5e217d1e9dde6dd58fc46439446"
+    },
+    "docs/source/robosuite.models.robots.manipulators.rst": {
+      "mode": "100644",
+      "git_blob_sha1": "1286fcb8e54459a3fa7cf9e2b93b1431380b0a63"
+    },
+    "docs/source/robosuite.models.robots.rst": {
+      "mode": "100644",
+      "git_blob_sha1": "186ec1f201f2e193e235c76c83559a1eb9c78836"
+    },
+    "docs/source/robosuite.models.rst": {
+      "mode": "100644",
+      "git_blob_sha1": "be78f5ccb49c2cbd93ba039eeb6c12e66bbd6896"
+    },
+    "docs/source/robosuite.models.tasks.rst": {
+      "mode": "100644",
+      "git_blob_sha1": "e67fba31b5dcd32cf53b1d1e1171ad43ee1128f4"
+    },
+    "docs/source/robosuite.renderers.context.rst": {
+      "mode": "100644",
+      "git_blob_sha1": "81b92a814a5886282e1558981367930bacb23075"
+    },
+    "docs/source/robosuite.renderers.mjviewer.rst": {
+      "mode": "100644",
+      "git_blob_sha1": "d4abf681c983416d3ec96aa0494a5a8130f7f5af"
+    },
+    "docs/source/robosuite.renderers.mujoco.rst": {
+      "mode": "100644",
+      "git_blob_sha1": "24c3474a184b32029c0b6faaed5a74d6a3218f05"
+    },
+    "docs/source/robosuite.renderers.rst": {
+      "mode": "100644",
+      "git_blob_sha1": "3e4514e89912c604d6ca8bca6b8169e2a111c898"
+    },
+    "docs/source/robosuite.robots.rst": {
+      "mode": "100644",
+      "git_blob_sha1": "52c8e34a781fc227c15837eb2d8b281a4e1918eb"
+    },
+    "docs/source/robosuite.rst": {
+      "mode": "100644",
+      "git_blob_sha1": "daa6bdf84a26311ed3080fc9c8322fc2a02c811b"
+    },
+    "docs/source/robosuite.utils.rst": {
+      "mode": "100644",
+      "git_blob_sha1": "b1295abc7df9bc8901fe1dcd73898ca06ed60f3f"
+    },
+    "docs/source/robosuite.wrappers.rst": {
+      "mode": "100644",
+      "git_blob_sha1": "39839d7d4bb5b4c6bd06c998e34341999e8b5110"
+    },
+    "docs/tutorials/add_controller.md": {
+      "mode": "100644",
+      "git_blob_sha1": "9a25ce178c30b14e3602c3dd8f37ca660edb0e54"
+    },
+    "docs/tutorials/add_environment.md": {
+      "mode": "100644",
+      "git_blob_sha1": "9865cd69d17a9a9cd46bb96332b6cd3f455d814e"
+    },
+    "pyproject.toml": {
+      "mode": "100644",
+      "git_blob_sha1": "6871e11a49971eef9e89416f8b5398efc4a1b522"
+    },
+    "requirements-extra.txt": {
+      "mode": "100644",
+      "git_blob_sha1": "76fe290233c20c47b3e94571b051c6d70497e3b4"
+    },
+    "requirements.txt": {
+      "mode": "100644",
+      "git_blob_sha1": "d6e1198b1ab1f5a7f19c6f1fc2ba7338438cf718"
+    },
+    "robosuite/__init__.py": {
+      "mode": "100644",
+      "git_blob_sha1": "9cf1965bb725bdcd5022098e26a133cfe52525fc"
+    },
+    "robosuite/controllers/__init__.py": {
+      "mode": "100644",
+      "git_blob_sha1": "b7817371cc869043f5ec7cd50975c0d5213399b8"
+    },
+    "robosuite/controllers/composite/__init__.py": {
+      "mode": "100644",
+      "git_blob_sha1": "84173bb274b326ed0a91294caa04f89da0c827f2"
+    },
+    "robosuite/controllers/composite/composite_controller.py": {
+      "mode": "100644",
+      "git_blob_sha1": "b832827c386ec3499427409e142f46416f723bc1"
+    },
+    "robosuite/controllers/composite/composite_controller_factory.py": {
+      "mode": "100644",
+      "git_blob_sha1": "cdb4bc27acde0356556e9f7da578a64bdd698bcc"
+    },
+    "robosuite/controllers/config/default/composite/basic.json": {
+      "mode": "100644",
+      "git_blob_sha1": "90b9debb5fbb59a3d8ce70e3c68b69efdd63aa24"
+    },
+    "robosuite/controllers/config/default/composite/hybrid_mobile_base.json": {
+      "mode": "100644",
+      "git_blob_sha1": "9cd02317a1c07d20cf3232892ed065993e4c1ba1"
+    },
+    "robosuite/controllers/config/default/composite/whole_body_ik.json": {
+      "mode": "100644",
+      "git_blob_sha1": "2a8219fc42231d322340fe3dd41a12b2f247c3dc"
+    },
+    "robosuite/controllers/config/default/composite/whole_body_mink_ik.json": {
+      "mode": "100644",
+      "git_blob_sha1": "1090ab3cb83f705decf23c1a0351846adf9bd936"
+    },
+    "robosuite/controllers/config/default/parts/ik_pose.json": {
+      "mode": "100644",
+      "git_blob_sha1": "39c4346c6de1bc01ec8828497be3602a6f80b6b8"
+    },
+    "robosuite/controllers/config/default/parts/joint_position.json": {
+      "mode": "100644",
+      "git_blob_sha1": "e0539cc5aeb1a2d22b36c87d801792582350af14"
+    },
+    "robosuite/controllers/config/default/parts/joint_torque.json": {
+      "mode": "100644",
+      "git_blob_sha1": "320c808af045d22a8748a4a6f4d02467e2a5c7ae"
+    },
+    "robosuite/controllers/config/default/parts/joint_velocity.json": {
+      "mode": "100644",
+      "git_blob_sha1": "1b06e82f639871990d4d8d529cb1d6d78b00605a"
+    },
+    "robosuite/controllers/config/default/parts/osc_pose.json": {
+      "mode": "100644",
+      "git_blob_sha1": "8cd29dfaec3c5410ea3701690d3545a80371aecc"
+    },
+    "robosuite/controllers/config/default/parts/osc_position.json": {
+      "mode": "100644",
+      "git_blob_sha1": "42b314a792250b1312fcbae7bd1aff6c91a8b4b4"
+    },
+    "robosuite/controllers/config/robots/default_baxter.json": {
+      "mode": "100644",
+      "git_blob_sha1": "d4aabf808084a28c768652cb9dd865e24175521a"
+    },
+    "robosuite/controllers/config/robots/default_gr1.json": {
+      "mode": "100644",
+      "git_blob_sha1": "7172e1fc952c0bb5dc2982ecdc5f9fe7093d864c"
+    },
+    "robosuite/controllers/config/robots/default_gr1_fixed_lower_body.json": {
+      "mode": "100644",
+      "git_blob_sha1": "eefa6c95096eeeb5b8ed8000b5eb9baf2a9de8c9"
+    },
+    "robosuite/controllers/config/robots/default_gr1_floating_body.json": {
+      "mode": "100644",
+      "git_blob_sha1": "ec94e0069220ac069fed5f45f9ca0bdad50d5277"
+    },
+    "robosuite/controllers/config/robots/default_iiwa.json": {
+      "mode": "100644",
+      "git_blob_sha1": "1369e01a423e446f10ff81ee5801e0dae4bf0456"
+    },
+    "robosuite/controllers/config/robots/default_kinova3.json": {
+      "mode": "100644",
+      "git_blob_sha1": "1369e01a423e446f10ff81ee5801e0dae4bf0456"
+    },
+    "robosuite/controllers/config/robots/default_panda.json": {
+      "mode": "100644",
+      "git_blob_sha1": "1369e01a423e446f10ff81ee5801e0dae4bf0456"
+    },
+    "robosuite/controllers/config/robots/default_panda_dex.json": {
+      "mode": "100644",
+      "git_blob_sha1": "4655e30e1fba865fff8948eeab1a752b69e5b354"
+    },
+    "robosuite/controllers/config/robots/default_pandaomron.json": {
+      "mode": "100644",
+      "git_blob_sha1": "bbe7ed9effebf21df3338b85d213fdcd9789d6c5"
+    },
+    "robosuite/controllers/config/robots/default_sawyer.json": {
+      "mode": "100644",
+      "git_blob_sha1": "1369e01a423e446f10ff81ee5801e0dae4bf0456"
+    },
+    "robosuite/controllers/config/robots/default_spotwitharm.json": {
+      "mode": "100644",
+      "git_blob_sha1": "25438e5d414d5fb8b1536456ee9233292711626b"
+    },
+    "robosuite/controllers/config/robots/default_tiago.json": {
+      "mode": "100644",
+      "git_blob_sha1": "d2bfe8a804bc83c86c968349d4c8bf37519ec13b"
+    },
+    "robosuite/controllers/config/robots/default_tiago_whole_body_ik.json": {
+      "mode": "100644",
+      "git_blob_sha1": "354e9f1851332f58e7165fbd59b156a98ab62653"
+    },
+    "robosuite/controllers/config/robots/default_ur5e.json": {
+      "mode": "100644",
+      "git_blob_sha1": "1369e01a423e446f10ff81ee5801e0dae4bf0456"
+    },
+    "robosuite/controllers/parts/__init__.py": {
+      "mode": "100644",
+      "git_blob_sha1": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391"
+    },
+    "robosuite/controllers/parts/arm/__init__.py": {
+      "mode": "100644",
+      "git_blob_sha1": "1e2c6539e8bf4eca295da3cd5b9286a5d8423dd0"
+    },
+    "robosuite/controllers/parts/arm/ik.py": {
+      "mode": "100644",
+      "git_blob_sha1": "d38026697757a6992c4efd2629d33f73173b1cdc"
+    },
+    "robosuite/controllers/parts/arm/osc.py": {
+      "mode": "100644",
+      "git_blob_sha1": "6197b6d34a67aa8514eace5cf4122eedf44c74a4"
+    },
+    "robosuite/controllers/parts/controller.py": {
+      "mode": "100644",
+      "git_blob_sha1": "2b3b4f58b78cb7515c6b444340ac2d5d7f87411c"
+    },
+    "robosuite/controllers/parts/controller_factory.py": {
+      "mode": "100644",
+      "git_blob_sha1": "8c780f8d48d653e2c995ef975fd7484986fd219e"
+    },
+    "robosuite/controllers/parts/generic/__init__.py": {
+      "mode": "100644",
+      "git_blob_sha1": "c334db11f377578b64eb11b6c896510c078de723"
+    },
+    "robosuite/controllers/parts/generic/joint_pos.py": {
+      "mode": "100644",
+      "git_blob_sha1": "6d55ef0ae59c5f398abc8efef988bf0194606959"
+    },
+    "robosuite/controllers/parts/generic/joint_tor.py": {
+      "mode": "100644",
+      "git_blob_sha1": "c7bd2bd7f6e6a01a2512414d0130b87dd03e6924"
+    },
+    "robosuite/controllers/parts/generic/joint_vel.py": {
+      "mode": "100644",
+      "git_blob_sha1": "727d92f21da8db33373e1d75b68cc0704d605f05"
+    },
+    "robosuite/controllers/parts/gripper/__init__.py": {
+      "mode": "100644",
+      "git_blob_sha1": "677dde370c0a76dd6c04c90612d881286be33271"
+    },
+    "robosuite/controllers/parts/gripper/gripper_controller.py": {
+      "mode": "100644",
+      "git_blob_sha1": "122df17be9ad1084b3c0df61178af9f16e386602"
+    },
+    "robosuite/controllers/parts/gripper/simple_grip.py": {
+      "mode": "100644",
+      "git_blob_sha1": "359b5ebcc7401df63e9ab94d48d757fa3131a389"
+    },
+    "robosuite/controllers/parts/mobile_base/__init__.py": {
+      "mode": "100644",
+      "git_blob_sha1": "530053c9fab24662015cfc1b8cd48901932191cc"
+    },
+    "robosuite/controllers/parts/mobile_base/joint_vel.py": {
+      "mode": "100644",
+      "git_blob_sha1": "4ed0eb80c6a402450fa584d20c3000f1eea54aa7"
+    },
+    "robosuite/controllers/parts/mobile_base/mobile_base_controller.py": {
+      "mode": "100644",
+      "git_blob_sha1": "d06c4b58ab48a9bc79d432ee92a045663c861f59"
+    },
+    "robosuite/demos/demo_collect_and_playback_data.py": {
+      "mode": "100644",
+      "git_blob_sha1": "0dd3a4806178af9e4498dfd33827218b9a2568b2"
+    },
+    "robosuite/demos/demo_composite_robot.py": {
+      "mode": "100644",
+      "git_blob_sha1": "9fb14c813920084ad3e89db8b41c52175077f92d"
+    },
+    "robosuite/demos/demo_control.py": {
+      "mode": "100644",
+      "git_blob_sha1": "1622b255afec188b6863f89ca04c133161acaf50"
+    },
+    "robosuite/demos/demo_device_control.py": {
+      "mode": "100644",
+      "git_blob_sha1": "673b6551bd056c105fed0cd685952eed2f9a14a2"
+    },
+    "robosuite/demos/demo_domain_randomization.py": {
+      "mode": "100644",
+      "git_blob_sha1": "3f25dfd4a3e678a8c1a979da78e6282ab904967e"
+    },
+    "robosuite/demos/demo_gripper_interaction.py": {
+      "mode": "100644",
+      "git_blob_sha1": "a677725f19e9c5b5c06911f6855c8d2515bee645"
+    },
+    "robosuite/demos/demo_gripper_selection.py": {
+      "mode": "100644",
+      "git_blob_sha1": "1da85c9dddfef86ec5e6dd64b143f736b676e9dc"
+    },
+    "robosuite/demos/demo_gym_functionality.py": {
+      "mode": "100644",
+      "git_blob_sha1": "21ca813ec09e6da0bba22827f386c9d206316c57"
+    },
+    "robosuite/demos/demo_random_action.py": {
+      "mode": "100644",
+      "git_blob_sha1": "b8694fae3ab76ae05d2adea81391a859be0392e1"
+    },
+    "robosuite/demos/demo_renderers.py": {
+      "mode": "100644",
+      "git_blob_sha1": "f521239e4dd9f3e5594e9e1e4a3871a48c1414c3"
+    },
+    "robosuite/demos/demo_segmentation.py": {
+      "mode": "100644",
+      "git_blob_sha1": "bb53b72d345d13e6a2a4a1f1b90f423b6224e051"
+    },
+    "robosuite/demos/demo_sensor_corruption.py": {
+      "mode": "100644",
+      "git_blob_sha1": "5f62d84bafd21200194e45b512b9a78a0c75f2f2"
+    },
+    "robosuite/demos/demo_usd_export.py": {
+      "mode": "100644",
+      "git_blob_sha1": "0e0cbd756f643a98539a64dcd48ec3437da55bb5"
+    },
+    "robosuite/demos/demo_video_recording.py": {
+      "mode": "100644",
+      "git_blob_sha1": "c336dbaaaff76ee004646ff55e6db48ae1e9a339"
+    },
+    "robosuite/devices/__init__.py": {
+      "mode": "100644",
+      "git_blob_sha1": "39822e14659a86f406fdd53ede13fbbf1021e65c"
+    },
+    "robosuite/devices/device.py": {
+      "mode": "100644",
+      "git_blob_sha1": "32da777a0d502d425111f0d7e60666bf0382f33d"
+    },
+    "robosuite/devices/keyboard.py": {
+      "mode": "100644",
+      "git_blob_sha1": "dcc58c757a47ad7b0ed178d36f1fa857c69a49a6"
+    },
+    "robosuite/devices/mjgui.py": {
+      "mode": "100644",
+      "git_blob_sha1": "4c5d5f49160fc570c68176a86018bb234a365cfa"
+    },
+    "robosuite/devices/spacemouse.py": {
+      "mode": "100644",
+      "git_blob_sha1": "82b49effd2ca4833c576d2c0c4835b0a58f68257"
+    },
+    "robosuite/environments/__init__.py": {
+      "mode": "100644",
+      "git_blob_sha1": "fff6081f09064994187ac1154f62c57066bd455c"
+    },
+    "robosuite/environments/base.py": {
+      "mode": "100644",
+      "git_blob_sha1": "043f8f6ff130e34731de0462c99ed1cdf6f07f36"
+    },
+    "robosuite/environments/manipulation/__init__.py": {
+      "mode": "100644",
+      "git_blob_sha1": "8b137891791fe96927ad78e64b0aad7bded08bdc"
+    },
+    "robosuite/environments/manipulation/door.py": {
+      "mode": "100644",
+      "git_blob_sha1": "6d8dc189e2c1c9d0b334518eded79371dd7af519"
+    },
+    "robosuite/environments/manipulation/lift.py": {
+      "mode": "100644",
+      "git_blob_sha1": "768161ae6083d20cf7794f2dd7dbda32dc646b78"
+    },
+    "robosuite/environments/manipulation/manipulation_env.py": {
+      "mode": "100644",
+      "git_blob_sha1": "1559cd6a83a92f81f0e71c45414b5449f05d3829"
+    },
+    "robosuite/environments/manipulation/nut_assembly.py": {
+      "mode": "100644",
+      "git_blob_sha1": "b2dc996ff73906a167cfe8f44c7b78f52f773e75"
+    },
+    "robosuite/environments/manipulation/pick_place.py": {
+      "mode": "100644",
+      "git_blob_sha1": "beafad45faaf0c9df70fdc014c4fecac86ae4c74"
+    },
+    "robosuite/environments/manipulation/stack.py": {
+      "mode": "100644",
+      "git_blob_sha1": "1fc0f389ac68d3d56e36aee2985a49449c75897e"
+    },
+    "robosuite/environments/manipulation/tool_hang.py": {
+      "mode": "100644",
+      "git_blob_sha1": "7705450b5b979e19fa7c9c8e4f825a19d7075ac8"
+    },
+    "robosuite/environments/manipulation/two_arm_env.py": {
+      "mode": "100644",
+      "git_blob_sha1": "ff3f7612df5751c0e8007a4918c9b270be6340b4"
+    },
+    "robosuite/environments/manipulation/two_arm_handover.py": {
+      "mode": "100644",
+      "git_blob_sha1": "7f60e309fba572a798ded2c72a0f25e43d092d11"
+    },
+    "robosuite/environments/manipulation/two_arm_lift.py": {
+      "mode": "100644",
+      "git_blob_sha1": "94ffa5f2046e56d6902792beff0d34251c07b26c"
+    },
+    "robosuite/environments/manipulation/two_arm_peg_in_hole.py": {
+      "mode": "100644",
+      "git_blob_sha1": "0aba4db74adbab7a3ef9c72005baaa60e3c642a3"
+    },
+    "robosuite/environments/manipulation/two_arm_transport.py": {
+      "mode": "100644",
+      "git_blob_sha1": "a552b2f207d15001df1de91654ce286c2da1f525"
+    },
+    "robosuite/environments/manipulation/wipe.py": {
+      "mode": "100644",
+      "git_blob_sha1": "07028f20b922e5a2a7327bcefa911bece2eab882"
+    },
+    "robosuite/environments/robot_env.py": {
+      "mode": "100644",
+      "git_blob_sha1": "9c58f2964a54ad07264f3d641323cd29012263e2"
+    },
+    "robosuite/examples/third_party_controller/default_mink_ik_gr1.json": {
+      "mode": "100644",
+      "git_blob_sha1": "27fbdc3fb7e4c98943281d855ca6c193d7b506db"
+    },
+    "robosuite/examples/third_party_controller/mink_controller.py": {
+      "mode": "100644",
+      "git_blob_sha1": "39bcdef1a65322974035ce04e1732c0c3f0b043d"
+    },
+    "robosuite/examples/third_party_controller/teleop_mink.py": {
+      "mode": "100644",
+      "git_blob_sha1": "1dce675eeee712ce1529faf9ee51c0172b8869b1"
+    },
+    "robosuite/macros.py": {
+      "mode": "100644",
+      "git_blob_sha1": "06dac6a9b86840cc95c9f7cc6381ddcda4b37f69"
+    },
+    "robosuite/models/__init__.py": {
+      "mode": "100644",
+      "git_blob_sha1": "73dc77f94297a4ff36e4db5e3e360f691189f6f8"
+    },
+    "robosuite/models/arenas/__init__.py": {
+      "mode": "100644",
+      "git_blob_sha1": "0ec058e8377099efdebcaeac091b19cb56942759"
+    },
+    "robosuite/models/arenas/arena.py": {
+      "mode": "100644",
+      "git_blob_sha1": "ff775eca2ac4456ed89f8e2c8af624d86b1d264c"
+    },
+    "robosuite/models/arenas/bins_arena.py": {
+      "mode": "100644",
+      "git_blob_sha1": "b50b40bcdd298a3398607fb284bf0a48962343f7"
+    },
+    "robosuite/models/arenas/empty_arena.py": {
+      "mode": "100644",
+      "git_blob_sha1": "e10da831b24b0c1870ffb640327cdf543efd02ab"
+    },
+    "robosuite/models/arenas/multi_table_arena.py": {
+      "mode": "100644",
+      "git_blob_sha1": "f62ef357e2c45a483ac2643cdea084a7b9380722"
+    },
+    "robosuite/models/arenas/pegs_arena.py": {
+      "mode": "100644",
+      "git_blob_sha1": "492b99d331038c2a791d111e43d797030ec1cac9"
+    },
+    "robosuite/models/arenas/table_arena.py": {
+      "mode": "100644",
+      "git_blob_sha1": "4a14c11c95d612ec6fd34eea62623d28a2460220"
+    },
+    "robosuite/models/arenas/wipe_arena.py": {
+      "mode": "100644",
+      "git_blob_sha1": "c1db1cad4eb0501dda1db869eb86871dc74981a3"
+    },
+    "robosuite/models/base.py": {
+      "mode": "100644",
+      "git_blob_sha1": "52e6f98d47904d4c05c8e8c34fb297d8cf570398"
+    },
+    "robosuite/models/bases/__init__.py": {
+      "mode": "100644",
+      "git_blob_sha1": "4fe39ea50f0a11ad38ddc8f5f2b2ec800125c885"
+    },
+    "robosuite/models/bases/floating_legged_base.py": {
+      "mode": "100644",
+      "git_blob_sha1": "2a41ed9beaa12455d01a5d969af6198cfe40b9bf"
+    },
+    "robosuite/models/bases/leg_base_model.py": {
+      "mode": "100644",
+      "git_blob_sha1": "d272e4c0ef49a0afd6b696a5a3ec2f643d96b3e5"
+    },
+    "robosuite/models/bases/mobile_base_model.py": {
+      "mode": "100644",
+      "git_blob_sha1": "00af4a0398d026fccadf48c7f27026458c0d8ad7"
+    },
+    "robosuite/models/bases/mount_model.py": {
+      "mode": "100644",
+      "git_blob_sha1": "4abe60bc3f3f0305d448dad5bfccdb4c1814ab7f"
+    },
+    "robosuite/models/bases/no_actuation_base.py": {
+      "mode": "100644",
+      "git_blob_sha1": "5c77f3ab1944be35a364505ce85200e110d21510"
+    },
+    "robosuite/models/bases/null_mobile_base.py": {
+      "mode": "100644",
+      "git_blob_sha1": "a3e8e6d5a7ae96c35869b2fcb7e479dac18d7255"
+    },
+    "robosuite/models/bases/null_mount.py": {
+      "mode": "100644",
+      "git_blob_sha1": "a7896be35e532380f7f95af3fe476a1edfd6f7b5"
+    },
+    "robosuite/models/bases/omron_mobile_base.py": {
+      "mode": "100644",
+      "git_blob_sha1": "12f40bb96a0cd74777bf36ddeb7be49703bab523"
+    },
+    "robosuite/models/bases/rethink_minimal_mount.py": {
+      "mode": "100644",
+      "git_blob_sha1": "a0263bd200ac9962b2e042f2c4eb04ce14dd9e52"
+    },
+    "robosuite/models/bases/rethink_mount.py": {
+      "mode": "100644",
+      "git_blob_sha1": "3277ba2128f6f43bb73bc7f06214f7665f486b86"
+    },
+    "robosuite/models/bases/robot_base_factory.py": {
+      "mode": "100644",
+      "git_blob_sha1": "542b3282fe2ae009d31af701bdb48159f4326175"
+    },
+    "robosuite/models/bases/robot_base_model.py": {
+      "mode": "100644",
+      "git_blob_sha1": "f1353f103c772b18e4b0ba9d6c243baa22aa6491"
+    },
+    "robosuite/models/bases/spot_base.py": {
+      "mode": "100644",
+      "git_blob_sha1": "bcdd54945733846670700a325606599efa2bc162"
+    },
+    "robosuite/models/grippers/__init__.py": {
+      "mode": "100644",
+      "git_blob_sha1": "56089af8f76be68323cc3886e473898fce9856da"
+    },
+    "robosuite/models/grippers/bd_gripper.py": {
+      "mode": "100644",
+      "git_blob_sha1": "ce137f9a849e295c6855727b845f173822dc825f"
+    },
+    "robosuite/models/grippers/fourier_hands.py": {
+      "mode": "100644",
+      "git_blob_sha1": "6a2a368d0fe9781b403fc193b4147d9e92aaa570"
+    },
+    "robosuite/models/grippers/gripper_factory.py": {
+      "mode": "100644",
+      "git_blob_sha1": "79f5348e672d6ead4618b1525612864b69b42c1d"
+    },
+    "robosuite/models/grippers/gripper_model.py": {
+      "mode": "100644",
+      "git_blob_sha1": "5ebe18b3ae96aa2a0d04134071388dde1c75de10"
+    },
+    "robosuite/models/grippers/gripper_tester.py": {
+      "mode": "100644",
+      "git_blob_sha1": "8221d855fad0580a5b31b2f500617d825d026707"
+    },
+    "robosuite/models/grippers/inspire_hands.py": {
+      "mode": "100644",
+      "git_blob_sha1": "1484fe55ea50da83bed99c4b6158a543dddedfdb"
+    },
+    "robosuite/models/grippers/jaco_three_finger_gripper.py": {
+      "mode": "100644",
+      "git_blob_sha1": "3a379a37dc4e24612c6eb9202aaaa185fffe2a96"
+    },
+    "robosuite/models/grippers/null_gripper.py": {
+      "mode": "100644",
+      "git_blob_sha1": "48f6a804744099f5cfca1dd23397d2bd7f5cd5ca"
+    },
+    "robosuite/models/grippers/panda_gripper.py": {
+      "mode": "100644",
+      "git_blob_sha1": "738d49f9502b253d674511b54d032ae0dae9e473"
+    },
+    "robosuite/models/grippers/rethink_gripper.py": {
+      "mode": "100644",
+      "git_blob_sha1": "0c13154b4d35cb0796318fb413761f503804735c"
+    },
+    "robosuite/models/grippers/robotiq_140_gripper.py": {
+      "mode": "100644",
+      "git_blob_sha1": "f5a31e250d330fdce18777cd91f7ceda8d75fbe8"
+    },
+    "robosuite/models/grippers/robotiq_85_gripper.py": {
+      "mode": "100644",
+      "git_blob_sha1": "6eaeb39afe9d0b7fa8d7925bff4e731649ee79fa"
+    },
+    "robosuite/models/grippers/robotiq_three_finger_gripper.py": {
+      "mode": "100644",
+      "git_blob_sha1": "c7cc7c830f8d231d99bd67662691c9408b269f76"
+    },
+    "robosuite/models/grippers/wiping_gripper.py": {
+      "mode": "100644",
+      "git_blob_sha1": "692475efaba30837edd8ef987801124f6dfb672b"
+    },
+    "robosuite/models/objects/__init__.py": {
+      "mode": "100644",
+      "git_blob_sha1": "e11ddca0521eb6d0a4bdba1e9d1582cef2fafa7c"
+    },
+    "robosuite/models/objects/composite/__init__.py": {
+      "mode": "100644",
+      "git_blob_sha1": "67b6a445552775cb953873d0f3dddcea00dcaf2d"
+    },
+    "robosuite/models/objects/composite/bin.py": {
+      "mode": "100644",
+      "git_blob_sha1": "a69afc06c4892894a3fec2b01625f8cf5137a870"
+    },
+    "robosuite/models/objects/composite/cone.py": {
+      "mode": "100644",
+      "git_blob_sha1": "7b35e3fe36205e4162b27addf5d9da2d50629354"
+    },
+    "robosuite/models/objects/composite/hammer.py": {
+      "mode": "100644",
+      "git_blob_sha1": "dcfa96c9d038f2197201dba5b3094526e4e69ff1"
+    },
+    "robosuite/models/objects/composite/hollow_cylinder.py": {
+      "mode": "100644",
+      "git_blob_sha1": "329dba0b045bfd99390fa269d34625785f845934"
+    },
+    "robosuite/models/objects/composite/hook_frame.py": {
+      "mode": "100644",
+      "git_blob_sha1": "3741c7b74dac78a1963da1c2c01d7023fc9c85d5"
+    },
+    "robosuite/models/objects/composite/lid.py": {
+      "mode": "100644",
+      "git_blob_sha1": "3eb602bd9308bbe387e4648939d61c00c32f5520"
+    },
+    "robosuite/models/objects/composite/pot_with_handles.py": {
+      "mode": "100644",
+      "git_blob_sha1": "157c1624771fcd15437d6f8c06eab9cefbce7422"
+    },
+    "robosuite/models/objects/composite/stand_with_mount.py": {
+      "mode": "100644",
+      "git_blob_sha1": "903c35a19a2443a58a51b9ce05f8af0b6ea8f8c8"
+    },
+    "robosuite/models/objects/composite_body/__init__.py": {
+      "mode": "100644",
+      "git_blob_sha1": "79ccc9a8e74b24e77ac07a4045d2be68e8872167"
+    },
+    "robosuite/models/objects/composite_body/hinged_box.py": {
+      "mode": "100644",
+      "git_blob_sha1": "12aa3cd0c62ab94df33033ea0bbcd88693876866"
+    },
+    "robosuite/models/objects/composite_body/ratcheting_wrench.py": {
+      "mode": "100644",
+      "git_blob_sha1": "6686541956d90f7fd06125332bbc342e6c7b5ac1"
+    },
+    "robosuite/models/objects/generated_objects.py": {
+      "mode": "100644",
+      "git_blob_sha1": "770624b848099721f9d86ec8193e2cbd0c6e6ca2"
+    },
+    "robosuite/models/objects/group/__init__.py": {
+      "mode": "100644",
+      "git_blob_sha1": "c6f000410cd83b63dd4c255d31c6722cfcd319de"
+    },
+    "robosuite/models/objects/group/transport.py": {
+      "mode": "100644",
+      "git_blob_sha1": "58c3bd894dc6d67f41f5e0246f122d97614fa1d8"
+    },
+    "robosuite/models/objects/object_groups.py": {
+      "mode": "100644",
+      "git_blob_sha1": "eb1100920fbb4a49db4c30bef139870f215dac30"
+    },
+    "robosuite/models/objects/objects.py": {
+      "mode": "100644",
+      "git_blob_sha1": "e7681f8f39a3cdf0c2403ed378f605fe560f6f9c"
+    },
+    "robosuite/models/objects/primitive/__init__.py": {
+      "mode": "100644",
+      "git_blob_sha1": "8b224ac36f77f0c71cc7b6e38fd9b697f75f2823"
+    },
+    "robosuite/models/objects/primitive/ball.py": {
+      "mode": "100644",
+      "git_blob_sha1": "95c6621dedadaf436ecb33dc3720fc8db7ddbacf"
+    },
+    "robosuite/models/objects/primitive/box.py": {
+      "mode": "100644",
+      "git_blob_sha1": "6fcb660be972e8862887be7508d16d7bbe6307c8"
+    },
+    "robosuite/models/objects/primitive/capsule.py": {
+      "mode": "100644",
+      "git_blob_sha1": "6139cb3473d1d658a169f5620775722e75581929"
+    },
+    "robosuite/models/objects/primitive/cylinder.py": {
+      "mode": "100644",
+      "git_blob_sha1": "9e2dc9af1d6ab3a4c10226b141f6a181437cd44a"
+    },
+    "robosuite/models/objects/xml_objects.py": {
+      "mode": "100644",
+      "git_blob_sha1": "68e0369d469d33e8052e6e0157182bb65e0b194d"
+    },
+    "robosuite/models/robots/__init__.py": {
+      "mode": "100644",
+      "git_blob_sha1": "e9188e4a3ce6945faeabb5e5f8ce7c78fabffe28"
+    },
+    "robosuite/models/robots/compositional.py": {
+      "mode": "100644",
+      "git_blob_sha1": "e8bc153e690f43685278be6a3dd2ed437b33875d"
+    },
+    "robosuite/models/robots/manipulators/__init__.py": {
+      "mode": "100644",
+      "git_blob_sha1": "8536f9cefe74d661b4ea50b5f820b60b48b00240"
+    },
+    "robosuite/models/robots/manipulators/baxter_robot.py": {
+      "mode": "100644",
+      "git_blob_sha1": "58d8eb44f2aa26fe3b929202e1e6cfc2254051bf"
+    },
+    "robosuite/models/robots/manipulators/gr1_robot.py": {
+      "mode": "100644",
+      "git_blob_sha1": "ed6119cf90213255cef83256601d15b4cbbfb965"
+    },
+    "robosuite/models/robots/manipulators/humanoid_model.py": {
+      "mode": "100644",
+      "git_blob_sha1": "56313c59ac05101dfbb5aafd73604254cc7654a0"
+    },
+    "robosuite/models/robots/manipulators/humanoid_upperbody_model.py": {
+      "mode": "100644",
+      "git_blob_sha1": "a66516049b303905715d251c29ce4c550ebc50ca"
+    },
+    "robosuite/models/robots/manipulators/iiwa_robot.py": {
+      "mode": "100644",
+      "git_blob_sha1": "68b7326c3f880573f5a7c3876e6effb6237c2c7d"
+    },
+    "robosuite/models/robots/manipulators/jaco_robot.py": {
+      "mode": "100644",
+      "git_blob_sha1": "c29ac7bd72de7d77ff8d90c6fc7a0a595b735854"
+    },
+    "robosuite/models/robots/manipulators/kinova3_robot.py": {
+      "mode": "100644",
+      "git_blob_sha1": "b3bce25a164979c69506b8d56faab463ee23f9a6"
+    },
+    "robosuite/models/robots/manipulators/legged_manipulator_model.py": {
+      "mode": "100644",
+      "git_blob_sha1": "f405b1d28e62d9107556b083169eb2b7761dd7ae"
+    },
+    "robosuite/models/robots/manipulators/manipulator_model.py": {
+      "mode": "100644",
+      "git_blob_sha1": "07946abc267829e982d532ccc0fae144d0ee6366"
+    },
+    "robosuite/models/robots/manipulators/panda_robot.py": {
+      "mode": "100644",
+      "git_blob_sha1": "413697e26014950f8084712d8cbfbecb3350664a"
+    },
+    "robosuite/models/robots/manipulators/sawyer_robot.py": {
+      "mode": "100644",
+      "git_blob_sha1": "dec1251c0154b1ec217bc14f5093921f1a72219a"
+    },
+    "robosuite/models/robots/manipulators/spot_arm.py": {
+      "mode": "100644",
+      "git_blob_sha1": "8424e284215128925e92fade3c24bf9881495322"
+    },
+    "robosuite/models/robots/manipulators/tiago_robot.py": {
+      "mode": "100644",
+      "git_blob_sha1": "802f6a1166eb713c9676d2554d9eaf1f289772e4"
+    },
+    "robosuite/models/robots/manipulators/ur5e_robot.py": {
+      "mode": "100644",
+      "git_blob_sha1": "e6e3fe7aa3028441a80f1cb95eab03dd775c43b9"
+    },
+    "robosuite/models/robots/robot_model.py": {
+      "mode": "100644",
+      "git_blob_sha1": "a988306bfde62cee66abbe93a65c5ba0f438a047"
+    },
+    "robosuite/models/tasks/__init__.py": {
+      "mode": "100644",
+      "git_blob_sha1": "f92c679f3dc810b4870bcc4c30b185299c2da5fd"
+    },
+    "robosuite/models/tasks/manipulation_task.py": {
+      "mode": "100644",
+      "git_blob_sha1": "8309e2420d1145be40b9c3872743f2939d6b061a"
+    },
+    "robosuite/models/tasks/task.py": {
+      "mode": "100644",
+      "git_blob_sha1": "658fc2f3fd463d8a3bde4ffd1f7496c3070ab7bc"
+    },
+    "robosuite/models/world.py": {
+      "mode": "100644",
+      "git_blob_sha1": "ee2f265d374dd0e9a7e2586176c0758a91f015dc"
+    },
+    "robosuite/renderers/__init__.py": {
+      "mode": "100644",
+      "git_blob_sha1": "6ac7004e9d49e6122425170c97027b242029305c"
+    },
+    "robosuite/renderers/base.py": {
+      "mode": "100644",
+      "git_blob_sha1": "030592cd1f54e0fc339c20780ce510dc4c946f87"
+    },
+    "robosuite/renderers/base_parser.py": {
+      "mode": "100644",
+      "git_blob_sha1": "7e0ff7aed6f533b60a3aa2f8914cb3fa5db1bf04"
+    },
+    "robosuite/renderers/config/nvisii_config.json": {
+      "mode": "100644",
+      "git_blob_sha1": "5d6f5d862ada51716402a7d22b9780b92fdd6c7c"
+    },
+    "robosuite/renderers/context/__init__.py": {
+      "mode": "100644",
+      "git_blob_sha1": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391"
+    },
+    "robosuite/renderers/context/egl_context.py": {
+      "mode": "100644",
+      "git_blob_sha1": "093953947d1962c0f2cd67fcb5e8ed588c77e741"
+    },
+    "robosuite/renderers/context/glfw_context.py": {
+      "mode": "100644",
+      "git_blob_sha1": "087fe0d496833c489bc4debb652a08228cc7b0bf"
+    },
+    "robosuite/renderers/context/osmesa_context.py": {
+      "mode": "100644",
+      "git_blob_sha1": "b2c8918cc270a7853cb5af7df15ac8ea00019031"
+    },
+    "robosuite/renderers/mjviewer/__init__.py": {
+      "mode": "100644",
+      "git_blob_sha1": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391"
+    },
+    "robosuite/renderers/mjviewer/mjviewer_renderer.py": {
+      "mode": "100644",
+      "git_blob_sha1": "3f8c8b50c92211c9c6ce7a4fa3975c31430864e7"
+    },
+    "robosuite/robots/__init__.py": {
+      "mode": "100644",
+      "git_blob_sha1": "d58a193186fc41bde72c96ea8a82b9291d7dbc30"
+    },
+    "robosuite/robots/fixed_base_robot.py": {
+      "mode": "100644",
+      "git_blob_sha1": "430bc5fd5972d3a294fb26c0d3c4c7d02a6130a0"
+    },
+    "robosuite/robots/legged_robot.py": {
+      "mode": "100644",
+      "git_blob_sha1": "8d89431b5d6151c618ce8d8fe61ceb6911a68e48"
+    },
+    "robosuite/robots/mobile_robot.py": {
+      "mode": "100644",
+      "git_blob_sha1": "60c28bf35d903bed9c07700555694609326793d5"
+    },
+    "robosuite/robots/robot.py": {
+      "mode": "100644",
+      "git_blob_sha1": "0958b0859936ef62cd39209e09b1f2a7c65fc64f"
+    },
+    "robosuite/robots/wheeled_robot.py": {
+      "mode": "100644",
+      "git_blob_sha1": "88cbd4265a98363324370bbd1d16ef09c237c509"
+    },
+    "robosuite/scripts/browse_mjcf_model.py": {
+      "mode": "100644",
+      "git_blob_sha1": "187d9f013a424765744467cba9cf3608d8f4949d"
+    },
+    "robosuite/scripts/check_custom_robot_model.py": {
+      "mode": "100644",
+      "git_blob_sha1": "c03b42aefb644ffe8439e32eb6a4f6445e887ed9"
+    },
+    "robosuite/scripts/collect_human_demonstrations.py": {
+      "mode": "100644",
+      "git_blob_sha1": "2cd28732c3a20d02099c48a1ab66c77b96de8b07"
+    },
+    "robosuite/scripts/compile_mjcf_model.py": {
+      "mode": "100644",
+      "git_blob_sha1": "b5b9334a00d4b3fdfa5a2ab8fa06eb4013faf5cc"
+    },
+    "robosuite/scripts/internal/view_robot_initialization.py": {
+      "mode": "100644",
+      "git_blob_sha1": "07c021f4a95a1061023f55f1e7dcdd59d86328f5"
+    },
+    "robosuite/scripts/make_reset_video.py": {
+      "mode": "100644",
+      "git_blob_sha1": "249dd630b06299153d7587e3ce961afb7e760d7d"
+    },
+    "robosuite/scripts/playback_demonstrations_from_hdf5.py": {
+      "mode": "100644",
+      "git_blob_sha1": "d20ce0dc4472cc3b137015a9fe9d8aa17ab88777"
+    },
+    "robosuite/scripts/print_robosuite_info.py": {
+      "mode": "100644",
+      "git_blob_sha1": "edfcab0ff3f59f5a1bc5591881bbec1c8fd066f0"
+    },
+    "robosuite/scripts/print_robot_action_info.py": {
+      "mode": "100644",
+      "git_blob_sha1": "190de88878c63cb3419e82b1a95804d3f1dd7dbc"
+    },
+    "robosuite/scripts/render_dataset_with_omniverse.py": {
+      "mode": "100644",
+      "git_blob_sha1": "43b7673e51f8ed25da6944a2d792888ae5f756cb"
+    },
+    "robosuite/scripts/setup_macros.py": {
+      "mode": "100644",
+      "git_blob_sha1": "16abdde5ad8246d018e387890e2c32539602e1b3"
+    },
+    "robosuite/scripts/tune_camera.py": {
+      "mode": "100644",
+      "git_blob_sha1": "e27e380b743fd158298157d7f9046a419c36f93f"
+    },
+    "robosuite/scripts/tune_joints.py": {
+      "mode": "100644",
+      "git_blob_sha1": "b6e94ef9347cf25a96e27a3ca8b036b2026b85b3"
+    },
+    "robosuite/utils/__init__.py": {
+      "mode": "100644",
+      "git_blob_sha1": "70f80caa075d3150eb8346a4aae00fdf6438f499"
+    },
+    "robosuite/utils/binding_utils.py": {
+      "mode": "100644",
+      "git_blob_sha1": "ad09297f4a535a67a3daf59ed36cc6ce0286f377"
+    },
+    "robosuite/utils/buffers.py": {
+      "mode": "100644",
+      "git_blob_sha1": "b2a1bc20f86a79870d885d76a12739f0263c03fb"
+    },
+    "robosuite/utils/camera_utils.py": {
+      "mode": "100644",
+      "git_blob_sha1": "733e65c57c6597ae7b065674ffe23ffad7d93d74"
+    },
+    "robosuite/utils/control_utils.py": {
+      "mode": "100644",
+      "git_blob_sha1": "18cc0a6b30cd8011f5267cc39542c86a01867e44"
+    },
+    "robosuite/utils/errors.py": {
+      "mode": "100644",
+      "git_blob_sha1": "efe0b5cd7119b9a987975ae6028a9e76326d1f8c"
+    },
+    "robosuite/utils/ik_utils.py": {
+      "mode": "100644",
+      "git_blob_sha1": "a4fc7bb9d5ca5eaec7beb3c6398e058336eebe3b"
+    },
+    "robosuite/utils/input_utils.py": {
+      "mode": "100644",
+      "git_blob_sha1": "2a558df1ee5553387bd7df758d3419ab14ee1c5a"
+    },
+    "robosuite/utils/log_utils.py": {
+      "mode": "100644",
+      "git_blob_sha1": "e2dc96c9836cc06fee8bdb066690418b4c82085d"
+    },
+    "robosuite/utils/mjcf_utils.py": {
+      "mode": "100644",
+      "git_blob_sha1": "6f7207a81f57a84f1d93ffd69a7c3d7a3844075f"
+    },
+    "robosuite/utils/mjmod.py": {
+      "mode": "100644",
+      "git_blob_sha1": "3712e619906214e4221b4937b655b7092aba7611"
+    },
+    "robosuite/utils/numba.py": {
+      "mode": "100644",
+      "git_blob_sha1": "bd5d8549758e24993abbd72bbf970d90c0e0091b"
+    },
+    "robosuite/utils/observables.py": {
+      "mode": "100644",
+      "git_blob_sha1": "2c23e8189bcdc1d84a47efe14299a661e11de468"
+    },
+    "robosuite/utils/opencv_renderer.py": {
+      "mode": "100644",
+      "git_blob_sha1": "c6d6386b75870248519a12a18e62c233e256c246"
+    },
+    "robosuite/utils/placement_samplers.py": {
+      "mode": "100644",
+      "git_blob_sha1": "0bd8bb99712d8dac51ca5acf90261ca21cba60c4"
+    },
+    "robosuite/utils/robot_composition_utils.py": {
+      "mode": "100644",
+      "git_blob_sha1": "cb757f2eff252f058afb9436f2b514abccf14a90"
+    },
+    "robosuite/utils/robot_utils.py": {
+      "mode": "100644",
+      "git_blob_sha1": "a86d0fbc1d47d5138cdc27242590951a1e5b81ab"
+    },
+    "robosuite/utils/sim_utils.py": {
+      "mode": "100644",
+      "git_blob_sha1": "5452add1a7ee82b947e81c76bd43698ff128047d"
+    },
+    "robosuite/utils/traj_utils.py": {
+      "mode": "100644",
+      "git_blob_sha1": "bee9ab38785fec241acd8f9f4337ad714b44b291"
+    },
+    "robosuite/utils/transform_utils.py": {
+      "mode": "100644",
+      "git_blob_sha1": "a5018bc9a2f8c36e71b3c335d9c8ce23601e973b"
+    },
+    "robosuite/utils/usd/camera.py": {
+      "mode": "100644",
+      "git_blob_sha1": "9d8d28de8b130edd7a4856a0f26510096cb11b99"
+    },
+    "robosuite/utils/usd/demo.py": {
+      "mode": "100644",
+      "git_blob_sha1": "cb66d08bbe75d445a46b78d1be29418a77b97f65"
+    },
+    "robosuite/utils/usd/exporter.py": {
+      "mode": "100644",
+      "git_blob_sha1": "acb1e5c4b9722294ae3a72f36ffbc035632f37c7"
+    },
+    "robosuite/utils/usd/lights.py": {
+      "mode": "100644",
+      "git_blob_sha1": "f4209cdb5bd014bc72436fdd7c0c269dbd439ab7"
+    },
+    "robosuite/utils/usd/objects.py": {
+      "mode": "100644",
+      "git_blob_sha1": "db87e5b627d3c7a0d1234b10e5f4899c3dc7048e"
+    },
+    "robosuite/utils/usd/shapes.py": {
+      "mode": "100644",
+      "git_blob_sha1": "40cc96bb8a8fbf3179f563637a0db20d482a4b2f"
+    },
+    "robosuite/utils/usd/utils.py": {
+      "mode": "100644",
+      "git_blob_sha1": "b50ccf6fd8f718fa35b95f929194f4f56ae17bf6"
+    },
+    "robosuite/wrappers/__init__.py": {
+      "mode": "100644",
+      "git_blob_sha1": "282a66a0702dda49c0a4d2822bb5c994d85d8cd4"
+    },
+    "robosuite/wrappers/data_collection_wrapper.py": {
+      "mode": "100644",
+      "git_blob_sha1": "7618585e190234d73950e4ae7c609940229ff783"
+    },
+    "robosuite/wrappers/demo_sampler_wrapper.py": {
+      "mode": "100644",
+      "git_blob_sha1": "227045fa52c0d3b01ca563886ca56f6eae1593f5"
+    },
+    "robosuite/wrappers/domain_randomization_wrapper.py": {
+      "mode": "100644",
+      "git_blob_sha1": "ce27582663cdd84326acc4d0771a723d40bedd67"
+    },
+    "robosuite/wrappers/gym_wrapper.py": {
+      "mode": "100644",
+      "git_blob_sha1": "51bb6f5efbc3cbb396d545643e795edf8aa975d1"
+    },
+    "robosuite/wrappers/visualization_wrapper.py": {
+      "mode": "100644",
+      "git_blob_sha1": "64b847af6ee67acbe61353340bfbf06f2cb09c1e"
+    },
+    "robosuite/wrappers/wrapper.py": {
+      "mode": "100644",
+      "git_blob_sha1": "77c922dfdfc0fcd58109e4a36c7815dea4524cb8"
+    },
+    "setup.py": {
+      "mode": "100644",
+      "git_blob_sha1": "56e203f24ebe50d6ba7c87c7d515c7689fc87a6f"
+    },
+    "tests/test_controllers/test_composite_controllers.py": {
+      "mode": "100644",
+      "git_blob_sha1": "3e9b672ab24cbd9f7722d9ce67dabaea41721127"
+    },
+    "tests/test_controllers/test_linear_interpolator.py": {
+      "mode": "100644",
+      "git_blob_sha1": "e40b4a276d6d5833bd5bec489230ca51853d7d93"
+    },
+    "tests/test_controllers/test_variable_impedance.py": {
+      "mode": "100644",
+      "git_blob_sha1": "36fbdbd8d2c5a29b86e17e265e110542416948b3"
+    },
+    "tests/test_environments/test_action_playback.py": {
+      "mode": "100644",
+      "git_blob_sha1": "cf82ee48b1813eb91b582c1baf29d615325f1c7e"
+    },
+    "tests/test_environments/test_all_environments.py": {
+      "mode": "100644",
+      "git_blob_sha1": "19868b4dcacdac60b9c2a8603d52d8a86ac51847"
+    },
+    "tests/test_environments/test_camera_transforms.py": {
+      "mode": "100644",
+      "git_blob_sha1": "6241d7375bb8ed6e59feb717a17ba5dcd0a919ac"
+    },
+    "tests/test_grippers/test_all_grippers.py": {
+      "mode": "100644",
+      "git_blob_sha1": "d0c589f7e38785463abf6fdc98e4f485e49c2b74"
+    },
+    "tests/test_grippers/test_jaco_threefinger.py": {
+      "mode": "100644",
+      "git_blob_sha1": "d64f6ba8bb6910e852fa6505840bb2a1fcc2cc1e"
+    },
+    "tests/test_grippers/test_panda_gripper.py": {
+      "mode": "100644",
+      "git_blob_sha1": "7b785a71b0d61360ee6200afb5c998a298b70d22"
+    },
+    "tests/test_grippers/test_rethink_gripper.py": {
+      "mode": "100644",
+      "git_blob_sha1": "2ca4f5345f85ce3974ccf462c33e425c5d8d5fd6"
+    },
+    "tests/test_grippers/test_robotiq_140.py": {
+      "mode": "100644",
+      "git_blob_sha1": "a6235138beb779ed51df4aa9f2a4fd4a50aba029"
+    },
+    "tests/test_grippers/test_robotiq_85.py": {
+      "mode": "100644",
+      "git_blob_sha1": "636b0b64ff8638fc971167bbcc05ca0b4e7a6a2f"
+    },
+    "tests/test_grippers/test_robotiq_threefinger.py": {
+      "mode": "100644",
+      "git_blob_sha1": "a040d7686d4d46bd361474a0bc511c005a94b6a2"
+    },
+    "tests/test_renderers/test_all_renderers.py": {
+      "mode": "100644",
+      "git_blob_sha1": "55bde6857509769e7e1cca39493c5b284b9ffac2"
+    },
+    "tests/test_robots/test_all_robots.py": {
+      "mode": "100644",
+      "git_blob_sha1": "da22a8dc359b9b74c4793a8b49498d327e0794e0"
+    },
+    "tests/test_robots/test_composite_robots.py": {
+      "mode": "100644",
+      "git_blob_sha1": "c72892598b17c2f282c098ebfde67968fa19bf0f"
+    }
+  }
+}

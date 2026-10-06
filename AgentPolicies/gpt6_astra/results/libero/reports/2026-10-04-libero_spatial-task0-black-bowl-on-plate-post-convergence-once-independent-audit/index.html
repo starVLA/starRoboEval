@@ -1,0 +1,224 @@
+<!doctype html><html lang="en"><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Agent method evaluation result</title><style>
+body{max-width:1100px;margin:40px auto;padding:0 20px;font:16px/1.6 system-ui;color:#183044}
+pre{background:#f1f5f8;padding:16px;overflow-wrap:anywhere;white-space:pre-wrap}
+details{margin:16px 0}summary{cursor:pointer}table{border-collapse:collapse;width:100%}
+th,td{text-align:left;padding:8px;border-bottom:1px solid #ddd}</style>
+<h1>gpt6-astra-direct — libero</h1>
+<p>Run 2026-10-04-libero_spatial-task0-black-bowl-on-plate-post-convergence-once. Method results, not a bare-model ranking.</p>
+<h2>Outcome</h2>
+<p><strong>0 / 1 successes / selected cases</strong> (0.0%). 0 errors; 0 unattempted. This denominator is the selected schedule, not necessarily the full benchmark.</p>
+<pre>{
+  &quot;scope&quot;: &quot;client_selected_schedule&quot;,
+  &quot;planned&quot;: 1,
+  &quot;unattempted&quot;: 0,
+  &quot;attempted&quot;: 1,
+  &quot;completed&quot;: 1,
+  &quot;errors&quot;: 0,
+  &quot;successes&quot;: 0,
+  &quot;policy_calls&quot;: 54,
+  &quot;rejected_actions&quot;: 0,
+  &quot;action_decisions&quot;: 53,
+  &quot;environment_steps&quot;: 215,
+  &quot;success_rate&quot;: 0.0,
+  &quot;attempt_success_rate&quot;: 0.0,
+  &quot;selected_success_rate&quot;: 0.0,
+  &quot;rate_denominators&quot;: {
+    &quot;success_rate&quot;: &quot;completed_cases&quot;,
+    &quot;attempt_success_rate&quot;: &quot;attempted_cases&quot;,
+    &quot;selected_success_rate&quot;: &quot;selected_cases&quot;,
+    &quot;completion_rate&quot;: &quot;attempted_cases&quot;
+  },
+  &quot;completion_rate&quot;: 1.0
+}</pre>
+<h2>Method and resources</h2>
+<p>Configuration: not_supplied_in_legacy_identity_projection.</p>
+<pre>{
+  &quot;schema_version&quot;: &quot;starvla-rsi.method/v1&quot;,
+  &quot;id&quot;: &quot;gpt6-astra-direct&quot;,
+  &quot;version&quot;: &quot;codex-native/v1&quot;,
+  &quot;models&quot;: [
+    {
+      &quot;id&quot;: &quot;primary&quot;,
+      &quot;role&quot;: &quot;policy&quot;,
+      &quot;provider&quot;: &quot;openai&quot;,
+      &quot;model&quot;: &quot;gpt-6-astra&quot;,
+      &quot;version&quot;: null
+    }
+  ],
+  &quot;configuration&quot;: {}
+}</pre>
+<pre>{
+  &quot;aggregate_usage&quot;: {
+    &quot;calls&quot;: null,
+    &quot;input_tokens&quot;: 300854,
+    &quot;output_tokens&quot;: 54016,
+    &quot;cached_input_tokens&quot;: 78848,
+    &quot;estimated_cost_usd&quot;: null,
+    &quot;latency_s&quot;: 2400.0260263322853
+  },
+  &quot;component_usage&quot;: {
+    &quot;primary&quot;: {
+      &quot;calls&quot;: null,
+      &quot;input_tokens&quot;: null,
+      &quot;output_tokens&quot;: null,
+      &quot;cached_input_tokens&quot;: null,
+      &quot;estimated_cost_usd&quot;: null,
+      &quot;latency_s&quot;: null
+    }
+  }
+}</pre>
+<h2>Interaction recording</h2><p>Optional; recording availability does not affect publication eligibility.</p>
+<pre>{
+  &quot;availability&quot;: &quot;declared_settings_only&quot;,
+  &quot;configuration&quot;: {
+    &quot;mode&quot;: &quot;standard&quot;,
+    &quot;schema_version&quot;: &quot;starvla-rsi.recording/v1&quot;,
+    &quot;scope&quot;: &quot;client-retention; server-native capture configured separately&quot;,
+    &quot;source_capture&quot;: &quot;internal source/config snapshots retained independently of preset&quot;,
+    &quot;model_io&quot;: true,
+    &quot;interactions&quot;: true,
+    &quot;tool_traces&quot;: true,
+    &quot;videos&quot;: true,
+    &quot;images&quot;: true
+  },
+  &quot;publication_requirement&quot;: false
+}</pre>
+<h2>Episodes</h2>
+<details><summary>libero_spatial/task-0 · libero_spatial-task00-init00 · completed</summary>
+<pre>{
+  &quot;id&quot;: &quot;libero_spatial-task00-init00&quot;,
+  &quot;task&quot;: &quot;libero_spatial/task-0&quot;,
+  &quot;seed&quot;: 20260907,
+  &quot;status&quot;: &quot;completed&quot;,
+  &quot;success&quot;: false,
+  &quot;termination_reason&quot;: &quot;policy:give_up&quot;,
+  &quot;counters&quot;: {
+    &quot;policy_calls&quot;: 54,
+    &quot;action_decisions&quot;: 53,
+    &quot;environment_steps&quot;: 215,
+    &quot;rejected_actions&quot;: 0
+  },
+  &quot;duration_s&quot;: 2566.6287882919423,
+  &quot;usage&quot;: {
+    &quot;calls&quot;: null,
+    &quot;input_tokens&quot;: 300854,
+    &quot;output_tokens&quot;: 54016,
+    &quot;cached_input_tokens&quot;: 78848,
+    &quot;estimated_cost_usd&quot;: null,
+    &quot;latency_s&quot;: 2400.0260263322853
+  },
+  &quot;component_usage&quot;: {
+    &quot;primary&quot;: {
+      &quot;calls&quot;: null,
+      &quot;input_tokens&quot;: null,
+      &quot;output_tokens&quot;: null,
+      &quot;cached_input_tokens&quot;: null,
+      &quot;estimated_cost_usd&quot;: null,
+      &quot;latency_s&quot;: null
+    }
+  },
+  &quot;native_metrics&quot;: {
+    &quot;native_steps&quot;: 215,
+    &quot;native_horizon&quot;: 220,
+    &quot;evaluation_horizon&quot;: 220,
+    &quot;settle_steps&quot;: 10
+  },
+  &quot;error&quot;: null,
+  &quot;recording&quot;: {
+    &quot;availability&quot;: &quot;declared_settings_only&quot;,
+    &quot;configuration&quot;: {
+      &quot;mode&quot;: &quot;standard&quot;,
+      &quot;schema_version&quot;: &quot;starvla-rsi.recording/v1&quot;,
+      &quot;scope&quot;: &quot;client-retention; server-native capture configured separately&quot;,
+      &quot;source_capture&quot;: &quot;internal source/config snapshots retained independently of preset&quot;,
+      &quot;model_io&quot;: true,
+      &quot;interactions&quot;: true,
+      &quot;tool_traces&quot;: true,
+      &quot;videos&quot;: true,
+      &quot;images&quot;: true,
+      &quot;agent_events_written&quot;: 0,
+      &quot;warnings&quot;: []
+    },
+    &quot;publication_requirement&quot;: false
+  }
+}</pre>
+</details>
+<details><summary>Benchmark, protocol and robot capabilities</summary>
+<pre>{
+  &quot;benchmark&quot;: {
+    &quot;name&quot;: &quot;libero&quot;,
+    &quot;version&quot;: &quot;0.2.0&quot;,
+    &quot;protocol_version&quot;: &quot;libero-task-coverage/libero_spatial/rgb/v1&quot;,
+    &quot;source_revision&quot;: &quot;8f1084e3132a39270c3a13ebe37270a43ece2a01&quot;
+  },
+  &quot;protocol&quot;: {
+    &quot;budget_mode&quot;: &quot;horizon&quot;,
+    &quot;primary_budget&quot;: &quot;first_exhausted_limit&quot;,
+    &quot;invalid_action_handling&quot;: &quot;feedback&quot;,
+    &quot;usage_accounting_version&quot;: &quot;starvla-rsi.method-usage/v1&quot;,
+    &quot;max_steps&quot;: 220,
+    &quot;max_policy_calls&quot;: 220,
+    &quot;replan_interval&quot;: 5
+  },
+  &quot;contracts&quot;: {
+    &quot;action_spec&quot;: {
+      &quot;mode&quot;: &quot;normalized_osc_delta_pose&quot;,
+      &quot;frame&quot;: &quot;world: translation component 1 means +0.05 m&quot;,
+      &quot;rotation&quot;: &quot;world axis-angle delta: rotation component 1 means +0.5 rad&quot;,
+      &quot;gripper&quot;: &quot;-1 open; +1 close; 0 hold native gripper target&quot;,
+      &quot;names&quot;: [
+        &quot;dx_scaled&quot;,
+        &quot;dy_scaled&quot;,
+        &quot;dz_scaled&quot;,
+        &quot;rx_scaled&quot;,
+        &quot;ry_scaled&quot;,
+        &quot;rz_scaled&quot;,
+        &quot;gripper&quot;
+      ],
+      &quot;size&quot;: 7,
+      &quot;control_hz&quot;: 20.0,
+      &quot;low&quot;: [
+        -1.0,
+        -1.0,
+        -1.0,
+        -1.0,
+        -1.0,
+        -1.0,
+        -1.0
+      ],
+      &quot;high&quot;: [
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ]
+    },
+    &quot;observation_spec&quot;: {
+      &quot;control_feedback_schema&quot;: null,
+      &quot;cameras&quot;: [
+        &quot;agentview&quot;,
+        &quot;robot0_eye_in_hand&quot;
+      ],
+      &quot;state_names&quot;: [],
+      &quot;modalities&quot;: [
+        &quot;language&quot;,
+        &quot;rgb&quot;
+      ],
+      &quot;privileged&quot;: false
+    }
+  }
+}</pre>
+</details>
+<h2>Interpretation</h2><ul>
+<li>Interaction recording is optional and is not a publication requirement.</li>
+<li>No event, source, provider or native execution audit is implied by this presentation.</li>
+<li>The denominator is the client-selected schedule, not necessarily the entire benchmark.</li>
+<li>Missing usage is unknown, not zero; model composition and usage are reported declarations.</li>
+<li>Native metrics are included only when explicitly selected; no media or raw traces are copied.</li>
+<li>Review public method configuration and text before publishing; key filtering is not secret detection.</li>
+</ul></html>

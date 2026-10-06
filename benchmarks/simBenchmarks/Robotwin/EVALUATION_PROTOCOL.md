@@ -1,0 +1,201 @@
+# RoboTwin clean direct-control protocol
+
+Protocol: `robotwin-local-content/clean-fixed-seed/qpos14-rgb320-state14/fast-v3`.
+Opt-in renderer compatibility protocol:
+`robotwin-local-content/clean-fixed-seed/qpos14-rgb320-state14-oidn233/fast-v4`.
+Status: development server adapter; native acceptance requires separate evidence.
+Benchmark registration name: `robotwin`.
+
+These versions add a declared robot-state channel to the former RGB-only
+`fast-v1` / `fast-v2` tracks. Old frozen results retain their original inputs and
+identities; this is not a silent reinterpretation or a claim of score parity.
+Native cameras, actions, control timing, task selection and scoring are unchanged.
+
+## Scope and denominator
+
+The retained launcher lists 50 tasks and clean/randomized settings. The inspected
+native `script/eval_policy.py` defaults to 100 accepted test episodes per task,
+not the `episode_num: 50` collection field in demo_clean. It starts at
+`100000 * (1 + seed)`, performs expert `play_once` feasibility screening, skips
+unsuccessful seeds, then resets accepted seeds again for the participant.
+Language templates may use expert-generated episode information.
+
+This server does not execute that expert/filtering loop. Its explicit fast
+development track chooses one task and one unscreened native seed in advance,
+then calls `setup_demo` once. Failure, unstable-scene errors and runtime errors
+are retained; none trigger another seed or attempt. Native object-generation
+sampling within that one seeded scene setup is unchanged. Language is the
+task JSON's fixed `full_description`, without expert execution, hidden object
+identifiers or adaptive prompt selection.
+
+| Implemented task | Native object variants retained | Native target-control horizon |
+| --- | --- | --- |
+| `lift_pot` | `060_kitchenpot`, IDs 0 and 1; native seeded sampling | 400 |
+| `click_bell` | `050_bell`, IDs 0 and 1; native seeded sampling | 400 |
+
+Only `demo_clean` with native Aloha is exposed. A service has one selected task,
+one declared `native_seed` and one attempt; a second open/reset is rejected even
+after failure. Full mode, EEF actions, other tasks and arbitrary native config
+overrides are unsupported. This denominator is not native-full coverage and is
+not directly comparable with expert-filtered scores. A future full track needs
+a reviewed native schedule, not success-seeking retries during evaluation.
+
+## Source, runtime and configuration identity
+
+The native local archive has no own Git metadata. Its selected files are pinned
+in `environment/native_snapshot.json`, inventory SHA-256
+`ab5a73b0482d50d9c83e8702b37e7e7eb10bf7033e03a8fec59b60b708bef08c`.
+`native_source_revision` is `null`; the descriptor's required identity string is
+`content-inventory-sha256:<digest>`. A parent repository's revision or current
+upstream HEAD is not a substitute for this archive.
+
+The deployment helper copies matching source/assets to a new owned root. It
+permits exactly native Aloha left/right CuRobo template path expansion; original
+config/template hashes, derived bytes, root and manifest hash are recorded.
+Other bytes and the file set remain exact. Runtime metadata and the selected
+SAPIEN/MPLib/TOPPRA package file inventory are verified before native imports.
+Drivers, JIT outputs, all transitive dependencies and loaded memory are not
+attested by these checks.
+
+The default `renderer_runtime: bundled_oidn_2_0_1` preserves the original
+runtime snapshot and protocol. The explicit `oidn_2_3_3_cuda_v1` selection uses
+an owned SAPIEN 3.0.0b1 overlay with the official OIDN 2.3.3 CUDA libraries.
+Only the OIDN library directory and two literal paths in SAPIEN's OIDN loader
+change; native RoboTwin code/assets, SAPIEN physics/renderer binaries, shaders,
+32 samples per pixel, depth 8, camera definitions and scorer remain unchanged.
+It does not disable denoising, select OptiX/CPU, or install task-solving code.
+
+The compatibility inventory additionally checks all three `sapien.libs`
+binaries, preserved distribution metadata and regenerated `RECORD`, rejects
+unlisted overlay files and preloaded native libraries, and checks actual loaded
+library paths after import and the first observation. Other dependencies remain
+read-only references to the original selected environment; this is not a fully
+isolated or transitively pinned environment. Verification receipts are saved
+before native import so an initialization failure retains its runtime identity.
+See [renderer setup](environment/RENDERING.md) for preparation and acceptance.
+
+OIDN 2.3.3 supports newer CUDA architectures but has different denoiser
+implementation/default filter quality from 2.0.1. The compatibility protocol
+therefore has a distinct identity: no pixel parity or interchangeable scores
+between these tracks are claimed. A device/filter check is not native rendering
+validation; separately inspect the declared server diagnostic and all cameras.
+
+## Observation boundary
+
+The actor receives language plus `head_camera`, `left_camera`, `right_camera`
+in that order, each native 320 × 240 RGB uint8. There is no flip, resize, crop,
+overlay, image annotation or channel conversion. The native camera already
+converts its Color buffer to uint8 RGB.
+
+At reset and after every acknowledged control, `state` contains 14 robot values
+in the following fixed order, declared individually in `state_names`:
+
+| Indices | Fields | Source and units |
+| --- | --- | --- |
+| 0–5 | `measured_fl_joint1_rad` … `measured_fl_joint6_rad` | Actual left-arm articulation joint positions, radians |
+| 6 | `commanded_left_gripper_01` | Last native normalized left-gripper command; 0 closed, 1 open |
+| 7–12 | `measured_fr_joint1_rad` … `measured_fr_joint6_rad` | Actual right-arm articulation joint positions, radians |
+| 13 | `commanded_right_gripper_01` | Last native normalized right-gripper command; 0 closed, 1 open |
+
+The pinned native robot's `get_left_arm_real_jointState` and
+`get_right_arm_real_jointState` read arm positions through articulation
+`get_qpos` in the compiled arm-joint order. Each getter appends its native
+gripper command cache. Thus there are **12 measured arm values and two commanded
+gripper values**, not 14 measured encoders. Gripper commands do not establish
+physical opening, contact or a successful grasp. These read-only getters do not
+advance physics or invoke task logic; the state and cameras are sampled at the
+same paused control boundary. Measured arm values are never clipped to action
+bounds. Missing, non-finite or wrongly shaped state is an explicit error, not
+a fabricated zero vector or a fallback to commanded joints.
+
+The similarly named native `joint_action.vector` still contains drive targets;
+it is not used as measured state. Only the declared camera arrays and robot
+state are projected. Extra front camera, depth, point clouds, segmentation,
+calibration, EEF/object poses, seeds, task metadata, native score and debug
+channels remain excluded. No arbitrary native observation dictionary is forwarded.
+
+## Direct action boundary
+
+The actor selects this 14-D vector directly:
+
+```text
+[fl_joint1, fl_joint2, fl_joint3, fl_joint4, fl_joint5, fl_joint6, left_gripper,
+ fr_joint1, fr_joint2, fr_joint3, fr_joint4, fr_joint5, fr_joint6, right_gripper]
+```
+
+Arm entries are absolute native joint radians with authored URDF bounds
+`[-10, 10]`. Grippers are absolute normalized commands in `[0, 1]` (0 closed,
+1 open), using the native `[-0.01, 0.045]` meter scale. At reset the adapter
+checks actual compiled joint names/limits, gripper scale, horizon and physics
+timestep. A mismatch is a contract/environment error before actor controls,
+not permission to infer different bounds.
+
+One `take_action(vector, action_type="qpos")` executes each control. Native
+MPLib TOPP interpolates from previous drive targets to requested absolute joint
+targets under fixed low-level velocity/acceleration constraints. It does not
+select a grasp or plan around task objects. EEF/CuRobo planning, expert methods,
+VLA proposals, fallback task policies and task-solving services are not exposed.
+
+Native setup still constructs planners, moves to homestate, opens grippers and
+performs object-stability settling. These are declared initialization, not model
+decisions. No `play_once`, expert feasibility check, hidden-state action
+generation or scored-seed search occurs.
+
+Native qpos control catches TOPP exceptions/zero-sample paths and uses its fixed
+50-tick gripper interpolation for the affected arm. This existing low-level
+behavior is preserved and explicitly recorded by passive TOPP instrumentation;
+the adapter never substitutes a task action or replays a failed control.
+Exceptions outside that native controller retain errors.
+
+## Timing, stopping and success
+
+Physics uses native `1/250`-second ticks. A target consumes a variable number
+according to TOPP; `control_hz` is unspecified, not inferred from video FPS.
+Native `take_action_cnt` stops at 400 for both tasks, from the pinned
+`_eval_step_limit.yml`. Runner decision limits do not extend that horizon.
+The example uses 200 policy calls, an action prefix of at most 5 and a separate
+1,000-control ceiling.
+
+Native `take_action` checks `check_success` during each physics tick and caches
+`eval_success`. The adapter consumes that result without adding a second
+stateful scorer query after each target or inferring success from video.
+Numeric transition reward only encodes this Boolean success; no shaped reward
+is introduced. Success terminates immediately. Native horizon, runner limits,
+errors and explicit policy stop can end unsuccessfully. Voluntary persistence
+and minimum-decision rules remain policy-owned.
+
+Record calls, executed action decisions, native started target controls,
+acknowledged transitions and completed physics ticks separately. A passive
+task-side scene view counts physics after reset. Initialization ticks are
+unknown, not falsely zero; setup includes settling and fixed controls. On a
+native exception, partially executed controls may have consumed physics without
+an acknowledgment. Preserve that uncertainty and never replay the action.
+
+## Media, audit and lifecycle
+
+Native events, resolved config/provenance, delivered-frame PNG/RGB hashes, three
+named-camera MP4s, counters and cleanup receipts remain evaluator-private under
+`AgentPolicies/<profile>/results/robotwin/`. The actor receives only public observations
+and execution feedback through its policy interface. Idle wall time does not
+advance simulation.
+
+MP4s present one public frame per control at 10 FPS. They are neither real-time
+physics captures nor proof of motion between samples. `frames.jsonl` records
+completed physics ticks/simulated seconds beside each frame. Include camera
+identity and task descriptions in exported paths; distinguish reset-only
+diagnostics from model attempts.
+
+Close calls native `close_env` and releases references, retaining errors.
+Native gym close does not prove GPU resource reclamation. Use one episode per
+server process and stop it after result transfer; do not reuse it for a task.
+Logical policy/evaluator boundaries are not an OS sandbox.
+
+## Acceptance gates requiring native evidence
+
+CPU tests validate factory/lifecycle/projection/deployment and passive counters,
+not SAPIEN rendering, physics or model performance. Before scoring, independently
+review and run a separate one-reset/two-fixed-control infrastructure fixture;
+verify compiled limits and delivered cameras, decode videos and audit counts
+and cleanup. Keep the fixture out of model success rates. Randomized/full
+evaluation and serial/sharded native parity need further implementation and
+benchmark-specific evidence.

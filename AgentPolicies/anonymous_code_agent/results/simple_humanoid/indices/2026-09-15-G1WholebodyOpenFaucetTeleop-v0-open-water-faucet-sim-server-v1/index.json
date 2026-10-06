@@ -1,0 +1,336 @@
+{
+  "created_at": "2026-09-15T10:11:06.065811+00:00",
+  "limitations": [
+    "Index of the explicit closed source list, not full benchmark coverage or a merged model score.",
+    "Original manifests, results, source packages and paths remain unchanged.",
+    "Hashes cover the listed records and selected videos, not all source/assets/wire artifacts.",
+    "Native first success is read from existing step logs; incomplete evidence remains null.",
+    "Diagnostic runs retain native outcomes as infrastructure evidence, not model capability scores.",
+    "Model/provider identity, accounting and isolation are not retroactively verified."
+  ],
+  "model": null,
+  "namespace": "anonymous_code_agent",
+  "provider": null,
+  "runs": [
+    {
+      "action_spec": {
+        "control_hz": 50.0,
+        "frame": "native G1 joint coordinates; native controller navigation frame",
+        "gripper": "14 individual dexterous hand joint position targets (radians)",
+        "high": null,
+        "low": null,
+        "mode": "simple_sonic_physical_joint_nav_36",
+        "names": [
+          "left_hand_thumb_0_joint",
+          "left_hand_thumb_1_joint",
+          "left_hand_thumb_2_joint",
+          "left_hand_middle_0_joint",
+          "left_hand_middle_1_joint",
+          "left_hand_index_0_joint",
+          "left_hand_index_1_joint",
+          "right_hand_thumb_0_joint",
+          "right_hand_thumb_1_joint",
+          "right_hand_thumb_2_joint",
+          "right_hand_index_0_joint",
+          "right_hand_index_1_joint",
+          "right_hand_middle_0_joint",
+          "right_hand_middle_1_joint",
+          "left_shoulder_pitch_joint",
+          "left_shoulder_roll_joint",
+          "left_shoulder_yaw_joint",
+          "left_elbow_joint",
+          "left_wrist_roll_joint",
+          "left_wrist_pitch_joint",
+          "left_wrist_yaw_joint",
+          "right_shoulder_pitch_joint",
+          "right_shoulder_roll_joint",
+          "right_shoulder_yaw_joint",
+          "right_elbow_joint",
+          "right_wrist_roll_joint",
+          "right_wrist_pitch_joint",
+          "right_wrist_yaw_joint",
+          "waist_roll_joint",
+          "waist_pitch_joint",
+          "waist_yaw_joint",
+          "base_height_m",
+          "forward_velocity_m_s",
+          "lateral_velocity_m_s",
+          "turning_gate",
+          "target_yaw_rad"
+        ],
+        "rotation": "joint radians; waist roll,pitch,yaw; heading radians",
+        "size": 36
+      },
+      "benchmark": {
+        "name": "simple_humanoid",
+        "protocol_version": "simple/sonic/rgb-qpos31/decision-200-prefix-5/v1",
+        "source_revision": "5e3d6f84e85343e34e9bca8d157f0d7813231185",
+        "version": "5e3d6f8-patched-native"
+      },
+      "diagnostic": false,
+      "episodes": [
+        {
+          "action_decisions": 29,
+          "duration_s": 1345.3709462061524,
+          "environment_steps": 145,
+          "episode": {
+            "id": "G1WholebodyOpenFaucetTeleop-v0/dr0/ep0",
+            "instruction": "move forward to the faucet and open it",
+            "metadata": {
+              "budget_mode": "decisions",
+              "dr_level": 0,
+              "environment_step_cap": 1000,
+              "episode_index": 0,
+              "reference_native_horizon": 1000,
+              "track": "simple/sonic/rgb-qpos31/decision-200-prefix-5/v1"
+            },
+            "seed": 20260907,
+            "task": "G1WholebodyOpenFaucetTeleop-v0"
+          },
+          "error": null,
+          "metrics": {
+            "diagnostic_only": false,
+            "environment_step_cap": 1000,
+            "native_return": 0.0,
+            "native_steps": 145,
+            "reference_native_horizon": 1000,
+            "success": false,
+            "track": "simple/sonic/rgb-qpos31/decision-200-prefix-5/v1"
+          },
+          "policy_calls": 30,
+          "progress": {
+            "complete_step_coverage": true,
+            "first_native_success_step": null,
+            "first_native_success_timestamp": null,
+            "native_success_field": "native_success",
+            "policy_call_at_first_native_success": null
+          },
+          "source_result": "/mnt/workspace/users/jinhuiye/Projects/starVLA-RSI/starVLA/anonymous_code_agent/results/simple_humanoid/raw/2026-09-15-G1WholebodyOpenFaucetTeleop-v0-open-water-faucet-sim-server-v1/evaluator/G1WholebodyOpenFaucetTeleop-v0-open-water-faucet-direct-control/episodes/G1WholebodyOpenFaucetTeleop-v0_dr0_ep0/result.json",
+          "status": "completed",
+          "success": false,
+          "termination_reason": "policy:Voluntary stop after repeated contact attempts without a clear observable faucet actuation; hands withdrawn.",
+          "usage": {
+            "cached_input_tokens": null,
+            "calls": null,
+            "estimated_cost_usd": null,
+            "input_tokens": null,
+            "latency_s": 997.6106294947676,
+            "output_tokens": null
+          }
+        }
+      ],
+      "harness_source": {
+        "file_count": 72,
+        "files_root": "harness_source/files",
+        "index_sha256": "2abb4fba510fce41e2595edb47a9393733374f927a61f4ef3e60ecb801ad4f76",
+        "inventory_sha256": "0cca33b672be2d1c459a1054df18b9c5dca08b3eda610a73fe36ad0fabe55995",
+        "limitations": "Not an external-policy, prompt, simulator, asset, dependency, or loaded-memory snapshot.",
+        "path": "harness_source/index.json",
+        "scope": "harness and explicit benchmark runtime source; repository-relative layout/v2",
+        "source_root": "/mnt/workspace/users/jinhuiye/Projects/rsi-sim-server-check.Wt9Ont/source-final",
+        "total_bytes": 729880
+      },
+      "model_profile": {
+        "config_sha256": "ed8cc0195c356e4d7b76f5713023cfd8a2d8bd7d71a01ffcd530078ba975f31f",
+        "dependencies_sha256": "6bcd7b1e466af925f48a675be813d59068781511a7dfcaf7078735fe44edc217",
+        "factory": "starVLA.anonymous_code_agent.policy:create_policy",
+        "id": "anonymous_code_agent",
+        "profile_sha256": "a3837d382bfc0a487fbf8d6152cd32d1b9e4bf38f38ec9ca64a3c1bf2f463e09",
+        "prompt_sha256": "f163e3dce972d84edfecf20ad858aaa8f25d758be7b36debdbd26e1b3ba62f44",
+        "schema_version": "starvla-rsi.model-profile/v1",
+        "source_inventory_sha256": "46b696e04c1da28654ecbc1761ab041f109e164bd45f779aba0bda751117f30a"
+      },
+      "model_source": {
+        "file_count": 14,
+        "index_sha256": "a755d19524a224d8a9607c29f54647019e11deae18eda505f4c4f22bf6e562df",
+        "inventory_sha256": "2e8c89d3f1106411a8a4578356a00c6ef56c44705931a4e3d2ed176387daa8d9",
+        "path": "model_source/index.json",
+        "schema_version": "starvla-rsi.model-source/v2",
+        "total_bytes": 45174
+      },
+      "observation_spec": {
+        "cameras": [
+          "head_stereo_left"
+        ],
+        "modalities": [
+          "rgb",
+          "language",
+          "proprioception"
+        ],
+        "privileged": false,
+        "state_names": [
+          "left_hand_thumb_0_joint",
+          "left_hand_thumb_1_joint",
+          "left_hand_thumb_2_joint",
+          "left_hand_middle_0_joint",
+          "left_hand_middle_1_joint",
+          "left_hand_index_0_joint",
+          "left_hand_index_1_joint",
+          "right_hand_thumb_0_joint",
+          "right_hand_thumb_1_joint",
+          "right_hand_thumb_2_joint",
+          "right_hand_index_0_joint",
+          "right_hand_index_1_joint",
+          "right_hand_middle_0_joint",
+          "right_hand_middle_1_joint",
+          "left_shoulder_pitch_joint",
+          "left_shoulder_roll_joint",
+          "left_shoulder_yaw_joint",
+          "left_elbow_joint",
+          "left_wrist_roll_joint",
+          "left_wrist_pitch_joint",
+          "left_wrist_yaw_joint",
+          "right_shoulder_pitch_joint",
+          "right_shoulder_roll_joint",
+          "right_shoulder_yaw_joint",
+          "right_elbow_joint",
+          "right_wrist_roll_joint",
+          "right_wrist_pitch_joint",
+          "right_wrist_yaw_joint",
+          "waist_roll_joint",
+          "waist_pitch_joint",
+          "waist_yaw_joint"
+        ]
+      },
+      "policy": {
+        "kind": "external-code-agent",
+        "model": null,
+        "name": "code-agent-development",
+        "parameters": {
+          "absolute_paths_exported": false,
+          "directory": "/mnt/workspace/users/jinhuiye/policy-endpoints/mbx-4f685b96540a69942d8894af83cc99f4",
+          "endpoint_blinding": "operator_must_supply_seed_independent_root_and_opaque_endpoint",
+          "evaluation_status": "experimental",
+          "history": "current_observation_only",
+          "max_chunk_length": 5,
+          "max_response_bytes": 65536,
+          "model_profile": {
+            "config_sha256": "ed8cc0195c356e4d7b76f5713023cfd8a2d8bd7d71a01ffcd530078ba975f31f",
+            "dependencies_sha256": "6bcd7b1e466af925f48a675be813d59068781511a7dfcaf7078735fe44edc217",
+            "factory": "starVLA.anonymous_code_agent.policy:create_policy",
+            "id": "anonymous_code_agent",
+            "profile_sha256": "a3837d382bfc0a487fbf8d6152cd32d1b9e4bf38f38ec9ca64a3c1bf2f463e09",
+            "prompt_sha256": "f163e3dce972d84edfecf20ad858aaa8f25d758be7b36debdbd26e1b3ba62f44",
+            "schema_version": "starvla-rsi.model-profile/v1",
+            "source_inventory_sha256": "46b696e04c1da28654ecbc1761ab041f109e164bd45f779aba0bda751117f30a"
+          },
+          "policy_stop_rule": {
+            "early_policy_stop_exception": "safety_stop_with_nonempty_note",
+            "min_action_decisions_before_give_up": 0,
+            "scope": "policy",
+            "stop_constraint_version": "minimum-action-decisions/v2"
+          },
+          "prompt_sha256": "eaed9317c92450a8a4a91b631beea8cb6623c61d6a2fe4bc69f577fd16635a0c",
+          "provider_call_limit_verified": false,
+          "public_path_base": "mailbox_root",
+          "timeout_s": 900.0,
+          "usage_source": "client_reported_or_unavailable"
+        },
+        "provider": null,
+        "version": "starvla-rsi.mailbox/v3"
+      },
+      "protocol": {
+        "budget_mode": "decisions",
+        "episode_ids": [
+          "G1WholebodyOpenFaucetTeleop-v0/dr0/ep0"
+        ],
+        "episode_limit": 1,
+        "execution_feedback_version": "starvla-rsi.execution-feedback/v1",
+        "fail_fast": false,
+        "max_policy_calls": 200,
+        "max_steps": 1000,
+        "primary_budget": "policy_decisions",
+        "replan_interval": 5,
+        "seed": 20260907
+      },
+      "run_id": "G1WholebodyOpenFaucetTeleop-v0-open-water-faucet-direct-control",
+      "runtime": {
+        "executable": "/mnt/workspace/users/jinhuiye/Projects/rsi-direct-policy-check.0PcRrG/venv/bin/python",
+        "git": {
+          "dirty": null,
+          "evaluation_package_diff": {
+            "includes_untracked_files": false,
+            "reason": "git_checkout_unavailable",
+            "scope": "installed harness package",
+            "sha256": null,
+            "status": "unavailable"
+          },
+          "revision": null
+        },
+        "hostname": "nb-xwzrfzfkk1-0",
+        "platform": "Linux-5.10.0-1.oe.jd_702.x86_64-x86_64-with-glibc2.39",
+        "python": "3.10.21"
+      },
+      "source_files_sha256": {
+        "episodes.jsonl": "3e0efe4273d1d41a2b46352ce50bc385d9d652c7c77a6c626b0c461671433057",
+        "episodes/G1WholebodyOpenFaucetTeleop-v0_dr0_ep0/artifacts/sim_server_files/head_stereo_left.mp4": "4edfb95fc9a7abad5f7546a3c9cef6537a67cbf5a2b751d3dcf8d40183891718",
+        "episodes/G1WholebodyOpenFaucetTeleop-v0_dr0_ep0/artifacts/sim_server_files/head_stereo_right.mp4": "210a05ee3d1ed54b25da68f1a6d3844b4c816c15307f50b947dcef7a71c0e9c2",
+        "episodes/G1WholebodyOpenFaucetTeleop-v0_dr0_ep0/events.jsonl": "37d7673593b5cc360f4be78310d81c969c453450718e6334996a5da60214cbe6",
+        "episodes/G1WholebodyOpenFaucetTeleop-v0_dr0_ep0/result.json": "51da24d677c7d0d9435240da2684fa75cdef88e99461dc4daed39ae65b4f14d0",
+        "manifest.json": "a6721ede96eba3bd0ac7aabe317ae11a830c66a8c6d11c49c7833110697c33c5",
+        "status.json": "87c461bbdf21c4b1fe86cdd63fa78a95d8bc266d44132c82e91cfa07c3b126c6",
+        "summary.json": "f3af9355fcf96593c226bf22e073bb1db0f50a9d71a91ee619ddb75d0437309e"
+      },
+      "source_run": "/mnt/workspace/users/jinhuiye/Projects/starVLA-RSI/starVLA/anonymous_code_agent/results/simple_humanoid/raw/2026-09-15-G1WholebodyOpenFaucetTeleop-v0-open-water-faucet-sim-server-v1/evaluator/G1WholebodyOpenFaucetTeleop-v0-open-water-faucet-direct-control",
+      "status": "completed",
+      "summary": {
+        "attempt_success_rate": 0.0,
+        "attempted": 1,
+        "benchmark": "simple_humanoid",
+        "by_task": {
+          "G1WholebodyOpenFaucetTeleop-v0": {
+            "attempt_success_rate": 0.0,
+            "attempted": 1,
+            "completed": 1,
+            "errors": 0,
+            "policy_calls": 30,
+            "success_rate": 0.0,
+            "successes": 0
+          }
+        },
+        "completed": 1,
+        "completion_rate": 1.0,
+        "errors": 0,
+        "policy": "code-agent-development",
+        "policy_calls": 30,
+        "run_id": "G1WholebodyOpenFaucetTeleop-v0-open-water-faucet-direct-control",
+        "schema_version": "starvla-rsi.eval/v1",
+        "success_rate": 0.0,
+        "successes": 0,
+        "usage": {
+          "cached_input_tokens": null,
+          "calls": null,
+          "estimated_cost_usd": null,
+          "input_tokens": null,
+          "latency_s": 997.6106294947676,
+          "output_tokens": null
+        }
+      },
+      "videos": [
+        {
+          "archive_reasons": [],
+          "camera": "head_stereo_left",
+          "diagnostic": false,
+          "episode_id": "G1WholebodyOpenFaucetTeleop-v0/dr0/ep0",
+          "path": "media/simple_humanoid/2026-09-15-G1WholebodyOpenFaucetTeleop-v0-open-water-faucet-G1WholebodyOpenFaucetTeleop-v0-open-water-faucet-direct-control-1d7110f3a5b8-evaluator-0cea7fae/head_stereo_left-head_stereo_left.mp4",
+          "sha256": "4edfb95fc9a7abad5f7546a3c9cef6537a67cbf5a2b751d3dcf8d40183891718",
+          "size_bytes": 350808,
+          "source": "/mnt/workspace/users/jinhuiye/Projects/starVLA-RSI/starVLA/anonymous_code_agent/results/simple_humanoid/raw/2026-09-15-G1WholebodyOpenFaucetTeleop-v0-open-water-faucet-sim-server-v1/evaluator/G1WholebodyOpenFaucetTeleop-v0-open-water-faucet-direct-control/episodes/G1WholebodyOpenFaucetTeleop-v0_dr0_ep0/artifacts/sim_server_files/head_stereo_left.mp4",
+          "source_relative": "episodes/G1WholebodyOpenFaucetTeleop-v0_dr0_ep0/artifacts/sim_server_files/head_stereo_left.mp4"
+        },
+        {
+          "archive_reasons": [],
+          "camera": "head_stereo_left",
+          "diagnostic": false,
+          "episode_id": "G1WholebodyOpenFaucetTeleop-v0/dr0/ep0",
+          "path": "media/simple_humanoid/2026-09-15-G1WholebodyOpenFaucetTeleop-v0-open-water-faucet-G1WholebodyOpenFaucetTeleop-v0-open-water-faucet-direct-control-1d7110f3a5b8-evaluator-0cea7fae/head_stereo_left-head_stereo_right.mp4",
+          "sha256": "210a05ee3d1ed54b25da68f1a6d3844b4c816c15307f50b947dcef7a71c0e9c2",
+          "size_bytes": 352995,
+          "source": "/mnt/workspace/users/jinhuiye/Projects/starVLA-RSI/starVLA/anonymous_code_agent/results/simple_humanoid/raw/2026-09-15-G1WholebodyOpenFaucetTeleop-v0-open-water-faucet-sim-server-v1/evaluator/G1WholebodyOpenFaucetTeleop-v0-open-water-faucet-direct-control/episodes/G1WholebodyOpenFaucetTeleop-v0_dr0_ep0/artifacts/sim_server_files/head_stereo_right.mp4",
+          "source_relative": "episodes/G1WholebodyOpenFaucetTeleop-v0_dr0_ep0/artifacts/sim_server_files/head_stereo_right.mp4"
+        }
+      ]
+    }
+  ],
+  "schema_version": "starvla-rsi.result-index/v1"
+}

@@ -1,0 +1,27 @@
+{
+  "schema_version": "starvla-rsi.sample-media/v1",
+  "run_id": "2026-09-20-google_robot_pick_horizontal_coke_can-horizontal-can-picking-bench-server-native-v1-sample",
+  "path_base": "simpler_env result directory",
+  "files": [
+    {
+      "camera": "overhead_camera",
+      "path": "media/2026-09-20-google_robot_pick_horizontal_coke_can-horizontal-can-picking-bench-server-native-v1-sample/overhead_camera.mp4",
+      "bytes": 350898,
+      "sha256": "7c80756a1d6d820dfa5c12332959484ca7bbaf818e558004123bd01d81547617",
+      "frames": 104,
+      "width": 640,
+      "height": 512,
+      "fps": 3.0,
+      "decode_verified": true,
+      "strictly_increasing_pts": true,
+      "source_paths": [
+        "raw/2026-09-20-google_robot_pick_horizontal_coke_can-horizontal-can-picking-bench-server-native-v1-sample/episodes/google_robot_pick_horizontal_coke_can-000000/artifacts/sim_server_files/video.mp4",
+        "raw/2026-09-20-google_robot_pick_horizontal_coke_can-horizontal-can-picking-bench-server-native-v1-sample/client/episodes/google_robot_pick_horizontal_coke_can-000000/artifacts/sim_server_files/video.mp4"
+      ]
+    }
+  ],
+  "limitations": [
+    "This is the sole policy camera; the video is not a new observation source during evaluation.",
+    "Generated media are Git-ignored byte-checked presentation copies; original raw files remain unchanged."
+  ]
+}

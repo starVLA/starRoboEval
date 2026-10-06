@@ -1,0 +1,9 @@
+{
+  "source_root": "/absolute/owned-domino-deployment",
+  "deployment_manifest_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+  "episode_manifest": "/absolute/private/fixed-episodes.pkl",
+  "episode_manifest_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+  "native_seed": 100000,
+  "task": "click_bell",
+  "evaluation_mode": "fast"
+}

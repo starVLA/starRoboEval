@@ -1,0 +1,75 @@
+{
+  "schema_version": "starvla-rsi.sample-media/v1",
+  "run_id": "2026-09-20-G1WholebodyTabletopGraspMP-v0-tabletop-grasp-bench-server-native-v1-sample",
+  "path_base": "simple_humanoid result directory",
+  "files": [
+    {
+      "camera": "head_stereo_left",
+      "path": "media/2026-09-20-G1WholebodyTabletopGraspMP-v0-tabletop-grasp-bench-server-native-v1-sample/head_stereo_left.mp4",
+      "bytes": 141531,
+      "sha256": "1fd2439aa129b0d5e1747e0bccd3e3ac5d6704d27813a7dea2583167462336a5",
+      "frames": 22,
+      "width": 640,
+      "height": 360,
+      "fps": 50,
+      "decode_verified": true,
+      "strictly_increasing_pts": true,
+      "source_paths": [
+        "raw/2026-09-20-G1WholebodyTabletopGraspMP-v0-tabletop-grasp-bench-server-native-v1-sample/episodes/G1WholebodyTabletopGraspMP-v0_dr0_ep0/artifacts/sim_server_files/head_stereo_left.mp4",
+        "raw/2026-09-20-G1WholebodyTabletopGraspMP-v0-tabletop-grasp-bench-server-native-v1-sample/client/episodes/G1WholebodyTabletopGraspMP-v0_dr0_ep0/artifacts/sim_server_files/head_stereo_left.mp4"
+      ]
+    },
+    {
+      "camera": "head_stereo_right",
+      "path": "media/2026-09-20-G1WholebodyTabletopGraspMP-v0-tabletop-grasp-bench-server-native-v1-sample/head_stereo_right.mp4",
+      "bytes": 143115,
+      "sha256": "c9c6c2436f0d2003a849f9975a46bfa4dae56dadfb09010407ebf78607c03aaa",
+      "frames": 22,
+      "width": 640,
+      "height": 360,
+      "fps": 50,
+      "decode_verified": true,
+      "strictly_increasing_pts": true,
+      "source_paths": [
+        "raw/2026-09-20-G1WholebodyTabletopGraspMP-v0-tabletop-grasp-bench-server-native-v1-sample/episodes/G1WholebodyTabletopGraspMP-v0_dr0_ep0/artifacts/sim_server_files/head_stereo_right.mp4",
+        "raw/2026-09-20-G1WholebodyTabletopGraspMP-v0-tabletop-grasp-bench-server-native-v1-sample/client/episodes/G1WholebodyTabletopGraspMP-v0_dr0_ep0/artifacts/sim_server_files/head_stereo_right.mp4"
+      ]
+    },
+    {
+      "camera": "front_stereo_left",
+      "path": "media/2026-09-20-G1WholebodyTabletopGraspMP-v0-tabletop-grasp-bench-server-native-v1-sample/front_stereo_left.mp4",
+      "bytes": 61061,
+      "sha256": "40b7461ed21fcd30d5ab195d18cf74a74b12f71d516bc68f117316195859d54c",
+      "frames": 22,
+      "width": 640,
+      "height": 360,
+      "fps": 50,
+      "decode_verified": true,
+      "strictly_increasing_pts": true,
+      "source_paths": [
+        "raw/2026-09-20-G1WholebodyTabletopGraspMP-v0-tabletop-grasp-bench-server-native-v1-sample/episodes/G1WholebodyTabletopGraspMP-v0_dr0_ep0/artifacts/sim_server_files/front_stereo_left.mp4",
+        "raw/2026-09-20-G1WholebodyTabletopGraspMP-v0-tabletop-grasp-bench-server-native-v1-sample/client/episodes/G1WholebodyTabletopGraspMP-v0_dr0_ep0/artifacts/sim_server_files/front_stereo_left.mp4"
+      ]
+    },
+    {
+      "camera": "front_stereo_right",
+      "path": "media/2026-09-20-G1WholebodyTabletopGraspMP-v0-tabletop-grasp-bench-server-native-v1-sample/front_stereo_right.mp4",
+      "bytes": 60881,
+      "sha256": "85d0bc95a59406698c0f0bf430cc9d49619b9a5dfb0e016709f85aaae95302ac",
+      "frames": 22,
+      "width": 640,
+      "height": 360,
+      "fps": 50,
+      "decode_verified": true,
+      "strictly_increasing_pts": true,
+      "source_paths": [
+        "raw/2026-09-20-G1WholebodyTabletopGraspMP-v0-tabletop-grasp-bench-server-native-v1-sample/episodes/G1WholebodyTabletopGraspMP-v0_dr0_ep0/artifacts/sim_server_files/front_stereo_right.mp4",
+        "raw/2026-09-20-G1WholebodyTabletopGraspMP-v0-tabletop-grasp-bench-server-native-v1-sample/client/episodes/G1WholebodyTabletopGraspMP-v0_dr0_ep0/artifacts/sim_server_files/front_stereo_right.mp4"
+      ]
+    }
+  ],
+  "limitations": [
+    "Only head_stereo_left was delivered to the policy; the other three videos are evaluator evidence.",
+    "Generated media are Git-ignored release/artifact copies; original raw files are unchanged."
+  ]
+}

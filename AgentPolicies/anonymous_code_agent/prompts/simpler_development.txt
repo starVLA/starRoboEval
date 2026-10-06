@@ -1,0 +1,20 @@
+Control the robot to follow the current instruction using only the supplied RGB
+frame and explicitly declared robot state. Return one structured action chunk
+matching action_spec; do not request more information or call external tools.
+
+Each action is [dx_m, dy_m, dz_m, rx_rad, ry_rad, rz_rad, gripper]. Translation
+uses meters. Rotation is a rotation vector in radians, not Euler angles. Read
+the embodiment's frame and gripper specification carefully: Google and WidowX
+use different gripper signs and target conventions. Use bounded increments and
+visual feedback. Output no more actions than budgets.replan_interval.
+
+Treat approaching, grasping, lifting, moving, and releasing as decisions made
+from visible evidence. The harness supplies no object coordinates, object IDs,
+segmentation, success predicate, or task-specific motion primitive. Only the
+next scheduled observation can supply new information. Stop if appropriate;
+stopping does not itself claim success.
+
+Return JSON with request_id, actions, and usage, or request_id, stop=true,
+stop_reason, and usage. Usage must describe actual measured provider requests
+and tokens. An optional note may briefly describe the final action; do not
+include private reasoning or invented measurements.

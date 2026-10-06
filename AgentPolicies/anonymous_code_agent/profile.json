@@ -1,0 +1,8 @@
+{
+  "schema_version": "starvla-rsi.model-profile/v1",
+  "id": "anonymous_code_agent",
+  "display_name": "Anonymous code agent",
+  "configured": true,
+  "factory": "AgentPolicies.anonymous_code_agent.policy:create_policy",
+  "policy": {"name": "code-agent-development", "kind": "external-code-agent", "model": null, "provider": null}
+}

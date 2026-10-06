@@ -1,0 +1,6 @@
+{
+  "source_root": "/absolute/new-calvin-native",
+  "dataset_root": "/absolute/new-assets/calvin_debug_dataset",
+  "track": "debug-sequence0",
+  "evaluation_mode": "fast"
+}

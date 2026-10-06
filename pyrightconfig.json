@@ -1,21 +1,6 @@
 {
-    "exclude": [
-      // "**/__pycache__",
-      "checkpoints",
-      "results",
-      ".vscode",
-      ".git",
-      "playground",
-      "scripts/debug",
-      "eval/debug_logs",
-      "playground",
-      "cogact.egg-info",
-      "eval",
-      // "example",
-      // "deployment"
-    ],
-    "typeCheckingMode": "off",
-    "remote.downloadExtensionsLocally": true,
-    "workbench.web.useServiceWorkers": false
-  }
-  
+  "include": ["harness", "AgentPolicies/anonymous_code_agent", "AgentPolicies/policy_support"],
+  "exclude": ["results", "logs", "artifacts", "**/__pycache__"],
+  "pythonVersion": "3.10",
+  "typeCheckingMode": "basic"
+}

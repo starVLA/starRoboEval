@@ -1,0 +1,23 @@
+# Evaluation runtime only; original training requirements are not installed.
+# Core simulator pins match the user's known-good H200 LIBERO environment.
+numpy==1.24.4
+mujoco==3.2.3
+robosuite==1.4.0
+bddl==1.0.1
+gym==0.25.2
+scipy==1.15.3
+numba==0.60.0
+opencv-python==4.9.0.80
+matplotlib==3.7.5
+Pillow==10.4.0
+imageio==2.37.0
+imageio-ffmpeg==0.6.0
+PyYAML==6.0.2
+easydict==1.13
+cloudpickle==2.2.1
+future==1.0.0
+termcolor==3.3.0
+
+# Install torch==2.5.1+cpu separately from the official CPU wheel index.
+# LIBERO imports torch only to deserialize its pinned initial-state files;
+# this does not install, load or train a robot policy model.

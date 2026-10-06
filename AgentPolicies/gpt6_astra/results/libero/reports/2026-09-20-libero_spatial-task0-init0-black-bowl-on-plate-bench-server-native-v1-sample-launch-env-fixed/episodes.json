@@ -1,0 +1,30 @@
+{
+  "schema_version": "starvla-rsi.sample-episodes/v1",
+  "run_id": "2026-09-20-libero_spatial-task0-init0-black-bowl-on-plate-bench-server-native-v1-sample-launch-env-fixed",
+  "episodes": [
+    {
+      "episode_id": "libero_spatial-task00-init00",
+      "task": "libero_spatial/task-0",
+      "seed": 20260907,
+      "initial_state_index": 0,
+      "status": "completed",
+      "success": false,
+      "error": null,
+      "policy_calls": 122,
+      "action_decisions": 121,
+      "environment_steps": 425,
+      "rejected_actions": 0,
+      "termination_reason": "policy:give_up",
+      "first_success_policy_call": null,
+      "first_success_control": null,
+      "raw_result": {
+        "paths": [
+          "raw/2026-09-20-libero_spatial-task0-init0-black-bowl-on-plate-bench-server-native-v1-sample-launch-env-fixed/episodes/libero_spatial-task00-init00/result.json",
+          "raw/2026-09-20-libero_spatial-task0-init0-black-bowl-on-plate-bench-server-native-v1-sample-launch-env-fixed/client/episodes/libero_spatial-task00-init00/result.json"
+        ],
+        "bytes": 1972,
+        "sha256": "d41e28765f9a275730350ccce38b90b19f2c64972b45168ccc47820b4d0e5994"
+      }
+    }
+  ]
+}

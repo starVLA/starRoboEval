@@ -1,0 +1,8 @@
+{
+  "upstream": "/absolute/path/to/LIBERO-plus",
+  "suite": "libero_spatial",
+  "task_ids": [0],
+  "evaluation_mode": "fast",
+  "render_gpu_device_id": 0,
+  "budget_mode": "horizon"
+}

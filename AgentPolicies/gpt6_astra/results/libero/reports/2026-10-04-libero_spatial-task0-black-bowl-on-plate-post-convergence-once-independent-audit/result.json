@@ -1,0 +1,217 @@
+{
+  "schema_version": "starvla-rsi.basic-result/v1",
+  "run_id": "2026-10-04-libero_spatial-task0-black-bowl-on-plate-post-convergence-once",
+  "benchmark": {
+    "name": "libero",
+    "version": "0.2.0",
+    "protocol_version": "libero-task-coverage/libero_spatial/rgb/v1",
+    "source_revision": "8f1084e3132a39270c3a13ebe37270a43ece2a01"
+  },
+  "method": {
+    "schema_version": "starvla-rsi.method/v1",
+    "id": "gpt6-astra-direct",
+    "version": "codex-native/v1",
+    "models": [
+      {
+        "id": "primary",
+        "role": "policy",
+        "provider": "openai",
+        "model": "gpt-6-astra",
+        "version": null
+      }
+    ],
+    "configuration": {}
+  },
+  "method_origin": "legacy_policy_projection",
+  "configuration_availability": "not_supplied_in_legacy_identity_projection",
+  "identity_evidence": "participant_declaration_not_provider_attestation",
+  "protocol": {
+    "budget_mode": "horizon",
+    "primary_budget": "first_exhausted_limit",
+    "invalid_action_handling": "feedback",
+    "usage_accounting_version": "starvla-rsi.method-usage/v1",
+    "max_steps": 220,
+    "max_policy_calls": 220,
+    "replan_interval": 5
+  },
+  "contracts": {
+    "action_spec": {
+      "mode": "normalized_osc_delta_pose",
+      "frame": "world: translation component 1 means +0.05 m",
+      "rotation": "world axis-angle delta: rotation component 1 means +0.5 rad",
+      "gripper": "-1 open; +1 close; 0 hold native gripper target",
+      "names": [
+        "dx_scaled",
+        "dy_scaled",
+        "dz_scaled",
+        "rx_scaled",
+        "ry_scaled",
+        "rz_scaled",
+        "gripper"
+      ],
+      "size": 7,
+      "control_hz": 20.0,
+      "low": [
+        -1.0,
+        -1.0,
+        -1.0,
+        -1.0,
+        -1.0,
+        -1.0,
+        -1.0
+      ],
+      "high": [
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ]
+    },
+    "observation_spec": {
+      "control_feedback_schema": null,
+      "cameras": [
+        "agentview",
+        "robot0_eye_in_hand"
+      ],
+      "state_names": [],
+      "modalities": [
+        "language",
+        "rgb"
+      ],
+      "privileged": false
+    }
+  },
+  "recording": {
+    "availability": "declared_settings_only",
+    "configuration": {
+      "mode": "standard",
+      "schema_version": "starvla-rsi.recording/v1",
+      "scope": "client-retention; server-native capture configured separately",
+      "source_capture": "internal source/config snapshots retained independently of preset",
+      "model_io": true,
+      "interactions": true,
+      "tool_traces": true,
+      "videos": true,
+      "images": true
+    },
+    "publication_requirement": false
+  },
+  "outcome": {
+    "scope": "client_selected_schedule",
+    "planned": 1,
+    "unattempted": 0,
+    "attempted": 1,
+    "completed": 1,
+    "errors": 0,
+    "successes": 0,
+    "policy_calls": 54,
+    "rejected_actions": 0,
+    "action_decisions": 53,
+    "environment_steps": 215,
+    "success_rate": 0.0,
+    "attempt_success_rate": 0.0,
+    "selected_success_rate": 0.0,
+    "rate_denominators": {
+      "success_rate": "completed_cases",
+      "attempt_success_rate": "attempted_cases",
+      "selected_success_rate": "selected_cases",
+      "completion_rate": "attempted_cases"
+    },
+    "completion_rate": 1.0
+  },
+  "usage": {
+    "calls": null,
+    "input_tokens": 300854,
+    "output_tokens": 54016,
+    "cached_input_tokens": 78848,
+    "estimated_cost_usd": null,
+    "latency_s": 2400.0260263322853
+  },
+  "component_usage": {
+    "primary": {
+      "calls": null,
+      "input_tokens": null,
+      "output_tokens": null,
+      "cached_input_tokens": null,
+      "estimated_cost_usd": null,
+      "latency_s": null
+    }
+  },
+  "episodes": [
+    {
+      "id": "libero_spatial-task00-init00",
+      "task": "libero_spatial/task-0",
+      "seed": 20260907,
+      "status": "completed",
+      "success": false,
+      "termination_reason": "policy:give_up",
+      "counters": {
+        "policy_calls": 54,
+        "action_decisions": 53,
+        "environment_steps": 215,
+        "rejected_actions": 0
+      },
+      "duration_s": 2566.6287882919423,
+      "usage": {
+        "calls": null,
+        "input_tokens": 300854,
+        "output_tokens": 54016,
+        "cached_input_tokens": 78848,
+        "estimated_cost_usd": null,
+        "latency_s": 2400.0260263322853
+      },
+      "component_usage": {
+        "primary": {
+          "calls": null,
+          "input_tokens": null,
+          "output_tokens": null,
+          "cached_input_tokens": null,
+          "estimated_cost_usd": null,
+          "latency_s": null
+        }
+      },
+      "native_metrics": {
+        "native_steps": 215,
+        "native_horizon": 220,
+        "evaluation_horizon": 220,
+        "settle_steps": 10
+      },
+      "error": null,
+      "recording": {
+        "availability": "declared_settings_only",
+        "configuration": {
+          "mode": "standard",
+          "schema_version": "starvla-rsi.recording/v1",
+          "scope": "client-retention; server-native capture configured separately",
+          "source_capture": "internal source/config snapshots retained independently of preset",
+          "model_io": true,
+          "interactions": true,
+          "tool_traces": true,
+          "videos": true,
+          "images": true,
+          "agent_events_written": 0,
+          "warnings": []
+        },
+        "publication_requirement": false
+      }
+    }
+  ],
+  "selected_native_metrics": [
+    "native_steps",
+    "native_horizon",
+    "evaluation_horizon",
+    "settle_steps"
+  ],
+  "record_check": "closed_result_index_and_summary_consistent",
+  "limitations": [
+    "Interaction recording is optional and is not a publication requirement.",
+    "No event, source, provider or native execution audit is implied by this presentation.",
+    "The denominator is the client-selected schedule, not necessarily the entire benchmark.",
+    "Missing usage is unknown, not zero; model composition and usage are reported declarations.",
+    "Native metrics are included only when explicitly selected; no media or raw traces are copied.",
+    "Review public method configuration and text before publishing; key filtering is not secret detection."
+  ]
+}

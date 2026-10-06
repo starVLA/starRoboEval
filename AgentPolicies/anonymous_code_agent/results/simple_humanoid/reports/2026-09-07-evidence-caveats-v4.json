@@ -1,0 +1,62 @@
+{
+  "schema_version": "starvla-rsi.evidence-caveats/v1",
+  "campaign_sha256": "123c3879c22a95708c76d7e55edadc33beadde3c6243cd23b3fa15181fa94b79",
+  "entries": [
+    {
+      "case_index": 0,
+      "category": "native_startup_extension_errors",
+      "note": "The retained native worker log contains Lula/motion-generation startup extension errors from an undefined urdf::parseURDF symbol and headless warnings. The selected SONIC/ONNX direct path completed stabilization and 335 policy controls; bounded inspected source has no direct Lula calls, but this does not certify an error-free Isaac installation or rule out every indirect effect. Preserve native false, 68 decisions, first success null and the original completed/no-interface-error outcome. No package repair, rescore or retry. The full-ledger reporter does not apply this overlay automatically.",
+      "declared_evidence": [
+        {
+          "reference": "project_readmes/reviews/2026-09-07-simple-released12-first-closed-review.md",
+          "sha256": "fe05118ddd87260fde17d6c7eeab7057b19acd41344e8a73e6cead0e7d8da7a2"
+        }
+      ]
+    },
+    {
+      "case_index": 1,
+      "category": "native_startup_extension_errors",
+      "note": "The HandoverTeleop native log retains Lula/motion-generation startup errors from an undefined urdf::parseURDF symbol. The selected SONIC path completed warmup270 and140 policy controls, but this does not certify an error-free Isaac installation or absence of indirect effects. Preserve false,29 decisions,first success null and completed/no-interface-error status. Root verified closed artifacts without repairing packages, rescoring or retrying. This overlay is not applied automatically by the full-ledger reporter.",
+      "declared_evidence": [
+        {
+          "reference": "runs/simple-released12-coverage-20260907-001/case-001/run/episodes/G1WholebodyHandoverTeleop-v0_dr0_ep0/artifacts/native_worker.log",
+          "sha256": "b33f3a1aa8f6ded58037c6bd51785b860140baf84195b539d141f46ed95e61a4"
+        },
+        {
+          "reference": "runs/simple-released12-case001-artifact-check-20260907.qkcGxY/native_artifact_audit.json",
+          "sha256": "4d5448d4cb1a8c2552148f139757d8efaca44d6ba7b0fca9e1aa10780a13f89d"
+        }
+      ]
+    },
+    {
+      "case_index": 2,
+      "category": "native_runtime_and_scorer_caveats",
+      "note": "LocomotionPickBetweenTablesTeleop retains native false,425 controls,86 decisions,first success null and completed/no-interface-error status. Preserve Lula startup extension errors and the Isaac basket USD collision warning. Source distinguishes the scorer's MuJoCo collision path, but its collision OBJ bytes were not frozen in retained provenance; no loaded collision completeness or blanket no-impact claim. Preserve native double reward updates and asymmetric A or (B and xy_close) predicate, without rescore or native-source repair. The failed offline instruction equality assumption was corrected in fresh scratch: raw native/inventory/observation/public text matches exactly; only EpisodeSpec strips outer whitespace. Original failed scratch and results are unchanged. The full-ledger reporter does not apply this overlay automatically.",
+      "declared_evidence": [
+        {
+          "reference": "project_readmes/reviews/2026-09-07-simple-locomotion-closed-review.md",
+          "sha256": "167cd1f80be1c6e082a623b6684b68477928fda732d605abe4e5c77c1f10a43e"
+        },
+        {
+          "reference": "runs/simple-locomotion-closed-review-20260907.pmYSsS/native_artifact_audit.json",
+          "sha256": "08e8ccc18dd257e8693dd4c029f62fa9a04eadb9e169bf8ff533f17f4a533236"
+        }
+      ]
+    },
+    {
+      "case_index": 3,
+      "category": "native_runtime_and_scorer_caveats",
+      "note": "OpenOvenTeleop retains native false,280 controls,57 decisions,first success null and completed/no-interface-error status. The native log retains Lula/motion-generation startup errors including undefined urdf::parseURDF; no error-free installation or absence of indirect effects is certified. Warmup271 is separate. Accumulated returned reward0.75 is not a success rate or the input to the native0.5 threshold: preserve the upstream stateful scorer and its two reward updates per control, with all280 logged native flags false. The generic artifact audit verifies retained RGB/qpos31/ticks and two281-frame50Hz videos; private-right PNG parity, full native source/reset/assets and warning impact are outside its scope. This is not a fresh independent task review. No repair, rescore or retry. Full-ledger reporting does not apply this overlay automatically.",
+      "declared_evidence": [
+        {
+          "reference": "runs/simple-released12-coverage-20260907-001/case-003/run/episodes/G1WholebodyOpenOvenTeleop-v0_dr0_ep0/artifacts/native_worker.log",
+          "sha256": "8116d3e9305e347eabc95c86e0674cb73a4a73f6ddc171b199a24c525f496d9d"
+        },
+        {
+          "reference": "runs/simple-released12-coverage-20260907-001/case-003/mailbox_artifact_audit.json",
+          "sha256": "a7763dcc5af4f16f16b14d129d3b0c12cc85b4b047c15a61cdf736f28e871285"
+        }
+      ]
+    }
+  ]
+}
