@@ -60,7 +60,7 @@ described by the selected benchmark before attempting a native task.
 - [Policy interaction protocol](benchmarks/simBenchmarks/POLICY_PROTOCOL.md)
 - [Simulator adapter interface](benchmarks/simBenchmarks/INTERFACE.md)
 - [Run SIMs as independent servers](benchmarks/simBenchmarks/SERVER_PROTOCOL.md)
-- [Implement a policy](AgentPolicies/README.md)
+- [Build your own agent method](AgentPolicies/README.md#add-your-own-method)
 - [Real-robot integration status](benchmarks/realRobots/README.md)
 
 ## Repository structure

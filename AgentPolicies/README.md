@@ -8,6 +8,37 @@ method, which may compose multiple general-purpose models with declared roles.
 It need not correspond to one model name or inherit a particular Python class.
 See [protocol-first method integration](../docs/agent-methods.md).
 
+## Add your own method
+
+Create `AgentPolicies/<your_method>/`, for example `AgentPolicies/my_agent/`,
+to build your own agent method and its Bench Server client. Keep its code,
+configuration and usage instructions together in that directory.
+
+A suggested Python layout is shown below; use only the files and folders your
+method needs:
+
+```text
+AgentPolicies/my_agent/
+├── README.md       # Dependencies, configuration and how to run
+├── run.py          # Trusted entrypoint connecting to a Benchmark service
+├── policy.py       # Your observation-to-action decision logic
+├── configs/        # Model settings, prompts and method configuration
+├── tools/          # Optional method helpers
+└── results/        # Generated local outputs; Git-ignored
+```
+
+Document how to install dependencies, configure the method and run it against a
+selected benchmark. Declare the models, prompts, tools and memory your method
+uses. Connect through the [Bench Server protocol](../benchmarks/simBenchmarks/SERVER_PROTOCOL.md),
+using the service's declared observations, actions and execution feedback.
+Keep service credentials and administrative operations in the trusted driver.
+
+You can own the decision loop and use any language or framework; Python `Policy`
+and profile-registry integration are optional. The existing
+[`gpt6_astra` client](gpt6_astra/README.md) is one reference implementation.
+
+## Existing clients
+
 - `anonymous_code_agent/`: runnable experimental mailbox policy; actual provider
   and model identity remain unknown. Its mailbox implementation lives here.
 - [`gpt6_astra/`](gpt6_astra/README.md): one Bench Server validation client,
