@@ -85,7 +85,7 @@ benchmarks/
 AgentPolicies/
   <method-profile>/                    policy, model composition, prompts and dependencies
     run.py                             model-owned trusted evaluation entrypoint, where implemented
-    results/<benchmark>/               reports, indices and ignored raw runs/media
+    results/<benchmark>/               local evaluation outputs; Git-ignored
   gpt6_astra/tools/                    reusable runner and optional policy stop rules
 docs/                                 public design and usage guides
   bench-server-protocol/
@@ -201,9 +201,10 @@ required framework or language.
 See [AGENTS.md](AGENTS.md) for repository safety and contribution boundaries.
 
 Internal working notes under `project_readmes/` are local and Git-ignored.
-Public usage must not depend on them. Raw runs, generated media, credentials and
-local environment artifacts are also excluded from Git; lightweight model
-reports and provenance indices may be tracked.
+Public usage must not depend on them. All method evaluation outputs, including
+reports and indices, are local and Git-ignored, as are credentials and local
+environment artifacts. Publish selected result summaries in documentation or
+the website.
 
 The grouped [.gitignore](.gitignore) excludes generated artifacts and local
 check/test files as well as the runtime data described above.

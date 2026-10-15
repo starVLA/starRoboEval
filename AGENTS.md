@@ -101,6 +101,9 @@ profile. New reports, coverage lists and videos use the model's
 `results/<benchmark>/` namespace. Historical anonymous trials must not be renamed
 as verified named-model scores. Preserve frozen original campaigns and result
 bytes; relocation indexes and byte-checked presentation copies are allowed.
+Keep all method `results/` directories local and Git-ignored, including reports,
+indices and result READMEs. Publish selected summaries in documentation or the
+website without changing the underlying records.
 
 User-facing rollout export directory names must include the canonical task ID
 and a short English task description, in addition to date/round/case identifiers.

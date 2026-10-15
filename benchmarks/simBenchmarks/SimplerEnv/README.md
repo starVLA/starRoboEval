@@ -185,6 +185,6 @@ requires a separately declared evaluation configuration, never rewritten results
 Use [the review checklist](../../../benchkit/audits/REVIEW_GUIDE.md) for independent
 closed-run review. Shared video export is available as
 `python -m benchkit.reports.export_videos --help`; it copies only closed evidence.
-Historical anonymous results remain under
-[the model result namespace](../../../AgentPolicies/anonymous_code_agent/results/simpler_env/README.md),
-not in this benchmark's source directory.
+Historical anonymous results remain in the local, Git-ignored
+`AgentPolicies/anonymous_code_agent/results/simpler_env/` directory and are not
+included in source checkouts.

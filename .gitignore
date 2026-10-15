@@ -1,4 +1,4 @@
-# Runtime source, usage guides, protocol data and published reports stay tracked.
+# Runtime source, usage guides and protocol data stay tracked.
 # Local check/test files and development scratch files are excluded below.
 # Inspect actual matches with: git status --short --ignored
 # Explain one path with:      git check-ignore -v -- path/to/generated/file
@@ -42,21 +42,9 @@ htmlcov/
 # Generated opaque policy endpoints, not unrelated public assets.
 /public/mbx-*/
 
-# 3. Method-owned evaluation outputs
-# Keep results/**/{README.md,index.json,reports/,report/,interaction/} publishable.
-# Ignore raw runs, media, transcripts and frozen runtime copies at any depth.
-# No blanket results/, *.json, *.jsonl or *.png rule: these can be public data.
-/AgentPolicies/*/results/**/raw/
-/AgentPolicies/*/results/**/campaigns/
-/AgentPolicies/*/results/**/media/
-/AgentPolicies/*/results/**/rollouts/*/
-/AgentPolicies/*/results/**/frames/
-/AgentPolicies/*/results/**/policy_artifacts/
-/AgentPolicies/*/results/**/sim_server_files/
-/AgentPolicies/*/results/**/harness_source/
-/AgentPolicies/*/results/**/model_source/
-/AgentPolicies/*/results/**/events.jsonl
-/AgentPolicies/*/results/**/agent_interactions.jsonl
+# 3. Method-owned evaluation outputs stay local, including reports and indices.
+# Publish selected summaries in project documentation or the website.
+/AgentPolicies/*/results/
 
 # 4. Runtime directories and logs, wherever a local command creates them
 runs/

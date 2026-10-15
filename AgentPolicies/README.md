@@ -43,8 +43,9 @@ Shared fixed-action diagnostic fixtures belong to
 Add future reusable provider transports on the policy side when implemented;
 there is no separate active `providers/` wrapper in the current layout.
 
-Keep compact reports and optional provenance indices tracked; ignore raw runs,
-generated media and mailbox traffic. Interaction recording is optional, default
+Keep the entire `results/` tree local and Git-ignored, including reports,
+indices and generated media. Publish selected summaries in project documentation
+or the website. Interaction recording is optional, default
 on, and not a publication gate; [recording options](../docs/recording.md) preserve
 essential outcomes when detailed logs are off. Never rewrite historical outcomes or relabel anonymous trials as
 provider-verified named-model scores. Explicit owner-reported attribution notes
@@ -58,8 +59,8 @@ The repository-root Python package and result directory were renamed from
 The repository/distribution name `starVLA-RSI` and upstream project references
 are unchanged.
 
-All existing result trees move with this directory, including ignored raw runs
-and videos. Their original reports, hashes, source files and identities are not
+Existing result trees remain available locally and are excluded from source
+checkouts. Their original reports, hashes, source files and identities are not
 rewritten. For a historical repository-root path, replace only the leading
 `starVLA/` with `AgentPolicies/` to locate the same artifact today. Do not apply
 that substitution inside a frozen package: its captured `starVLA/` modules and

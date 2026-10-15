@@ -28,9 +28,9 @@ beside it in [phase2_task_inventory.json](bench_server/protocol/phase2_task_inve
 It records task identities and evaluator references, not an execution schedule
 or capability results. Historical first-two and first-five selection manifests
 remain recoverable from Git history.
-Historical anonymous attempt evidence lives in its existing
-[model result record](../../../AgentPolicies/anonymous_code_agent/results/libero/TASK_CHECKLIST.md);
-its model/provider identity remains unverified.
+Historical anonymous attempt evidence remains in the local, Git-ignored
+`AgentPolicies/anonymous_code_agent/results/libero/` directory; its model/provider
+identity remains unverified.
 
 This structure does not convert LIBERO into RoboDojo's EEF16 protocol. LIBERO
 still accepts normalized seven-dimensional OSC delta actions, with its own RGB

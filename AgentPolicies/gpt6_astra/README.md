@@ -26,7 +26,7 @@ gpt6_astra/
 │   ├── json_io.py                 # Structured data handling
 │   ├── codex_app_server.py        # App-server communication
 │   └── codex_runtime.py           # CLI installation, version and login checks
-├── results/                       # Results organized by Benchmark
+├── results/                       # Local results by Benchmark; Git-ignored
 ├── README.md                      # This guide
 └── AGENTS.md                      # Development boundary
 ```
@@ -114,6 +114,6 @@ description in run names. Calls, recovery attempts, executed action decisions an
 controls are recorded separately; unknown usage or cost stays unknown. Interaction
 and media recording default to enabled and may be disabled without changing inputs,
 execution or scoring. Essential results, denominators and errors remain available;
-failed runs are not overwritten. See [recording options](../../docs/recording.md) and
-the [historical results index](results/README.md). Historical scores retain their
+failed runs are not overwritten. The entire `results/` tree is local and Git-ignored.
+See [recording options](../../docs/recording.md). Historical scores retain their
 original method identities; offline checks prove neither native success nor provider identity.

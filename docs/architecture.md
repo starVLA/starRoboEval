@@ -387,9 +387,10 @@ helpers and `configs/` declarations, with one method configuration and prompt. R
 frozen packages, without old code entrypoints. Old inventories remain version-specific, not interchangeable
 path aliases. See the [namespace and artifact relocation note](../AgentPolicies/README.md#namespace-and-preserved-results).
 
-Model results use `AgentPolicies/<profile>/results/<benchmark>/`: lightweight reports
-and indices can be tracked; raw campaigns, mailbox traffic and generated media
-stay Git-ignored. Historical anonymous trials cannot be relabeled as a named
+Model results use `AgentPolicies/<profile>/results/<benchmark>/`; the entire
+result tree stays local and Git-ignored, including reports, indices and media.
+Selected summaries can be published in documentation or the website.
+Historical anonymous trials cannot be relabeled as a named
 model's scores.
 
 ## Current limits

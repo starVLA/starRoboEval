@@ -57,8 +57,9 @@ Model decisions and results stay in `AgentPolicies/<profile>/`.
 The catalog bytes, task/reset identities and protocol IDs are preserved when
 changing this directory layout.
 The [public interface guide](bench_server/protocol/POLICY_GUIDE.md) is reusable
-benchmark context. Historical reports, checklists and evidence caveats live in
-the [anonymous code-agent results](../../../AgentPolicies/anonymous_code_agent/results/simple_humanoid/README.md).
+benchmark context. Historical reports, checklists and evidence caveats remain in
+the local, Git-ignored `AgentPolicies/anonymous_code_agent/results/simple_humanoid/`
+directory.
 The canonical adapter lives in `bench_server/adapter.py`; task selection lives
 beside the protocol in `bench_server/protocol/plan.py`.
 
