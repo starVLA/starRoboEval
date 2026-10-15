@@ -31,8 +31,7 @@ SimplerEnv/
 ├── bench_server/
 │   ├── adapter.py             # native bridge, observation allowlist and scoring
 │   └── protocol/              # task catalog, selection plan and interface reference
-├── environment/               # upstream pins, installation and rendering checks
-└── checks/                    # dependency-light integration/boundary checks
+└── environment/               # upstream pins, installation and rendering checks
 ```
 
 `bench_server/protocol/` is benchmark definition data, not simulator assets or
@@ -146,7 +145,7 @@ commands do not establish graphics readiness.
 ## Connect an agent
 
 After service readiness, launch a compatible model-owned driver. For the current
-Codex native-vector method, follow [NATIVE_CONTROL.md](../../../AgentPolicies/gpt6_astra/docs/NATIVE_CONTROL.md).
+Codex native-vector method, follow [client README](../../../AgentPolicies/gpt6_astra/README.md).
 Model configuration, prompts, memory and decision loops belong to that profile,
 not this benchmark. The service exposes only its declared observation/action
 contract, not a task-solving RPC or the simulator handle.

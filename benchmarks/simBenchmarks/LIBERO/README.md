@@ -14,8 +14,7 @@ LIBERO/
 ├── bench_server/
 │   ├── adapter.py                 # public contract, private native session/scoring
 │   └── protocol/                  # task catalog, selection plan and source inventory
-├── environment/                   # installation pins and readiness tools
-└── checks/                        # native-free regression checks and historical fixtures
+└── environment/                   # installation pins and readiness tools
 ```
 
 The catalog is benchmark protocol data, not an environment deployment file or
@@ -28,7 +27,7 @@ its schedule at launch. The independent pinned native source inventory lives
 beside it in [phase2_task_inventory.json](bench_server/protocol/phase2_task_inventory.json).
 It records task identities and evaluator references, not an execution schedule
 or capability results. Historical first-two and first-five selection manifests
-are preserved unchanged under `checks/fixtures/` for compatibility assertions.
+remain recoverable from Git history.
 Historical anonymous attempt evidence lives in its existing
 [model result record](../../../AgentPolicies/anonymous_code_agent/results/libero/TASK_CHECKLIST.md);
 its model/provider identity remains unverified.
@@ -70,7 +69,6 @@ This diagnostic performs reset, ten settling controls, rendering and one neutral
 ```sh
 python benchmarks/simBenchmarks/LIBERO/environment/verify_environment.py \
   --render-gpu-device-id 0 --output-dir /path/to/new-libero-diagnostic
-python -B -m unittest discover -s benchmarks/simBenchmarks/LIBERO/checks -v
 ```
 
 ## Run as an independent SIM server

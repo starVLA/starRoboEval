@@ -11,8 +11,7 @@ Robocasa_365/
 │       ├── plan.py                 # predeclared fast selection
 │       ├── robocasa365_target50.json # supported target tasks and reference horizons
 │       └── task_inventory.json      # upstream task-count evidence
-├── environment/                    # native readiness, runtime pins and helpers
-└── checks/                         # dependency-light conformance regressions
+└── environment/                    # native readiness, runtime pins and helpers
 ```
 
 Protocol catalogs are benchmark definitions, not datasets or deployment settings.
@@ -72,8 +71,6 @@ Select an available GPU and a new output directory:
 python -B -m benchmarks.simBenchmarks.Robocasa_365.environment.diagnose \
   --output /path/to/new-robocasa-diagnostic \
   --task OpenDrawer --seed 20260907 --gpu 0 --render-track egl-owner-material-clamp-v1
-
-python -B -m unittest discover -s benchmarks/simBenchmarks/Robocasa_365/checks -v
 ```
 
 The native diagnostic performs reset, one neutral action, rendering and artifact recording with zero policy decisions. Check all three cameras and complete PNG/video decoding. A separate fixed, nonadaptive controller-direction diagnostic is available:

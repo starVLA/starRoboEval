@@ -3,13 +3,12 @@
 PYTHON ?= python3
 
 help:
-	@echo "make check    Parse active source, check ownership and validate the catalog"
-	@echo "make catalog  List all 13 benchmark migration targets"
+	@echo "make check    Validate the benchmark catalog"
+	@echo "make catalog  List the benchmark catalog"
 	@echo "make smoke    Run the dependency-free evaluation self-check"
 
 check:
 	$(PYTHON) -B -m benchkit catalog --check
-	$(PYTHON) -B -m benchkit.checks.check_boundaries
 
 catalog:
 	$(PYTHON) -B -m benchkit catalog

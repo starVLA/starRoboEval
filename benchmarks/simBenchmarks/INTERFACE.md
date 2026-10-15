@@ -30,7 +30,7 @@ with those conditions instead of receiving an invisible task-solving wrapper.
 | Benchmark selection definition (`bench_server/protocol/task_catalog.json` in RoboDojo; `evaluation/plan.py` where implemented) | Selection plan | Declare the task/variant/state schedule and required runtime resources. Selection is independent of model identity and observed success. |
 | `<benchmark>/EVALUATION_PROTOCOL.md` | Native track specification | Explain sensors, actions, horizons, task variants, native scoring, sampling and verified limitations. |
 | `AgentPolicies/<profile>/` | `Policy` | Check compatibility, initialize episode memory, produce an action chunk or stop from each scheduled observation, and clear episode state. |
-| `AgentPolicies/<profile>/` and `AgentPolicies/policy_support/` | Trusted driver and reusable decision loop | Connect to the service, execute bounded action prefixes and count calls/controls. |
+| `AgentPolicies/<profile>/` and `AgentPolicies/gpt6_astra/tools/runner.py` | Trusted driver and reusable decision loop | Connect to the service, execute bounded action prefixes and count calls/controls. |
 | `benchkit/` | Record, source and report tools | Supply shared formats, frozen-source capture, audits and reports; retained campaign helpers support older workflows. |
 
 RoboDojo's `bench_server/` groups its service adaptation, private worker client

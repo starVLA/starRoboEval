@@ -24,7 +24,8 @@ from benchkit.artifacts import atomic_write_json
 from benchkit.source_snapshot import _identity, _open_source_file, inventory_digest
 
 PROFILE_SCHEMA = "starvla-rsi.model-profile/v1"
-SOURCE_SCHEMA = "starvla-rsi.model-source/v6"
+SOURCE_SCHEMA = "starvla-rsi.model-source/v7"
+GENERIC_SOURCE_SCHEMA = "starvla-rsi.model-source/v6"
 TOOLS_SOURCE_SCHEMA = "starvla-rsi.model-source/v5"
 GROUPED_SOURCE_SCHEMA = "starvla-rsi.model-source/v4"
 FLAT_AGENT_SOURCE_SCHEMA = "starvla-rsi.model-source/v3"
@@ -32,16 +33,23 @@ PREVIOUS_SOURCE_SCHEMA = "starvla-rsi.model-source/v2"
 LEGACY_SOURCE_SCHEMA = "starvla-rsi.model-source/v1"
 MAX_FILE_BYTES = 256 * 1024
 MAX_TOTAL_BYTES = 1024 * 1024
-_FACTORIES = {
+_V5_V6_FACTORIES = {
     "anonymous_code_agent": "AgentPolicies.anonymous_code_agent.policy:create_policy",
     "gpt6_astra": "AgentPolicies.gpt6_astra.tools.factory:create_policy",
     "opus": "AgentPolicies.opus.policy:create_policy",
 }
+_FACTORIES = {**_V5_V6_FACTORIES, "gpt6_astra": "AgentPolicies.gpt6_astra.codex_native:create_policy"}
 _GROUPED_FACTORIES = {**_FACTORIES, "gpt6_astra": "AgentPolicies.gpt6_astra.methods.policy:create_policy"}
 _FLAT_FACTORIES = {**_FACTORIES, "gpt6_astra": "AgentPolicies.gpt6_astra.policy:create_policy"}
 _HISTORICAL_FACTORIES = {profile: factory.replace("AgentPolicies.", "starVLA.", 1)
                          for profile, factory in _FLAT_FACTORIES.items()}
 _COMMON_FILES = ("AgentPolicies/__init__.py", "AgentPolicies/policy_support/__init__.py", "AgentPolicies/policy_support/stop_rules.py")
+# v1-v6 retain the historical common paths above. Current profiles share only
+# these side-effect-free package markers and the relocated stopping rules.
+_CURRENT_COMMON_FILES = (
+    "AgentPolicies/__init__.py", "AgentPolicies/gpt6_astra/__init__.py",
+    "AgentPolicies/gpt6_astra/tools/__init__.py", "AgentPolicies/gpt6_astra/tools/stop_rules.py",
+)
 # v5 is a complete reviewed inventory, not an extension of retired methods.
 # Historical v1-v4 inventories below remain immutable and independently usable.
 _GPT_V5_FILES = (
@@ -68,6 +76,12 @@ _GPT_V6_FILES = (
     "tools/native_io.py", "tools/json_io.py", "tools/persistent_runtime.py",
     "tools/runtime_preflight.py", "tools/public_observation.py",
 )
+_GPT_V7_FILES = (
+    "__init__.py", "configs/profile.json", "configs/configuration.schema.json", "configs/dependencies.json",
+    "codex_native.py", "configs/codex_native_config.json", "configs/codex_native_prompt.txt",
+    "tools/__init__.py", "tools/persistent_runtime.py", "tools/public_observation.py", "tools/json_io.py",
+    "tools/codex_app_server.py", "tools/codex_runtime.py",
+)
 _LEGACY_COMMON_FILES = ("starVLA/__init__.py", "starVLA/model_profiles.py", "starVLA/providers/__init__.py")
 _CONFIGURATION_SCHEMA = "starvla-rsi.configuration-schema/v1"
 _FACTORY_PARAMETERS = frozenset({"prompt", "timeout_s", "max_chunk_length", "min_action_decisions_before_give_up",
@@ -87,7 +101,7 @@ def profile_ids() -> tuple[str, ...]:
 
 def _source_namespace(source_schema: str) -> str:
     """Bind one exact package root to each immutable source schema."""
-    if source_schema in (SOURCE_SCHEMA, TOOLS_SOURCE_SCHEMA, GROUPED_SOURCE_SCHEMA, FLAT_AGENT_SOURCE_SCHEMA):
+    if source_schema in (SOURCE_SCHEMA, GENERIC_SOURCE_SCHEMA, TOOLS_SOURCE_SCHEMA, GROUPED_SOURCE_SCHEMA, FLAT_AGENT_SOURCE_SCHEMA):
         return "AgentPolicies"
     if source_schema in (LEGACY_SOURCE_SCHEMA, PREVIOUS_SOURCE_SCHEMA):
         return "starVLA"
@@ -96,10 +110,16 @@ def _source_namespace(source_schema: str) -> str:
 
 def _profile_relative(profile_id: str, name: str, source_schema: str) -> str:
     """Each version owns its exact paths, including the v5 default prompt."""
-    if source_schema in (SOURCE_SCHEMA, TOOLS_SOURCE_SCHEMA) and profile_id == "gpt6_astra":
+    if source_schema == SOURCE_SCHEMA and profile_id == "gpt6_astra":
+        name = {"config.json": "codex_native_config.json", "prompt.txt": "codex_native_prompt.txt"}.get(name, name)
+        if name in {"profile.json", "configuration.schema.json", "dependencies.json",
+                    "codex_native_config.json", "codex_native_prompt.txt"}:
+            return "configs/" + name
+        return name
+    if source_schema in (GENERIC_SOURCE_SCHEMA, TOOLS_SOURCE_SCHEMA) and profile_id == "gpt6_astra":
         if name == "prompt.txt":
             return "prompts/codex_native_prompt.txt"
-        names = _GPT_V6_FILES if source_schema == SOURCE_SCHEMA else _GPT_V5_FILES
+        names = _GPT_V6_FILES if source_schema == GENERIC_SOURCE_SCHEMA else _GPT_V5_FILES
         return next((path for path in names if path.rsplit("/", 1)[-1] == name), name)
     if source_schema != GROUPED_SOURCE_SCHEMA or profile_id != "gpt6_astra":
         return name
@@ -127,12 +147,16 @@ def _allowed_files(profile_id: str, *, legacy: bool = False, source_schema: str 
     if legacy:
         source_schema = LEGACY_SOURCE_SCHEMA
     namespace = _source_namespace(source_schema)
-    if source_schema in (SOURCE_SCHEMA, TOOLS_SOURCE_SCHEMA) and profile_id == "gpt6_astra":
-        names = _GPT_V6_FILES if source_schema == SOURCE_SCHEMA else _GPT_V5_FILES
+    if source_schema == SOURCE_SCHEMA and profile_id == "gpt6_astra":
+        return tuple(sorted(set(_CURRENT_COMMON_FILES + tuple("AgentPolicies/gpt6_astra/" + name
+                                                              for name in _GPT_V7_FILES))))
+    if source_schema in (GENERIC_SOURCE_SCHEMA, TOOLS_SOURCE_SCHEMA) and profile_id == "gpt6_astra":
+        names = _GPT_V6_FILES if source_schema == GENERIC_SOURCE_SCHEMA else _GPT_V5_FILES
         return tuple(sorted(_COMMON_FILES + tuple("AgentPolicies/gpt6_astra/" + name
                                                  for name in names)))
     legacy = source_schema == LEGACY_SOURCE_SCHEMA
-    common = (tuple(path.replace("AgentPolicies/", namespace + "/", 1) for path in _COMMON_FILES)
+    common = (_CURRENT_COMMON_FILES if source_schema == SOURCE_SCHEMA else
+              tuple(path.replace("AgentPolicies/", namespace + "/", 1) for path in _COMMON_FILES)
               if not legacy else _LEGACY_COMMON_FILES)
     files = common + tuple(f"{namespace}/{profile_id}/{name}" for name in (
         "__init__.py", "profile.json", "config.json", "prompt.txt", "dependencies.json", "policy.py"))
@@ -301,18 +325,21 @@ def _profile_data(profile_id: str, payloads: dict[str, bytes], *, require_config
         source_schema = LEGACY_SOURCE_SCHEMA
     namespace = _source_namespace(source_schema)
     legacy = source_schema == LEGACY_SOURCE_SCHEMA
-    factories = (_FACTORIES if source_schema in (SOURCE_SCHEMA, TOOLS_SOURCE_SCHEMA) else
+    factories = (_FACTORIES if source_schema == SOURCE_SCHEMA else
+                 _V5_V6_FACTORIES if source_schema in (GENERIC_SOURCE_SCHEMA, TOOLS_SOURCE_SCHEMA) else
                  _GROUPED_FACTORIES if source_schema == GROUPED_SOURCE_SCHEMA else
                  _FLAT_FACTORIES if namespace == "AgentPolicies" else _HISTORICAL_FACTORIES)
     prefix = f"{namespace}/{profile_id}/"
-    profile = _json(payloads[prefix + "profile.json"])
+    profile_path = prefix + _profile_relative(profile_id, "profile.json", source_schema)
+    dependencies_path = prefix + _profile_relative(profile_id, "dependencies.json", source_schema)
+    profile = _json(payloads[profile_path])
     config_path = prefix + _profile_relative(profile_id, "config.json", source_schema)
     prompt_path = prefix + _profile_relative(profile_id, "prompt.txt", source_schema)
     config = _json(payloads[config_path])
-    dependencies = _json(payloads[prefix + "dependencies.json"])
+    dependencies = _json(payloads[dependencies_path])
     if not isinstance(dependencies, dict):
         raise ValueError("model dependencies must be an object")
-    schema_path = prefix + "configuration.schema.json"
+    schema_path = prefix + _profile_relative(profile_id, "configuration.schema.json", source_schema)
     configuration = (_json(payloads[schema_path]) if schema_path in payloads else None)
     execution = {"execution": "mailbox", "factory_parameters": tuple(sorted(_FACTORY_PARAMETERS | {"directory"}))}
     if configuration is not None:
@@ -327,13 +354,20 @@ def _profile_data(profile_id: str, payloads: dict[str, bytes], *, require_config
     if (not isinstance(config, dict) or config.get("schema_version") != "starvla-rsi.model-config/v1"
             or config.get("profile_id") != profile_id):
         raise ValueError("invalid model configuration identity")
-    direct_method = "codex-direct/v3" if source_schema == SOURCE_SCHEMA else "codex-direct/v2"
-    if source_schema in (SOURCE_SCHEMA, TOOLS_SOURCE_SCHEMA) and profile_id == "gpt6_astra" and (
+    if source_schema == SOURCE_SCHEMA and profile_id == "gpt6_astra" and (
+            config.get("control_method") != "codex-native/v2"
+            or config.get("transport") != "codex-app-server/v1"
+            or config.get("min_action_decisions_before_give_up") != 0
+            or any(key in config for key in ("codex_direct_extension", "codex_direct_context_extension",
+                                            "codex_native_extension", "codex_planned_extension", "enforce_action_guard"))):
+        raise ValueError("v7 registry requires the single persistent Codex native v2 method")
+    direct_method = "codex-direct/v3" if source_schema == GENERIC_SOURCE_SCHEMA else "codex-direct/v2"
+    if source_schema in (GENERIC_SOURCE_SCHEMA, TOOLS_SOURCE_SCHEMA) and profile_id == "gpt6_astra" and (
             config.get("control_method") not in ("codex-native/v1", direct_method, "codex-planned/v1")
             or any(key in config for key in ("codex_direct_extension", "codex_direct_context_extension",
                                              "codex_native_extension", "codex_planned_extension"))):
         raise ValueError("versioned registry requires an active method without historical extension markers")
-    if source_schema == SOURCE_SCHEMA and profile_id == "gpt6_astra" and "enforce_action_guard" in config:
+    if source_schema == GENERIC_SOURCE_SCHEMA and profile_id == "gpt6_astra" and "enforce_action_guard" in config:
         raise ValueError("v6 registry cannot declare the retired Dojo action guard")
     if dependencies != {
         "schema_version": "starvla-rsi.model-dependencies/v1",
@@ -358,7 +392,7 @@ def _profile_data(profile_id: str, payloads: dict[str, bytes], *, require_config
                 or not 0 < config["max_response_bytes"] <= 1048576):
             raise ValueError("invalid anonymous mailbox profile configuration")
         if not legacy:
-            from AgentPolicies.policy_support.stop_rules import validate_minimum
+            from AgentPolicies.gpt6_astra.tools.stop_rules import validate_minimum
             validate_minimum(config.get("min_action_decisions_before_give_up"))
             if config.get("policy_stop_rule_version") != "minimum-action-decisions/v2":
                 raise ValueError("invalid model policy stopping-rule version")
@@ -369,7 +403,7 @@ def _profile_data(profile_id: str, payloads: dict[str, bytes], *, require_config
                 or any(not isinstance(policy[key], str) or not policy[key].strip() for key in policy)
                 or any(policy[key] != config.get(key) for key in ("provider", "model"))):
             raise ValueError("invalid configured direct policy identity")
-        from AgentPolicies.policy_support.stop_rules import validate_minimum
+        from AgentPolicies.gpt6_astra.tools.stop_rules import validate_minimum
         validate_minimum(config.get("min_action_decisions_before_give_up"))
         if config.get("policy_stop_rule_version") != "minimum-action-decisions/v2":
             raise ValueError("invalid model policy stopping-rule version")
@@ -387,10 +421,10 @@ def _profile_data(profile_id: str, payloads: dict[str, bytes], *, require_config
     rows = [{"path": path, "size_bytes": len(payload), "sha256": _sha(payload)}
             for path, payload in sorted(payloads.items())]
     identity = {"schema_version": PROFILE_SCHEMA, "id": profile_id, "factory": profile["factory"],
-                "profile_sha256": _sha(payloads[prefix + "profile.json"]),
+                "profile_sha256": _sha(payloads[profile_path]),
                 "config_sha256": _sha(payloads[config_path]),
                 "prompt_sha256": _sha(payloads[prompt_path]),
-                "dependencies_sha256": _sha(payloads[prefix + "dependencies.json"]),
+                "dependencies_sha256": _sha(payloads[dependencies_path]),
                 "source_inventory_sha256": inventory_digest(rows)}
     return {"profile": profile, "config": config, "prompt": prompt, "identity": identity,
             "files": rows, "payloads": payloads, "configuration": configuration, **execution}
@@ -574,7 +608,8 @@ def _inventory(root: Path, *, skip_evaluation: bool = False) -> set[str]:
     return files
 
 
-_AGENT_DRIVER_FILES = frozenset({"AgentPolicies/policy_support/runner.py", "AgentPolicies/gpt6_astra/run.py"})
+_AGENT_DRIVER_FILES = frozenset({"AgentPolicies/gpt6_astra/tools/runner.py", "AgentPolicies/gpt6_astra/run.py"})
+_HISTORICAL_AGENT_DRIVER_FILES = frozenset({"AgentPolicies/policy_support/runner.py", "AgentPolicies/gpt6_astra/run.py"})
 
 
 def _captured_driver_paths(output: Path, reference: dict | None, *, source_schema: str) -> set[str]:
@@ -602,7 +637,8 @@ def _captured_driver_paths(output: Path, reference: dict | None, *, source_schem
         raise ValueError("driver source inventory changed")
     namespace = _source_namespace(source_schema)
     other_namespace = "starVLA" if namespace == "AgentPolicies" else "AgentPolicies"
-    allowed = {path.replace("AgentPolicies/", namespace + "/", 1) for path in _AGENT_DRIVER_FILES}
+    driver_files = _AGENT_DRIVER_FILES if source_schema == SOURCE_SCHEMA else _HISTORICAL_AGENT_DRIVER_FILES
+    allowed = {path.replace("AgentPolicies/", namespace + "/", 1) for path in driver_files}
     selected = set()
     for row in rows:
         relative = row["path"]
@@ -640,7 +676,7 @@ def _verify_bundle(output: Path, identity: dict, snapshot: dict, *, freeze: bool
         raise ValueError("model source index must be an object")
     extensions = {"method_extensions": True, "feedback_extensions": True, "persistent_extensions": True,
                   "context_extensions": True}
-    if profile_id == "gpt6_astra" and not legacy and schema not in (SOURCE_SCHEMA, TOOLS_SOURCE_SCHEMA):
+    if profile_id == "gpt6_astra" and not legacy and schema not in (SOURCE_SCHEMA, GENERIC_SOURCE_SCHEMA, TOOLS_SOURCE_SCHEMA):
         # Read as bounded data only; the authenticated index, file hashes and
         # complete inventory are checked below. Original Responses-only v2
         # bundles predate the selectable method and keep their exact allowlist.
@@ -769,21 +805,25 @@ def verify_policy_source(run_dir: Path, policy_descriptor: dict, snapshot: dict)
             or _sha(prompt) != policy_descriptor.get("parameters", {}).get("prompt_sha256")):
         raise ValueError("run policy identity or effective prompt differs from model source bundle")
     if snapshot.get("schema_version") in (PREVIOUS_SOURCE_SCHEMA, FLAT_AGENT_SOURCE_SCHEMA,
-                                          GROUPED_SOURCE_SCHEMA, TOOLS_SOURCE_SCHEMA, SOURCE_SCHEMA):
+                                          GROUPED_SOURCE_SCHEMA, TOOLS_SOURCE_SCHEMA, GENERIC_SOURCE_SCHEMA, SOURCE_SCHEMA):
         namespace = _source_namespace(snapshot["schema_version"])
         parameters = policy_descriptor.get("parameters", {})
         method = policy_descriptor.get("version")
-        generic = snapshot["schema_version"] == SOURCE_SCHEMA and identity["id"] == "gpt6_astra"
-        current = snapshot["schema_version"] in (SOURCE_SCHEMA, TOOLS_SOURCE_SCHEMA) and identity["id"] == "gpt6_astra"
+        native_v2 = snapshot["schema_version"] == SOURCE_SCHEMA and identity["id"] == "gpt6_astra"
+        if native_v2 and (method != "codex-native/v2" or parameters.get("control_method") != method):
+            raise ValueError("v7 source requires its single persistent Codex native v2 method")
+        generic = snapshot["schema_version"] == GENERIC_SOURCE_SCHEMA and identity["id"] == "gpt6_astra"
+        current = snapshot["schema_version"] in (GENERIC_SOURCE_SCHEMA, TOOLS_SOURCE_SCHEMA) and identity["id"] == "gpt6_astra"
         direct_method = "codex-direct/v3" if generic else "codex-direct/v2"
         if current and (method not in {"codex-native/v1", direct_method, "codex-planned/v1"}
                         or parameters.get("control_method") != method):
             raise ValueError("unsupported or mismatched versioned model method")
-        if identity["id"] == "gpt6_astra" and (method == "codex-direct/v3"
-                                               or parameters.get("control_method") == "codex-direct/v3"):
-            if not generic or method != "codex-direct/v3" or parameters.get("control_method") != method:
+        if native_v2 or (identity["id"] == "gpt6_astra" and (method == "codex-direct/v3"
+                                               or parameters.get("control_method") == "codex-direct/v3")):
+            if not native_v2 and (not generic or method != "codex-direct/v3" or parameters.get("control_method") != method):
                 raise ValueError("Codex Direct v3 requires its v6 native-vector source layout")
-            path = f"{namespace}/gpt6_astra/configs/codex_direct_v3_config.json"
+            path = f"{namespace}/gpt6_astra/" + ("configs/codex_native_config.json" if native_v2
+                                                    else "configs/codex_direct_v3_config.json")
             preset = _json(data["payloads"][path])
             effective = parameters.get("effective_config")
             overrides = {"timeout_s", "max_chunk_length", "image_max_edge"}
@@ -810,7 +850,12 @@ def verify_policy_source(run_dir: Path, policy_descriptor: dict, snapshot: dict)
                     or json.dumps({k: v for k, v in effective.items() if k not in overrides}, sort_keys=True, allow_nan=False)
                        != json.dumps({k: v for k, v in preset.items() if k not in overrides}, sort_keys=True, allow_nan=False)
                     or parameters.get("preset_sha256") != _sha(data["payloads"][path])
-                    or preset.get("schema_version") != "starvla-rsi.codex-direct-config/v3"
+                    or preset.get("schema_version") != ("starvla-rsi.model-config/v1" if native_v2
+                                                          else "starvla-rsi.codex-direct-config/v3")
+                    or (native_v2 and (preset.get("profile_id") != "gpt6_astra" or stop_rule is None
+                        or preset.get("policy_stop_rule_version") != "minimum-action-decisions/v2"
+                        or type(preset.get("min_action_decisions_before_give_up")) is not int
+                        or preset["min_action_decisions_before_give_up"] != 0))
                     or preset.get("control_method") != method
                     or parameters.get("transport") != "codex-app-server/v1"
                     or preset.get("transport") != "codex-app-server/v1"
@@ -833,7 +878,7 @@ def verify_policy_source(run_dir: Path, policy_descriptor: dict, snapshot: dict)
         if identity["id"] == "gpt6_astra" and (
                 parameters.get("control_method") == "codex-planned/v1"
                 or (isinstance(method, str) and method.startswith("codex-planned/"))):
-            if method != "codex-planned/v1" or snapshot["schema_version"] not in (GROUPED_SOURCE_SCHEMA, TOOLS_SOURCE_SCHEMA, SOURCE_SCHEMA):
+            if method != "codex-planned/v1" or snapshot["schema_version"] not in (GROUPED_SOURCE_SCHEMA, TOOLS_SOURCE_SCHEMA, GENERIC_SOURCE_SCHEMA):
                 raise ValueError("unsupported or mismatched Codex planned method version")
             path = f"{namespace}/gpt6_astra/configs/codex_planned_config.json"
             if (not current and not _method_extensions(data["config"])["planned_extensions"]) or path not in data["payloads"]:
@@ -1012,7 +1057,7 @@ def verify_policy_source(run_dir: Path, policy_descriptor: dict, snapshot: dict)
                 if json.dumps(parameters.get("effective_action_rules"), sort_keys=True) != json.dumps(rules, sort_keys=True):
                     raise ValueError("Codex action rules differ from captured configuration")
             return
-        from AgentPolicies.policy_support.stop_rules import stop_constraint, validate_minimum, with_stop_rule_prompt
+        from AgentPolicies.gpt6_astra.tools.stop_rules import stop_constraint, validate_minimum, with_stop_rule_prompt
         rule = policy_descriptor.get("parameters", {}).get("policy_stop_rule", {})
         minimum = validate_minimum(rule.get("min_action_decisions_before_give_up"))
         if (rule != stop_constraint(minimum)

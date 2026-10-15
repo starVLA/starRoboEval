@@ -21,38 +21,39 @@ from AgentPolicies.gpt6_astra.tools.persistent_runtime import (
 )
 from AgentPolicies.gpt6_astra.tools.public_observation import image_edge, public_state, public_images
 
-METHOD = "codex-direct/v3"
+METHOD = "codex-native/v2"
+METHODS = (METHOD,)
 
 
-class CodexDirectPolicy(PersistentRuntime):
+class CodexNativePolicy(PersistentRuntime):
     def __init__(self, *, identity, prompt=None, timeout_s=None, max_chunk_length=None,
                  min_action_decisions_before_give_up=None, image_max_edge=None, safety_stop=None):
-        payload = (ROOT / "configs/codex_direct_v3_config.json").read_bytes()
+        payload = (ROOT / "configs/codex_native_config.json").read_bytes()
         self.config = json.loads(payload, object_pairs_hook=_strict_object, parse_constant=_invalid_constant)
         if (self.config["control_method"] != METHOD or self.config["transport"] != TRANSPORT
                 or self.config["model"] != "gpt-6-astra" or self.config["provider"] != "openai"
                 or self.config["reasoning_effort"] != "xhigh" or self.config["ordinary_give_up"] is not False
                 or type(self.config["safety_stop"]) is not bool):
-            raise ValueError("unsupported Direct preset identity")
+            raise ValueError("unsupported Codex native preset identity")
         if (min_action_decisions_before_give_up not in (None, 0)
                 or isinstance(min_action_decisions_before_give_up, bool)):
-            raise ValueError("Direct v3 disables ordinary give-up; no mandatory persistence floor")
+            raise ValueError("Codex native disables ordinary give-up; no mandatory persistence floor")
         for key, value in (("timeout_s", timeout_s), ("max_chunk_length", max_chunk_length),
                            ("image_max_edge", image_max_edge), ("safety_stop", safety_stop)):
             if value is not None:
                 self.config[key] = value
         if type(self.config["safety_stop"]) is not bool:
-            raise ValueError("Direct safety_stop must be a boolean")
+            raise ValueError("Codex native safety_stop must be a boolean")
         if (type(self.config["timeout_s"]) not in (int, float)
                 or not math.isfinite(self.config["timeout_s"]) or not 0 < self.config["timeout_s"] <= 900):
-            raise ValueError("Direct timeout must be finite and in (0,900]")
+            raise ValueError("Codex native timeout must be finite and in (0,900]")
         if type(self.config["max_chunk_length"]) is not int or not 1 <= self.config["max_chunk_length"] <= 32:
-            raise ValueError("Direct chunks must contain 1..32 controls")
+            raise ValueError("Codex native chunks must contain 1..32 controls")
         image_edge(self.config["image_max_edge"])
-        self._prompt_base = ((ROOT / "prompts/codex_direct_v3_prompt.txt").read_text()
+        self._prompt_base = ((ROOT / "configs/codex_native_prompt.txt").read_text()
                              if prompt is None else prompt)
         if not isinstance(self._prompt_base, str) or not self._prompt_base.strip() or len(self._prompt_base) > 32000:
-            raise ValueError("Direct prompt must be bounded nonempty text")
+            raise ValueError("Codex native prompt must be bounded nonempty text")
         stop_rule = (
             'safety_stop=true: an explained voluntary stop is permitted with actions=[] and stop_reason="safety_stop".'
             if self.config["safety_stop"] else
@@ -74,21 +75,21 @@ class CodexDirectPolicy(PersistentRuntime):
             "provider_calls": None, "automatic_crash_resume": False,
         })
         super().__init__()
-        self._clear_direct()
+        self._clear_native()
 
-    def _clear_direct(self):
+    def _clear_native(self):
         self.initial_robot_state = None
         self.initial_observation_path = None
         self.execution_memory = deque(maxlen=self.config["execution_history_decisions"])
 
     def _preflight_policy(self):
-        return CodexDirectPolicy(identity={key: getattr(self.descriptor, key)
+        return CodexNativePolicy(identity={key: getattr(self.descriptor, key)
             for key in ("name", "kind", "model", "provider")}, prompt=self._prompt_base,
             **{key: self.config[key] for key in ("timeout_s", "max_chunk_length", "image_max_edge", "safety_stop")})
 
     def start_episode(self, context):
         super().start_episode(context)
-        self._clear_direct()
+        self._clear_native()
         scratch = self.actor / "scratch"
         scratch.mkdir(mode=0o700)
         notes = self.actor / "NOTES.md"
@@ -217,4 +218,14 @@ class CodexDirectPolicy(PersistentRuntime):
         try:
             super().end_episode()
         finally:
-            self._clear_direct()
+            self._clear_native()
+
+
+def create_policy(*, config, identity, control_method=None, **parameters):
+    """Create the single active method; retired identities are never aliases."""
+    if (control_method or config.get("control_method")) != METHOD:
+        raise ValueError("unknown or retired model control method")
+    for key in ("timeout_s", "max_chunk_length", "image_max_edge", "safety_stop",
+                "min_action_decisions_before_give_up"):
+        parameters.setdefault(key, config[key])
+    return CodexNativePolicy(identity=identity, **parameters)

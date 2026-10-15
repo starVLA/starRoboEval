@@ -32,8 +32,7 @@ benchmarks/simBenchmarks/<Benchmark>/
 │   ├── adapter.py                 # 公开契约与原生执行的衔接
 │   ├── protocol/                  # 需要时放任务 catalog、计划与校验
 │   └── native_worker_client.py    # 需要独立原生进程时使用
-├── environment/                   # 原生运行、安装、版本与资产检查
-└── checks/                        # 本 benchmark 的接口与回归测试
+└── environment/                   # 原生运行、安装、版本与资产检查
 
 AgentPolicies/<agent>/             # 模型调用、prompt、记忆、决策循环
 └── results/<benchmark>/           # 该模型的报告与证据索引
@@ -68,8 +67,8 @@ benchkit/                           # 公共契约、记录、源码冻结、审
 增加观测、改变动作含义或控制时序，需要明确的新协议身份、实现与验证。端口、GPU、资产路径等部署参数可以配置；一个 JSON selector 本身不能创造新协议。
 
 版本应分开记录：公共通信是 `starvla-rsi.sim-server/v1`；RoboDojo 当前机器人协议是
-`robodojo-direct-v2-rgb-proprio28-eef16-robot-feedback-v1`；模型侧当前 Direct 方法是
-`codex-direct/v3`。它们分别描述通信、机器人能力和 agent 方法，并不需要同步升版。
+`robodojo-direct-v2-rgb-proprio28-eef16-robot-feedback-v1`；模型侧当前方法是
+`codex-native/v2`。它们分别描述通信、机器人能力和 agent 方法，并不需要同步升版。
 能接入同一服务不等于复现旧方法的成功率；也不要将 Dojo 的 EEF16 接口套用到 SIMPLE 等其他机器人。
 
 绝对关节目标接口还应检查机器人自身状态是否足够明确。原生观测里的某个
@@ -134,7 +133,7 @@ sequence 和 ACK。原生物理子步、固定插值、终止与总执行预算�
 - 在 [统一服务选择器](../benchkit/sim_server/cli.py) 的显式表中登记 canonical ID、module 和仓库文档路径；不把未实现项或硬件占位列为可启动服务。只惰性委托已有 `server.main(argv)`，不能绕过它重新建 factory。
 - 服务通过自身的 `SUPPLEMENTAL_FILES` 声明完整 adapter、协议与 worker 文件；共享服务源码采用 [source snapshot](../benchkit/source_snapshot.py) 的独立 service 范围，不依赖其他 benchmark 或模型文件。若同时支持既有中央 campaign，再更新 [registry](../benchkit/registry.py)、[benchmark plans](../benchkit/campaigns/benchmark_plans.py) 与 evaluation 范围的源码清单；只有服务入口不等于已有 campaign 支持。
 - [pyproject.toml](../pyproject.toml) 纳入所需 Python 包及 JSON 等协议数据；从安装后的包运行，不只在源码目录里碰巧成功。
-- [统一回归入口](../benchkit/checks/run_regressions.py) 注册本地 checks，并通过 [服务约定测试](../benchkit/sim_server/checks/test_benchmark_conventions.py)。
+- 为本次接入准备可复核的轻量契约验证，覆盖服务约定、公开输入与执行生命周期；按实际运行记录结果。历史统一回归入口和服务约定测试已移出当前源码，可从 Git 历史恢复对应版本。
 - 更新本 benchmark 的 README、评测协议、部署参数示例和 [SERVICE_SUPPORT.md](../benchmarks/simBenchmarks/SERVICE_SUPPORT.md)；明确实现范围、已验证层级和未解决问题。
 
 先按该 benchmark 的 `environment/` 说明安装环境。数据许可需单独满足；服务可 import 不等于资产、渲染或原生初始化已就绪。检查正确的 Python、依赖路径、GPU/渲染设备和真实画面，避免把黑帧当作正常观测。
@@ -163,13 +162,9 @@ token 要求 32–256 个 URL-safe 字符。先验证启动和 `describe` 无原
 | 模型单例 | 预声明 task/case/seed、协议和预算，通过同一 server 完成一次尝试；保留成功、任务失败或基础设施错误。 | 不代表全 benchmark 的 SR。 |
 | 原生完整矩阵 | 核实任务、变体、种子、horizon、控制器、观测及评分条件，与原生 full schedule 对齐。 | 条件不同的结果不能直接声称复现参考 SR。 |
 
-统一回归命令示例，替换为已注册的 benchmark group；输出目录必须是新的：
-
-```sh
-python -B -m benchkit.checks.run_regressions \
-  --group benchmark_service --group RoboDojo \
-  --output /absolute/new-check-report
-```
+当前源码不包含原统一回归 runner 及其测试集合。需要历史检查时，从 Git 历史恢复匹配版本，
+并在稳定源码快照上执行；新集成仍需根据实际接口准备独立验证。按实际执行过的检查报告结果，
+不能将脚本清理、目录存在或历史通过记录当作当前验收通过。
 
 不要因测试失败静默重跑正式 case。先保存闭合错误和原因，修复后在获准的新轮次中使用新 run ID；旧结果不覆盖。短交互测试也不能混入正式 SR 分母。
 

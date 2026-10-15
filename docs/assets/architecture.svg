@@ -34,7 +34,7 @@
 <text x="99" y="586" class="s">driver 持有凭据，不交给模型 Actor</text>
 <text x="99" y="619" class="s">模型决策循环归 agent</text>
 <text x="78" y="685" class="s">自选策略约束 / 主动停止 / 模型配置</text>
-<text x="78" y="727" class="m">policy_support/runner.py</text>
+<text x="78" y="727" class="m">gpt6_astra/tools/runner.py</text>
 
 <rect x="730" y="340" width="1020" height="430" rx="18" fill="#fffaf1" stroke="#d7b277" stroke-width="2"/>
 <text x="755" y="379" class="h">所选 Benchmark Server · 同一服务边界内展开两部分</text>

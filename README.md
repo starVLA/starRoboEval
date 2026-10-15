@@ -51,6 +51,7 @@ score. It writes records under `results/rsi-smoke/`. Install the environment
 described by the selected benchmark before attempting a native task.
 
 - [Declare and connect an agent method](docs/agent-methods.md)
+- [Agent driver integration skill and template](docs/bench-server-protocol/SKILL.md)
 - [Optional interaction recording and basic results](docs/recording.md)
 - [Run an evaluation](docs/evaluation.md)
 - [Architecture and ownership](docs/architecture.md)
@@ -85,9 +86,16 @@ AgentPolicies/
   <method-profile>/                    policy, model composition, prompts and dependencies
     run.py                             model-owned trusted evaluation entrypoint, where implemented
     results/<benchmark>/               reports, indices and ignored raw runs/media
-  policy_support/                      reusable agent-side loop and policy behavior
+  gpt6_astra/tools/                    reusable runner and optional policy stop rules
 docs/                                 public design and usage guides
+  bench-server-protocol/
+    SKILL.md                           agent driver integration workflow
+    driver.py                          optional single-case driver template
 ```
+
+Directory-specific `README.md` files explain the code beside them. `docs/`
+contains shared architecture, usage guides and integration skills with their
+templates.
 
 The benchmark answers “what happens when this action executes?” The policy
 answers “what action should I take?” Its trusted driver communicates with the
@@ -95,11 +103,13 @@ service through `benchkit/sim_server` and uses the other `benchkit` record/repor
 voluntary-stop preferences belong to the policy, not the native benchmark.
 The actor never receives the driver's administrative client or credentials.
 The model-owned client driver currently starts with
-[`AgentPolicies/gpt6_astra/run.py`](AgentPolicies/gpt6_astra/run.py). Its implementations,
-transports, presets and guides are grouped by role. Fixed-plan tools use
+[`AgentPolicies/gpt6_astra/run.py`](AgentPolicies/gpt6_astra/run.py). This validation client
+uses one `codex_native` method at the profile root; configuration, prompt and
+registration declarations live in `configs/`, with runtime/transport helpers in `tools/`. Fixed-plan tools use
 `python -m benchkit.campaigns`; no old `benchkit.runner` or `benchkit.campaign`
 forwarding modules are retained. Import the optional runner from
-`AgentPolicies.policy_support.runner`.
+`AgentPolicies.gpt6_astra.tools.runner`; the general CLI and anonymous mailbox
+workflow continue to reuse these agent-side utilities.
 
 Central task scheduling remains in this version. Current campaign commands
 coordinate frozen local cases; they are not yet integrated with remote service
@@ -160,25 +170,27 @@ navigation datasets are available.
 The current `anonymous_code_agent` profile uses an experimental file mailbox.
 It does not authenticate the actor's provider/model identity, meter hidden
 provider requests or enforce OS isolation. Unknown usage is recorded as
-`null`. [`gpt6_astra`](AgentPolicies/gpt6_astra/README.md) offers several versioned
-methods; its server driver uses generic persistent Direct v3 with an explicit benchmark. The
-Native baseline (the factory default) and Planned method use declared numeric
-action interfaces. The three methods have distinct compatibility and evidence;
-retired API/EEF methods remain only in Git and frozen records.
+`null`. [`gpt6_astra`](AgentPolicies/gpt6_astra/README.md) provides one Bench Server
+validation client, `codex_native` (`codex-native/v2`), with an explicitly selected
+benchmark. It preserves the former Direct v3 behavior and declared numeric action
+interface; there is no method-selection step. The old bounded CLI Native method
+and other retired methods remain in Git and frozen records. Historical results
+keep their original method names and do not become Native v2 scores.
 A passing offline check is not a new capability score.
 Declared model identity is distinct from provider receipts and
 from historical owner-reported attribution. `opus` remains unconfigured.
 
 ## Development
 
-The core does not import native simulator SDKs. Lightweight checks are organized
-beside the code they protect:
+The core does not import native simulator SDKs. To validate the current catalog:
 
 ```sh
 make check
-# Use an environment with NumPy, Pillow and PyAV for media fixtures:
-python -B -m benchkit.checks.run_regressions --jobs 3 --output /absolute/new/check-report
 ```
+
+The former regression scripts and test fixtures are no longer included in the
+active source tree; recover their matching versions from Git history when needed.
+Catalog checks do not establish native evaluation or model capability.
 
 To add a benchmark, implement [BenchmarkAdapter and EpisodeSession](benchkit/interfaces.py)
 under its `benchmarks/` directory, pin the native evaluator and provide explicit
@@ -193,9 +205,10 @@ Public usage must not depend on them. Raw runs, generated media, credentials and
 local environment artifacts are also excluded from Git; lightweight model
 reports and provenance indices may be tracked.
 
-The grouped [.gitignore](.gitignore) keeps generated artifacts out of Git, not
-source, tests or published results. `git status --short --ignored` marks ignored
-paths with `!!`; `git check-ignore -v -- PATH` identifies the matching rule.
+The grouped [.gitignore](.gitignore) excludes generated artifacts and local
+check/test files as well as the runtime data described above.
+`git status --short --ignored` marks ignored paths with `!!`;
+`git check-ignore -v -- PATH` identifies the matching rule.
 Ignored files can remain on disk. Editors may show them dimmed rather than hide
 them; that display is independent of whether Git will track them.
 

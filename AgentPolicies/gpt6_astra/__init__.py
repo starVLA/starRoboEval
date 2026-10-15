@@ -1,1 +1,1 @@
-"""Unconfigured GPT6Astra label; no provider/API model identity is verified."""
+"""Codex native benchmark client; provider identity is not independently attested."""

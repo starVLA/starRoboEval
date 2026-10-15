@@ -1,4 +1,5 @@
-# Source, tests, protocol data and lightweight published reports stay tracked.
+# Runtime source, usage guides, protocol data and published reports stay tracked.
+# Local check/test files and development scratch files are excluded below.
 # Inspect actual matches with: git status --short --ignored
 # Explain one path with:      git check-ignore -v -- path/to/generated/file
 # Ignore rules do not delete local files or untrack files already in Git.
@@ -36,6 +37,8 @@ htmlcov/
 /examples/simBenchmarks/*/rollouts/*
 !/examples/simBenchmarks/*/rollouts/README.md
 /AgentPolicies/*/_local/
+# Retained local development notes; current usage belongs in the profile README.
+/AgentPolicies/gpt6_astra/docs/NATIVE_CONTROL.md
 # Generated opaque policy endpoints, not unrelated public assets.
 /public/mbx-*/
 
@@ -98,3 +101,10 @@ data/
 .vscode/
 .DS_Store
 *.swp
+Projects_readmes
+
+# Local checks and debug files stay outside the tracked project.
+**/checks/
+**/tests/
+**/test_*
+**/check_*

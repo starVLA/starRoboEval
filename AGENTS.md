@@ -61,8 +61,10 @@ counted as policy failures.
 
 The primary control architecture has two ends, not a mandatory harness middle
 layer. Model-specific trusted evaluation entrypoints belong under
-`AgentPolicies/<profile>/`; reusable agent-side decision loops belong under
-`AgentPolicies/policy_support/`. Benchmark adapters, native runtime/asset helpers,
+`AgentPolicies/<profile>/`. The reusable `runner.py` and `stop_rules.py` live
+under `AgentPolicies/gpt6_astra/tools/`; the general CLI and anonymous mailbox
+workflow reuse them. Old paths do not retain forwarding modules.
+Benchmark adapters, native runtime/asset helpers,
 task inventories and evaluation plans belong beside their protocols under
 `benchmarks/simBenchmarks/<benchmark>/` (future hardware adapters under
 `benchmarks/realRobots/`); shared SIM transport lives in
@@ -72,7 +74,7 @@ formats, recording, source capture, audits and reporting tools. Fixed-plan
 assembly belongs in `benchkit/campaigns`, report import/coverage tools in
 `benchkit/reports`, and benchmark metadata in `benchkit/catalog`. Relocated modules
 do not keep old-entrypoint forwarding shells. Import the optional runner directly
-from `AgentPolicies.policy_support.runner`. Do not rewrite frozen old packages.
+from `AgentPolicies.gpt6_astra.tools.runner`. Do not rewrite frozen old packages.
 Benchmark code owns task selection and native success; the model owns decisions.
 Central task scheduling is retained in this version: coordinating fixed plans,
 case claims, launches and progress is distinct from making robot decisions.
@@ -93,8 +95,9 @@ diagnostics; no model inference or task-solving strategy belongs there.
 Benchmark-specific native readiness tools remain under its `environment/`.
 
 Model-specific policy code/configuration and evaluation results belong under
-`AgentPolicies/<model-profile>/`; shared policy behavior belongs under
-`AgentPolicies/policy_support/`. New reports, coverage lists and videos use the model's
+`AgentPolicies/<model-profile>/`; reusable execution and stop-rule utilities
+belong under `AgentPolicies/gpt6_astra/tools/`, with preferences declared by each
+profile. New reports, coverage lists and videos use the model's
 `results/<benchmark>/` namespace. Historical anonymous trials must not be renamed
 as verified named-model scores. Preserve frozen original campaigns and result
 bytes; relocation indexes and byte-checked presentation copies are allowed.

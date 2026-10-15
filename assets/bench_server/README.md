@@ -2,12 +2,27 @@
 
 [打开介绍网页](index.html) · [benchmark 接入指南](../../docs/benchmark-server-guide.md)
 
-面向 agentic policy 的具身 Benchmark 服务化：让评测更严谨、更可复现、更易规模化。
-页面先介绍开放 agent 方法评测、统一 benchmark 入口与能力边界，再以 RoboDojo **服务协议 Direct v2** 展开实例。启动示例使用 **agent 方法 codex-direct/v3**；两者不是同一个版本号。方法可组合多个通用模型、规划、记忆与工具；固定 prompt 单模型仍可作为对照。当前按 benchmark／protocol／方法配置分别比较，尚不提供跨 benchmark 总榜。
+**具身 Benchmark 服务化：让评测更严谨、更可复现、更易规模化。**
+
+**一个入口，选择你的 Benchmark：已集成 13 个仿真 Benchmark，真实机器人接入正在拓展。** 各仿真服务的任务覆盖与原生验收进度见[支持矩阵](../../benchmarks/simBenchmarks/SERVICE_SUPPORT.md)，真机接入进展见[硬件说明](../../benchmarks/realRobots/README.md)。
+
+Bench Server 将具身评测封装为独立、可调用的服务，明确 Agent 的环境访问权限，将物体真值、私有场景信息和评分逻辑留在评测端，减少利用仿真特权取得成绩的捷径。服务围绕真实机器人的感知与控制能力定义接口，为 Sim / Real 交互对齐、后续真机接入与规模化评测提供基础。
+
+页面按以下顺序介绍服务化的价值：
+
+1. **可信的 agentic 评测：** 明确环境访问权限，减少仿真特权捷径，同时保留允许范围内的自主规划和工具使用。
+2. **Sim / Real 交互对齐：** 围绕真实机器人的感知与控制能力封装服务，为后续真机接入建立共同边界。
+3. **可复用的评测基础设施：** 统一封装环境、任务执行和评分，保留可核对的配置与结果，降低接入成本，为规模化评测提供基础。
+
+项目介绍聚焦 Bench Server 的设计与实现，现有几个 Agent 方法用于服务验证和接入示例。当前每个服务实例同时运行一个 episode；自动资源分配与远程多服务调度仍待实现。更完整的项目说明见 [Projects_readmes/README.md](../../Projects_readmes/README.md)。
+
+网页的[验证进展](index.html#validation-snapshot)收录了项目维护者提供的 **2026-10-07 人工结果快照**：SimplerEnv 15 任务 × 5 seeds 的 75 个正常结果（20 成功、55 失败；另保留 1 条原始工程错误），以及 13 个 Benchmark 的 Direct v3 单案例验收（11 正常完成，含 6 成功、5 失败；2 工程中断）。完整条件、恢复关联和运行索引见[详细快照](../../Projects_readmes/evaluation-snapshot-2026-10-07.md)。两组范围分开呈现；本次未重新读取 raw 或开展评测，当前源码不包含这批原始运行产物。
+
+后续章节介绍架构、能力边界和生命周期，并以 RoboDojo **服务协议 Direct v2** 展开实例。启动示例使用 **agent 方法 codex_native（codex-native/v2）**；两者是分别版本化的服务与方法。当前按 benchmark／protocol／方法配置分别比较，尚不提供跨 benchmark 总榜。
 
 交互历史可选、默认启用，不是参评或发布门槛；基础结果不要求事件日志或源码审计。RoboDojo 是已接入服务之一，不是整个框架；不同机器人保留原生观测、动作与评分。
 
-两个核心目标是隔离仿真神谕信息，以及围绕机器人能力设计 sim/real 接口。协议允许的机器人 state 可以公开，但测量值、命令值和仿真物体真值不能混淆。sim/real 共用原则不代表动作维度相同，也不代表统一硬件服务已实现。
+访问边界需要由观测白名单和部署权限共同落实，服务封装本身不构成完整安全沙箱。协议允许的机器人 state 可以公开，但测量值、命令值和仿真物体真值不能混淆。Sim / Real 对齐首先指交互权限与接口语义；硬件时序、安全、复位和评分仍需独立实现与验证。
 
 ## 查看方式
 
@@ -44,4 +59,4 @@ http://127.0.0.1:18765/assets/bench_server/
 
 一次决策可以对应多个控制步。动作块长度、重复次数和何时再次推理由 agent 方法决定；服务保留原生控制、终止和执行预算，不设通用的“每次决策五步”。
 
-内容更新：2026-10-06。目录更名见 [迁移说明](../../docs/package-migration.md)；新增 benchmark 的具体实施步骤见 [docs/benchmark-server-guide.md](../../docs/benchmark-server-guide.md)。
+项目定位文案更新：2026-10-10；原有验证记录的日期与范围保持不变。目录更名见 [迁移说明](../../docs/package-migration.md)；新增 benchmark 的具体实施步骤见 [docs/benchmark-server-guide.md](../../docs/benchmark-server-guide.md)。

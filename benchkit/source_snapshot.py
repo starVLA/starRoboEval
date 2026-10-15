@@ -94,7 +94,7 @@ def repository_source_files(root: Path, max_files: int) -> list[tuple[Path, tupl
               # Explicit trusted driver source, not recursively selected model
               # code. Capturing a path here does not transfer its ownership to
               # harness; policy action implementations remain model_source.
-              "AgentPolicies/policy_support/runner.py", "AgentPolicies/gpt6_astra/run.py"]
+              "AgentPolicies/gpt6_astra/tools/runner.py", "AgentPolicies/gpt6_astra/run.py"]
     # Shared SIM transport is captured with harness above, not added twice.
     if PLAN_MODULES.keys() != ADAPTER_MODULES.keys():
         raise SourceSnapshotError("plan and adapter source registrations differ")

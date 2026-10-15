@@ -39,13 +39,7 @@ Seven scene entrypoints correspond to six distinct asset layers: scene1 and scen
 
 ## Validation
 
-These checks do not launch the simulator:
-
-```sh
-PYTHONPATH=. python -B benchmarks/simBenchmarks/SIMPLE/checks/test_inventory.py -v
-PYTHONPATH=. python -B benchmarks/simBenchmarks/SIMPLE/checks/test_instruction_contract.py -v
-PYTHONPATH=. python -B benchmarks/simBenchmarks/SIMPLE/checks/verify_inventory.py \
-  --inventory benchmarks/simBenchmarks/SIMPLE/bench_server/protocol/simple_released_tasks.json
-```
+Inventory validation covers the declared task/backend, source pins, reset metadata
+and released instruction.
 
 Native execution additionally requires the pinned runtime, licensed assets, controller stabilization, task-specific scoring and GPU capacity. SIMPLE may create contexts across multiple visible GPUs; renderer selection alone does not establish isolation. Treat asset/reset/render/scorer failures as explicit outcomes, not reasons to replace task inputs or automatically retry.

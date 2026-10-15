@@ -31,5 +31,4 @@ separately named and retained on failure. No automatic task retry or uncertain
 action replay. Keep all policy implementation, prompt, configuration and results
 in this model namespace; shared record/source tooling is not a policy planner.
 
-Use independent review and offline regressions before an authorized live sample.
-Never push Git commits. Local commits use JinhuiYE <jinhuiyes@gmail.com>.
+

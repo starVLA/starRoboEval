@@ -16,7 +16,7 @@ from benchmarks.simBenchmarks.Robocasa_365.bench_server.adapter import (
     action_dictionary,
 )
 from benchkit.contracts import ActionChunk, PolicyDecision, PolicyDescriptor
-from AgentPolicies.policy_support.runner import EvaluationRunner, RunRequest
+from AgentPolicies.gpt6_astra.tools.runner import EvaluationRunner, RunRequest
 
 
 def diagnostic_actions():

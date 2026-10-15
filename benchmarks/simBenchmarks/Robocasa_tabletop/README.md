@@ -11,8 +11,7 @@ Robocasa_tabletop/
 │       ├── plan.py                 # predeclared fast selection
 │       ├── robocasa_tabletop_contract.json # pinned sensor/action/source contract
 │       └── POLICY_GUIDE.md           # public robot interface, not a model prompt
-├── environment/                    # native readiness, runtime pins and helpers
-└── checks/                         # dependency-light conformance regressions
+└── environment/                    # native readiness, runtime pins and helpers
 ```
 
 Protocol catalogs are benchmark definitions, not datasets or deployment settings.
@@ -37,12 +36,6 @@ Follow [environment/README.md](environment/README.md) for source/runtime/asset r
 - Robosuite: `51cc01785bab80ffeed20da15e67d7dd4140e76a`.
 
 Launch Python with `PYTHONHASHSEED=0` before process startup. The pinned contract includes the complete provisioned object inventory and compiled controller/encoder identities; arbitrary newer source or asset snapshots are not interchangeable. A portable all-assets bootstrap is not yet available.
-
-CPU checks do not launch a native simulator:
-
-```sh
-python -B -m unittest discover -s benchmarks/simBenchmarks/Robocasa_tabletop/checks -v
-```
 
 ## Run as an independent SIM server
 

@@ -17,8 +17,7 @@ benchmarks/simBenchmarks/<benchmark>/
 │   ├── adapter.py             # declared observation/action and native bridge
 │   ├── protocol/              # dependency-light catalogs and interface rules
 │   └── native_worker_client.py  # only when a private worker is needed
-├── environment/               # native workers, setup, pins and readiness
-└── checks/                    # benchmark-specific conformance regressions
+└── environment/               # native workers, setup, pins and readiness
 
 AgentPolicies/<agent>/                # model-owned decisions, prompts, config, results
 benchkit/sim_server/             # shared communication and session mechanics
@@ -110,10 +109,10 @@ own timing, watchdog, safety, calibration and scoring validation. See
 | Model sample | Preselected task/case once through the same server, with score, counts, errors and declared optional recording | Whole-suite SR or native-full parity |
 | Expansion | Independent review, fixes, regression; then predeclare broader coverage | Permission to silently retry failures |
 
-The cross-benchmark entrypoint regression is
-[`benchkit/sim_server/checks/test_benchmark_conventions.py`](../../benchkit/sim_server/checks/test_benchmark_conventions.py); benchmark-specific tests and the
-shared service tests remain required. Model samples must be separately authorized;
-structural refactoring and offline tests do not start one. A valid completed
+Offline validation should cover benchmark entrypoints, observation boundaries,
+session lifecycle, execution counters and error handling. Former check suites
+and fixtures remain recoverable from Git history. Model samples must be separately
+authorized; structural refactoring and offline tests do not start one. A valid completed
 failure is useful acceptance evidence, not a reason to rewrite the scorer.
 
 See [the wire protocol](SERVER_PROTOCOL.md) and [support matrix](SERVICE_SUPPORT.md)

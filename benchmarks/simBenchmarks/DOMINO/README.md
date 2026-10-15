@@ -18,9 +18,8 @@ This is **not yet a successful SIM run or full-suite support claim**.
 
 `server.py` is the public entrypoint. `bench_server/adapter.py` owns the public
 allowlist and lifecycle; `bench_server/protocol/` fixes semantics. `environment/`
-owns private runtime, deployment and native-scoring-order helpers. `checks/`
-contains offline regressions, not model policy. No root adapter, training script
-or task-solving service is retained.
+owns private runtime, deployment and native-scoring-order helpers. No root adapter,
+training script or task-solving service is retained.
 
 ## Launch a prepared deployment
 
@@ -43,9 +42,5 @@ Use the declared compatibility runtime and verified renderer overlay on
 describe do not reset or actuate. Each selected case is claimed once; the
 service performs no online expert screening or automatic retries.
 
-```sh
-python -B -m unittest discover -s benchmarks/simBenchmarks/DOMINO/checks -v
-```
-
-Checks cover sensor filtering, commanded-state provenance, validity, claims and
-mocked native post-action scoring order. They do not replace native validation.
+Validation should cover sensor filtering, commanded-state provenance, validity,
+single-attempt claims and native post-action scoring order.

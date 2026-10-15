@@ -60,7 +60,7 @@ from benchkit.contracts import (
 )
 from benchkit.errors import InfrastructureError, PolicyError, ProtocolError
 from benchkit.registry import register_policy
-from AgentPolicies.policy_support.stop_rules import VoluntaryStopRule, with_stop_rule_prompt
+from AgentPolicies.gpt6_astra.tools.stop_rules import VoluntaryStopRule, with_stop_rule_prompt
 
 SCHEMA_VERSION = "starvla-rsi.mailbox/v3"
 _USAGE_COUNTERS = ("calls", "input_tokens", "output_tokens", "cached_input_tokens")

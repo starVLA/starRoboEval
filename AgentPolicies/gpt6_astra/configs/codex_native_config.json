@@ -1,17 +1,29 @@
 {
-  "transport": "codex-exec/v1",
-  "control_method": "codex-native/v1",
+  "schema_version": "starvla-rsi.model-config/v1",
+  "profile_id": "gpt6_astra",
+  "control_method": "codex-native/v2",
+  "transport": "codex-app-server/v1",
   "model": "gpt-6-astra",
   "provider": "openai",
   "reasoning_effort": "xhigh",
-  "max_output_tokens": null,
-  "timeout_s": 300,
-  "max_attempts": 10,
-  "retry_backoff_s": 10.0,
+
+  "history": "persistent_same_episode_thread",
+  "timeout_s": 900,
   "max_chunk_length": 5,
-  "history": "current_rgb_and_last_8_acknowledged_chunks",
-  "history_decisions": 8,
+  "ordinary_give_up": false,
+  "safety_stop": false,
+  "policy_stop_rule_version": "minimum-action-decisions/v2",
+  "min_action_decisions_before_give_up": 0,
+
   "max_image_pixels": 4194304,
-  "max_response_bytes": 1048576,
-  "min_action_decisions_before_give_up": 0
+  "image_max_edge": 480,
+  "max_response_bytes": 65536,
+  "execution_history_decisions": 8,
+  "feedback_projection": "acknowledged_counters_and_actions_plus_declared_robot_state",
+  "initial_state_reference": "first_public_observation_not_action",
+
+  "completed_turn_continuations": 2,
+  "network_continuations": 20,
+  "network_backoff_s": 10,
+  "terminal_delivery": "cancel_without_continuation"
 }

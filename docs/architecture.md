@@ -95,9 +95,10 @@ adapter imports are removed. Separate protocol packages exist where definitions
 are needed, not as empty layers. Task catalogs are immutable protocol data,
 not assets or deployment paths; no task-specific server copy is required.
 Their actions remain benchmark-native. The model-owned
-[`codex-native/v1`](../AgentPolicies/gpt6_astra/docs/NATIVE_CONTROL.md) method supplies generic
-numeric vectors; the generic persistent Direct v3 method also consumes the
-declared action space rather than applying the historical Dojo EEF method.
+[`codex_native` (`codex-native/v2`)](../AgentPolicies/gpt6_astra/README.md)
+validation client supplies numeric vectors in the service-declared action space.
+It preserves the former Direct v3 behavior without applying the historical
+Dojo-specific EEF method.
 The shared
 `benchkit/sim_server/` transport provides a remote `BenchmarkAdapter`, fixed
 server schedules, single-attempt session claims, serialized control and bounded
@@ -107,7 +108,7 @@ the same observation-to-decision interface. Idle service time does not schedule
 native control. Lost step acknowledgments never trigger automatic replay.
 
 The model-owned `AgentPolicies/gpt6_astra/run.py` entrypoint requires `--sim-server`
-and uses the reusable loop in `AgentPolicies/policy_support/runner.py`. It has no local
+and uses the reusable loop in `AgentPolicies/gpt6_astra/tools/runner.py`. It has no local
 native fallback. This trusted driver is distinct from the model actor: the
 administrative client includes schedules, metrics and result export, and must
 not be passed to an untrusted policy process. The legacy standalone CLI also
@@ -177,8 +178,9 @@ the policy validates its preference. Native termination, hard limits, errors and
 declared safety stops can still end earlier.
 
 The mailbox implementation lives in `AgentPolicies/anonymous_code_agent/`. Its endpoint
-allocator is a preparation tool, not benchmark code. `policy_support/` contains
-shared participant-policy behavior. Shared fixed-action fixtures live under
+allocator is a preparation tool, not benchmark code.
+`AgentPolicies/gpt6_astra/tools/stop_rules.py` supplies reusable opt-in stop rules
+for GPT and the anonymous mailbox; each profile declares its own preferences. Shared fixed-action fixtures live under
 `benchkit/diagnostics/`: implementing the `Policy` interface does not make an
 infrastructure diagnostic a participant model.
 
@@ -186,13 +188,13 @@ infrastructure diagnostic a participant model.
 
 `benchkit/contracts.py` and `interfaces.py` define the public types.
 `registry.py` and `campaigns/benchmark_plans.py` explicitly assemble extensions.
-`AgentPolicies/policy_support/runner.py` validates compatibility and executes the
-agent's bounded action prefixes. It uses recording/source tools without moving
+`AgentPolicies/gpt6_astra/tools/runner.py` validates compatibility and executes the
+agent's bounded action prefixes for the model driver and general CLI. It uses recording/source tools without moving
 the decision loop into `benchkit`. Native validation and end conditions remain
 authoritative on the server. `benchkit/sim_server/` is the single shared transport
 implementation, imported directly by both ends; there is no forwarding service
 package under `benchmarks`. Import the optional runner directly from
-`AgentPolicies.policy_support.runner`; the former benchkit runner bridge is removed.
+`AgentPolicies.gpt6_astra.tools.runner`; the former benchkit runner bridge is removed.
 `benchkit/campaigns/workflow.py` freezes plans and creates permanent attempt claims;
 the public command is `python -m benchkit.campaigns`, not the old singular module.
 `model_profiles.py` validates configured factories and captures bounded model
@@ -208,29 +210,36 @@ their original paths and semantics.
 Direct profiles declare a bounded scalar configuration schema inside their model
 folder. The benchkit validates captured schema/config bytes without importing
 frozen model code. The profile's factory selects model-owned request and parsing
-code; direct campaigns omit mailbox endpoints. The GPT profile has three active
-Codex methods: Native, persistent Direct and Planned. Its factory defaults to
-Native; the server driver defaults to generic Direct v3 and requires an explicit benchmark.
+code; direct campaigns omit mailbox endpoints. The GPT profile contains one
+Bench Server validation client: `codex_native`, identified as `codex-native/v2`.
+Its policy/factory sits beside `run.py`. The single
+method configuration, prompt and registration declarations live under `configs/`;
+runtime and transport helpers live under `tools/`. Factory and driver use the same method,
+with no alternate active selection. The driver requires an explicit benchmark;
+`--control-method` is optional and accepts only `codex-native/v2`.
+New `campaigns prepare` requests for this method are rejected before outputs are
+created: the retained local path does not satisfy its horizon/feedback contract.
+Use the service driver; historical direct campaigns keep their frozen runtime.
 Typed call errors preserve known usage/receipt data without creating an action.
-Native can recover classified pre-action transport failures within one decision
-call, using at most ten total attempts. It never resets the benchmark or replays
-an uncertain control. Recovered errors, attempts and unknown usage stay recorded;
-exhaustion is an infrastructure interruption, not native task failure. These are
-model-owned settings, not benchmark scoring rules.
+This method retains Direct v3's persistent-turn recovery, including at most nine
+continuations after definitively closed `serverOverloaded` failures, with a
+30-second delay. Separate network recovery does not authorize a reset or replay
+of uncertain control. Exhaustion is an infrastructure interruption, not native
+task failure. These are model-owned settings, not benchmark scoring rules.
 
-The active `codex-direct/v3` keeps a persistent app-server conversation and local
+The active `codex-native/v2` keeps a persistent app-server conversation and local
 analysis tools. Its action tool yields to the existing agent-side runner;
 execution feedback is queued and sent only in the next counted policy call.
 Only public robot observations enter its workspace. SIM credentials, scoring
 and native handles stay in the trusted driver/server. Termination cancels the
-model without an unmetered final continuation. See [Direct control](../AgentPolicies/gpt6_astra/docs/DIRECT_CONTROL.md).
+model without an unmetered final continuation. See [client README](../AgentPolicies/gpt6_astra/README.md).
 
-Direct v3 reads the service-declared action specification, arbitrary camera/state
+The client reads the service-declared action specification, arbitrary camera/state
 channels and acknowledged action prefixes. Its first public observation supplies
 an episode-local reference for task-required physical return, never an automatic
 home trajectory or reset. It has no fixed robot, EEF format or benchmark protocol
-selector. Direct and Planned share `tools/persistent_runtime.py`, not a policy
-inheritance chain. Image previews remain optional at a default longest edge of
+selector. `tools/persistent_runtime.py` supplies conversation mechanics for the
+one active policy; there is no multi-method policy inheritance chain. Image previews remain optional at a default longest edge of
 480 pixels, with original public RGB available. Raw schema-specific robot
 feedback and full evaluation documents are not automatically delivered to the
 actor. Historical Direct v2's Dojo feedback and handling guidance are a distinct
@@ -242,12 +251,14 @@ Do not conflate the three versioned contracts:
 | --- | --- | --- |
 | Shared wire protocol | `starvla-rsi.sim-server/v1` | Authenticated requests, sessions, sequencing and closed artifacts |
 | RoboDojo robot interface | `robodojo-direct-v2-rgb-proprio28-eef16-robot-feedback-v1` | Declared sensors, EEF actions, fixed native conversion and scoring |
-| GPT method | `codex-direct/v3` | Public-input projection, prompt, tools, memory and action choices |
+| GPT method | `codex-native/v2` | Public-input projection, prompt, tools, memory and action choices |
 
 The method can use the existing Dojo interface without changing its version.
 That compatibility is not evidence of equal success rates with the historical
-Direct v2 method. Current Direct v3 and Planned v1 default to no voluntary
-`safety_stop`; opting in is model configuration, not a benchmark or hardware rule.
+Direct v2 method. Current `codex-native/v2` retains Direct v3's default of no
+voluntary `safety_stop`; opting in is model configuration, not a benchmark or hardware rule.
+It is distinct from the removed bounded CLI method `codex-native/v1`. All historical
+methods and results retain their original identities and source inventories.
 
 A profile can declare `runtime_preflight: true` in its captured configuration
 schema. Its optional `preflight_runtime()` capability checks local dependencies
@@ -348,7 +359,7 @@ event/result consistency without requiring every frozen source file. Existing
 full source/model audits remain independent and unchanged.
 
 New campaigns use `campaign/v3` with `runtime_namespace: benchkit` and
-`harness-source/v2`; current GPT6Astra captures use `model-source/v6`.
+`harness-source/v2`; current GPT6Astra captures use `model-source/v7`.
 Other profiles retain their own declared source schema. Historical unmarked v3
 campaigns still select their captured `harness` package, not a current alias.
 Output-tool, service and explicitly named trusted-driver sources are captured separately from explicitly
@@ -370,8 +381,10 @@ The former root package `starVLA/` is now `AgentPolicies/`, without an import sh
 Historical model-source v1/v2 bundles keep their old namespace; v3 binds the
 flat AgentPolicies layout, and v4 binds the earlier grouped method/transports/preset
 layout. V5 captures the earlier three-method layout with Direct v2. V6 captures
-generic Direct v3, shared persistent runtime and public sensor helpers, without
-restoring retired API/EEF/Direct-v1/v2 entrypoints. Old inventories remain version-specific, not interchangeable
+generic Direct v3, shared persistent runtime and public sensor helpers. V7
+captures the single `codex_native` method at the profile root, its `tools/`
+helpers and `configs/` declarations, with one method configuration and prompt. Retired methods remain in Git and
+frozen packages, without old code entrypoints. Old inventories remain version-specific, not interchangeable
 path aliases. See the [namespace and artifact relocation note](../AgentPolicies/README.md#namespace-and-preserved-results).
 
 Model results use `AgentPolicies/<profile>/results/<benchmark>/`: lightweight reports

@@ -1,9 +1,9 @@
 # RoboChallenge Table30v2 — Evaluation Pipeline
 
 This is a retained checkpoint-integration reference. It requires the original
-StarVLA model runtime, not just the current RSI package. Self-tests and mocks
-remain available for that integration; they do not establish a neutral hardware
-bench server or authorize production submission.
+StarVLA model runtime, not just the current RSI package. The local self-test and
+I/O contract remain as integration references; they do not establish a neutral
+hardware bench server or authorize production submission.
 
 We follow the upstream
 [RoboChallengeInference (cvpr branch)](https://github.com/RoboChallenge/RoboChallengeInference/tree/cvpr)
@@ -12,7 +12,6 @@ then submit to the real platform**.
 
 ```text
 local_self_test.py        ← step 1: dummy obs, no network
-test_with_mock_server.py  ← step 2: real protocol against upstream mock_robot_server.py
 production_demo.py        ← step 3 (TODO): wire to demo.py / job_loop on the real challenge
 model2robochallenge_interface.py
                           ← shared `RoboChallengePolicy` (replaces upstream `DummyPolicy`)
@@ -55,7 +54,7 @@ bash benchmarks/realRobots/RoboChallenge_table30v2/eval_files/run_self_test.sh -
 
 Expected: prints `(8, 8)` action chunk + ~hundreds-of-ms latency.
 
-## Step 2 — drive the upstream mock server
+## Step 2 — upstream mock-server reference
 
 1. Clone upstream **once** (somewhere outside the starVLA repo so it isn't tracked)::
 
@@ -78,18 +77,9 @@ Expected: prints `(8, 8)` action chunk + ~hundreds-of-ms latency.
     cd mock_server && python3 mock_robot_server.py
     ```
 
-4. In a **second** shell, point our policy at it:
-
-    ```bash
-    bash benchmarks/realRobots/RoboChallenge_table30v2/eval_files/run_test_with_mock.sh
-    # or:
-    CKPT=playground/Checkpoints/.../steps_100_pytorch_model.pt \
-    ROBOT_TAG=ur5 \
-    RC_REPO=$HOME/playground/Code/RoboChallengeInference \
-    bash benchmarks/realRobots/RoboChallenge_table30v2/eval_files/run_test_with_mock.sh
-    ```
-
-You should see one inference per loop with shape `(8, 8)` actions being POSTed.
+The former local mock client and launcher are recoverable from Git history.
+The upstream setup above documents the protocol reference; connecting a client
+requires a compatible implementation.
 
 ## Step 3 — production submission (TODO)
 

@@ -38,7 +38,8 @@ Use benchmark-native execution conditions. Report inference requests, tokens,
 latency and cost when available; do not invent unknown values. There is no new
 universal reasoning/token/decision budget. Existing method-specific timeouts,
 feedback-loop caps and protocol-specific limits remain explicit configuration,
-not silently disabled. In particular the current Direct example still requires
+not silently disabled. In particular the current
+[`codex_native` client](../AgentPolicies/gpt6_astra/README.md) requires
 a finite decision-call cap to bound invalid-action feedback.
 
 ## Connect using the protocol
@@ -55,17 +56,19 @@ a finite decision-call cap to bound invalid-action feedback.
    interaction history is optional, default enabled where supported.
 
 Any language or framework can implement this protocol. The Python remote client,
-`Policy` interface and `AgentPolicies/policy_support/runner.py` are optional SDK
+`Policy` interface and `AgentPolicies/gpt6_astra/tools/runner.py` are optional SDK
 conveniences. They are not prerequisites for participating. A new method does not
 require a copy of the simulator or a new benchmark server.
 
-For a small worked example, see
-[`AgentPolicies/protocol_example`](../AgentPolicies/protocol_example/README.md).
-It owns a loop without the profile registry or Python `Policy`, and produces
-basic-result-compatible records. It deliberately accepts only a complete
-single-case service schedule with horizon mode and prefix one; it is not a
-general evaluator or a RoboDojo panel driver. Tests use a fake service, not a
-native robot or model.
+For development-time integration guidance, use the
+[Bench Server protocol skill](bench-server-protocol/SKILL.md).
+It provides the workflow and a copyable single-case driver template, rather than
+an `AgentPolicies` runtime package. The template owns a loop without the profile
+registry or Python `Policy` and writes basic-result-compatible records. Copy it
+into your method namespace when adapting it; it bundles no actor or registered model.
+It deliberately accepts only a complete single-case service schedule with horizon
+mode and prefix one. These are template boundaries, not general protocol limits
+or support for a RoboDojo panel. No native/model result is claimed.
 
 ### Administrative access is not an actor tool
 

@@ -2,14 +2,15 @@
   "schema_version": "starvla-rsi.model-dependencies/v1",
   "files": [
     "AgentPolicies/__init__.py",
+    "AgentPolicies/gpt6_astra/__init__.py",
+    "AgentPolicies/gpt6_astra/tools/__init__.py",
+    "AgentPolicies/gpt6_astra/tools/stop_rules.py",
     "AgentPolicies/opus/__init__.py",
     "AgentPolicies/opus/config.json",
     "AgentPolicies/opus/dependencies.json",
     "AgentPolicies/opus/policy.py",
     "AgentPolicies/opus/profile.json",
-    "AgentPolicies/opus/prompt.txt",
-    "AgentPolicies/policy_support/__init__.py",
-    "AgentPolicies/policy_support/stop_rules.py"
+    "AgentPolicies/opus/prompt.txt"
   ],
   "evaluation_dependency": "harness_source/index.json",
   "provider_sdk": null

@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="color-scheme" content="light">
-  <meta name="description" content="开放的具身 agent 方法评测框架：选择 benchmark，接入自己的模型组合、规划与工具，按原生协议比较任务表现。交互记录可选、默认启用。">
+  <meta name="description" content="具身 Benchmark 服务化：明确环境访问权限，减少仿真特权捷径；对齐 Sim / Real 交互边界；复用环境、执行与评分，为可信、可复现、可规模化的 agentic 评测提供基础。">
   <title>starVLA-RSI · 具身 Benchmark 服务化</title>
   <style>
     :root {
@@ -43,7 +43,7 @@
     }
 
     a { color: inherit; }
-    a:focus-visible, button:focus-visible { outline: 3px solid var(--orange); outline-offset: 4px; }
+    a:focus-visible, button:focus-visible, summary:focus-visible { outline: 3px solid var(--orange); outline-offset: 4px; }
     section { scroll-margin-top: 74px; }
     h1, h2, h3, p, li, td, th, .source-link, .tree, .value, .owner-head { overflow-wrap: anywhere; }
     .hero-note > *, .section-head > *, .arch-labels > *, .split > *, .sources > *, .panel-switcher > * { min-width: 0; }
@@ -162,6 +162,7 @@
     .small { color: var(--muted); font-size: .84rem; }
 
     .principles { display: grid; grid-template-columns: repeat(4, 1fr); gap: 13px; }
+    #idea .principles { grid-template-columns: repeat(3, minmax(0, 1fr)); }
     .principle {
       min-height: 176px;
       padding: 20px;
@@ -284,6 +285,19 @@
     .callout.warning { background: var(--orange-soft); border-color: #f2c2a9; }
     .callout p { margin: 7px 0 0; color: var(--muted); font-size: .88rem; }
     .callout strong { color: var(--ink); }
+    .benchmark-coverage { margin-bottom: 24px; }
+    .benchmark-coverage h3 { font-size: 1.15rem; }
+    .benchmark-count { color: var(--blue); font-size: 2.4rem; line-height: 1; }
+    .benchmark-list { display: flex; flex-wrap: wrap; gap: 8px; margin: 18px 0 0; padding: 0; list-style: none; }
+    .benchmark-list a { display: block; padding: 5px 10px; border: 1px solid #b8dddd; border-radius: 8px; background: var(--panel); font-size: .82rem; text-decoration: none; }
+    .benchmark-list a:hover { color: var(--blue); border-color: var(--blue); }
+    .snapshot-details { margin-top: 20px; padding: 18px 20px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel); }
+    .snapshot-details summary { cursor: pointer; font-weight: 700; }
+    .snapshot-details[open] summary { margin-bottom: 18px; }
+    #validation-snapshot .result-success { color: var(--green); font-weight: 700; }
+    #validation-snapshot .result-failure { color: var(--red); font-weight: 700; }
+    #validation-snapshot .result-error { color: #9b4b19; font-weight: 700; }
+    #validation-snapshot .counts { white-space: nowrap; font-variant-numeric: tabular-nums; }
 
     table { width: 100%; border-collapse: collapse; overflow: hidden; background: var(--panel); border-radius: 15px; }
     th, td { padding: 14px 16px; border-bottom: 1px solid var(--line); vertical-align: top; text-align: left; }
@@ -339,6 +353,7 @@
       nav { display: none; }
       .hero-note, .section-head, .split, .panel-switcher { grid-template-columns: 1fr; }
       .principles, .flow { grid-template-columns: repeat(2, 1fr); }
+      #idea .principles { grid-template-columns: 1fr; }
       .ownership, .contract-grid { grid-template-columns: 1fr; }
       .contract-card.wide { grid-column: auto; }
       .arch-labels { grid-template-columns: 1fr; }
@@ -382,35 +397,36 @@
         <a href="#lifecycle">运行过程</a>
         <a href="#robodojo">RoboDojo</a>
         <a href="#onboarding">接入</a>
-        <a href="#acceptance">验收</a>
+        <a href="#acceptance">评测验证</a>
+        <a href="#validation-snapshot">验证进展</a>
       </nav>
     </div>
   </div>
 
   <header class="shell">
-    <div class="eyebrow">starVLA-RSI · for agentic policy</div>
+    <div class="eyebrow">starVLA-RSI · for agentic evaluation</div>
     <h1>具身 Benchmark<br>服务化</h1>
     <p class="hero-subtitle">让评测更严谨、更可复现、更易规模化。</p>
     <p class="lead">
-      选择 benchmark，接入自己构建的 agent 方法，在明确的机器人能力与原生任务条件下比较表现。
-      方法可以组合多个通用模型、规划、记忆与工具；评测的不只是一个模型名称，也不限定一套 prompt。
-      Bench Server 提供清晰的观测、动作和执行反馈契约，既服务仿真评测，也为后续真机接入建立共同边界。
-      RoboDojo 是一个具体实例；真实硬件仍需独立实现与验证。
+      将具身评测封装为独立服务，明确 Agent 的环境访问权限，减少利用仿真特权信息和操作取得成绩的捷径。
+      围绕真实机器人的感知与控制能力定义观测、动作和反馈接口，让 Sim 与 Real 遵循更一致的交互边界。
+      在此基础上复用环境部署、任务执行与原生评分，为后续真机接入和规模化评测提供基础。
     </p>
     <div class="hero-links">
       <a href="../../docs/benchmark-server-guide.md">接入一个新 benchmark ↗</a>
       <a href="../../docs/agent-methods.md">接入自己的 agent 方法 ↗</a>
       <a href="#robodojo">查看 RoboDojo 实例 ↓</a>
       <a href="#acceptance">了解验证范围 ↓</a>
+      <a href="#validation-snapshot">查看实验快照 ↓</a>
     </div>
-    <p class="small">当前目录：<code>benchmarks/</code> 定义环境与协议，<code>AgentPolicies/</code> 实现方法，<code>benchkit/</code> 提供共享工具。内容核对：2026-10-06。</p>
+    <p class="small">当前目录：<code>benchmarks/</code> 定义环境与协议，<code>AgentPolicies/</code> 实现方法，<code>benchkit/</code> 提供共享工具。项目定位更新：2026-10-10；验证范围仍见下文。</p>
     <div class="hero-note">
       <div class="thesis">
-        <strong>开放方法，共用清晰的机器人接口。</strong><br>
-        agent 自己组织推理与决策；benchmark 固定环境权限、执行预算和原生评分。benchkit 提供可复用通信、可选记录与结果工具，不成为新的决策层。
+        <strong>明确访问边界，让评测贴近真实机器人条件。</strong><br>
+        物体真值、私有场景信息与评分逻辑留在评测端，Agent 通过声明的机器人接口交互。现有几个 Agent 方法用于验证服务流程和展示接入方式。
       </div>
       <div class="status-box" aria-label="截至 2026-10-06 的架构范围，不代表原生完整验收">
-        <div class="metric"><b>13</b><span>开发态 SIM 服务入口<br>不等于全部通过原生验收</span></div>
+        <div class="metric"><b>13</b><span>已集成仿真 Benchmark<br>真机接入正在拓展</span></div>
         <div class="metric"><b>2</b><span>运行端：策略与 benchmark<br>benchkit 是共享库</span></div>
         <div class="metric"><b>0</b><span>静默任务重测<br>不重放结果不明的动作</span></div>
       </div>
@@ -423,16 +439,17 @@
         <div class="section-head">
           <div><span class="section-number">01 / WHY</span><h2>为什么要服务化</h2></div>
           <p class="section-intro">
-            不同 agent 方法应能接入同一个 benchmark，而不必重写模拟器；不同 benchmark 又应保留各自的机器人能力和评分方式。
-            服务化让方法与环境独立演进，并明确哪些传感器、动作和时序可以迁移到真机。相同 HTTP 格式本身并不代表 sim / real 已经等价。
+            当 Agent 能直接访问模拟器文件或内部 API 时，就可能读取物体真值、私有场景布局或隐藏评分，甚至绕过正常机器人操作。
+            将环境和评分封装在评测端，可以建立明确的访问边界，让成绩更能反映声明的机器人交互条件下的任务能力。
           </p>
         </div>
         <div class="principles">
-          <article class="principle"><div class="icon">01</div><h3>方法开放</h3><p>自选模型组合、prompt、工具和规划。按协议接入，不要求特定语言、SDK 或 Python Policy 基类。</p></article>
-          <article class="principle"><div class="icon">02</div><h3>面向 Sim / Real</h3><p>按传感器与控制器的真实能力声明接口；不能因为仿真里容易实现，就给策略增加真机没有的权限。</p></article>
-          <article class="principle"><div class="icon">03</div><h3>计划与失败保留</h3><p>预先固定 task、panel、seed 与预算；失败和错误不删除，不自动重试，不事后挑选分母。</p></article>
-          <article class="principle"><div class="icon">04</div><h3>记录自由选择</h3><p>交互历史默认启用，也可关闭以减少保存开销。它不是参评或发布门槛；结果、计数和失败仍保留。</p></article>
+          <article class="principle"><div class="icon">01</div><h3>可信的 agentic 评测</h3><p>明确环境访问权限，减少仿真特权捷径。Agent 可以在允许的信息与操作范围内自主规划和使用工具。</p></article>
+          <article class="principle"><div class="icon">02</div><h3>Sim / Real 交互对齐</h3><p>围绕真实机器人的感知与控制能力封装服务，声明观测、动作和反馈，为后续真机接入建立共同边界。</p></article>
+          <article class="principle"><div class="icon">03</div><h3>可复用的评测基础设施</h3><p>统一封装环境、任务执行和原生评分，保留配置、结果与错误，降低接入成本，为规模化评测提供基础。</p></article>
         </div>
+        <p class="small">访问边界还需由观测白名单及文件、进程和凭据权限落实；服务封装本身不构成完整安全沙箱。Sim / Real 对齐指交互边界，硬件时序、安全与评分仍需独立验证。</p>
+        <p class="small">当前每个服务实例同时运行一个 episode；自动资源分配与远程多服务调度尚未实现。具体方法仍须匹配选定协议的交互条件与预算。</p>
       </div>
     </section>
 
@@ -480,17 +497,45 @@
     <section id="architecture">
       <div class="shell">
         <div class="section-head">
-          <div><span class="section-number">03 / BOUNDARY</span><h2>一个入口，<br>选择你的 benchmark</h2></div>
+          <div><span class="section-number">03 / BENCHMARKS</span><h2>一个入口，<br>选择你的 benchmark</h2></div>
           <p class="section-intro">
-            统一入口委托所选 benchmark 的现有 server，不增加中央决策层。
-            模型 Actor 与持有服务凭据的 trusted driver 分开；决策循环归 agent，原生接口与评分归服务。
+            <strong>已集成 13 个仿真 Benchmark，真实机器人接入正在拓展。</strong>
+            通过统一入口选择评测服务，接入你的 Agent 方法；各 Benchmark 保留自己的机器人能力、任务条件与原生评分。
           </p>
+        </div>
+
+        <div class="split benchmark-coverage">
+          <article class="callout">
+            <h3><span class="benchmark-count">13</span> 个仿真 Benchmark · 已集成</h3>
+            <ul class="benchmark-list" aria-label="已集成的 13 个仿真 Benchmark">
+              <li><a href="../../benchmarks/simBenchmarks/SimplerEnv/README.md">SimplerEnv</a></li>
+              <li><a href="../../benchmarks/simBenchmarks/SIMPLE/README.md">SIMPLE</a></li>
+              <li><a href="../../benchmarks/simBenchmarks/LIBERO/README.md">LIBERO</a></li>
+              <li><a href="../../benchmarks/simBenchmarks/RoboDojo/README.md">RoboDojo</a></li>
+              <li><a href="../../benchmarks/simBenchmarks/Robocasa_365/README.md">RoboCasa365</a></li>
+              <li><a href="../../benchmarks/simBenchmarks/Robocasa_tabletop/README.md">RoboCasa Tabletop</a></li>
+              <li><a href="../../benchmarks/simBenchmarks/MetaWorld/README.md">MetaWorld</a></li>
+              <li><a href="../../benchmarks/simBenchmarks/LIBERO-plus/README.md">LIBERO-Plus</a></li>
+              <li><a href="../../benchmarks/simBenchmarks/Robotwin/README.md">RoboTwin</a></li>
+              <li><a href="../../benchmarks/simBenchmarks/DOMINO/README.md">DOMINO</a></li>
+              <li><a href="../../benchmarks/simBenchmarks/calvin/README.md">CALVIN</a></li>
+              <li><a href="../../benchmarks/simBenchmarks/VLA-Arena/README.md">VLA-Arena</a></li>
+              <li><a href="../../benchmarks/simBenchmarks/Behavior/README.md">BEHAVIOR-1K</a></li>
+            </ul>
+          </article>
+          <article class="callout">
+            <h3>真实机器人 · 正在拓展</h3>
+            <p>围绕声明的观测、动作与反馈契约，持续拓展真实机器人的评测接入，让评测服务从仿真延伸到真实世界。</p>
+            <p>已有硬件接口与部署参考；具体硬件服务仍需实现与验证。</p>
+            <p><a href="../../benchmarks/realRobots/README.md">查看真机接入进展 ↗</a></p>
+          </article>
         </div>
 
         <pre><code>rsi-bench list
 rsi-bench serve --benchmark robodojo --help
 # 源码运行：python -m benchkit.sim_server.cli ...</code></pre>
-        <p class="small">13 个开发态服务使用同一选择方式；任务、观测、动作和预算仍各自定义。列表不代表环境已安装或完整原生评测已通过。命令只负责启动选择，不是长驻调度进程。</p>
+        <p class="small">13 个仿真 Benchmark 已完成开发态服务集成，各自的任务覆盖与原生验收进度见<a href="../../benchmarks/simBenchmarks/SERVICE_SUPPORT.md">支持矩阵</a>。统一入口委托所选服务启动，任务、观测、动作和预算仍各自定义。</p>
+        <p class="small">模型 Actor 与持有服务凭据的 trusted driver 分开；决策循环归 agent，原生接口与评分归服务。统一入口只负责启动选择，不增加中央决策层或长驻调度进程。</p>
         <p class="small">本版保留 <code>benchkit/campaigns</code> 的固定计划、案例领取、启动与进度汇总；当前覆盖 5 个计划，运行冻结的本地 adapter，尚未整合远程 bench server 调度。不要把这两条运行路径当作同一流程的连续步骤。插件平台、更完整的调度与统一 CLI、跨 benchmark 总榜是后续目标。</p>
         <div class="architecture" role="img" aria-label="Agent 与所选 benchmark 服务两个控制端；原生环境位于服务边界内">
           <div class="arch-labels">
@@ -544,7 +589,7 @@ rsi-bench serve --benchmark robodojo --help
     <section id="lifecycle">
       <div class="shell">
         <div class="section-head">
-          <div><span class="section-number">04 / LIFECYCLE</span><h2>一次仿真评测如何闭合</h2></div>
+          <div><span class="section-number">04 / LIFECYCLE</span><h2>一次评测如何闭合</h2></div>
           <p class="section-intro">
             服务实例只有一个不可变 schedule，同时最多运行一个 episode。episode 被 claim 后不会重新放回队列；
             native 或传输结果不确定时 fail closed，绝不偷偷再执行一次动作。
@@ -590,7 +635,7 @@ rsi-bench serve --benchmark robodojo --help
           </p>
         </div>
 
-        <p class="small">这里的 Direct v2 是 <strong>benchmark 服务协议</strong>，不是 agent 方法版本。下方示例由当前 <code>codex-direct/v3</code> 方法连接该服务；方法可以变化，服务的观测、动作和原生评分契约保持独立。</p>
+        <p class="small">这里的 Direct v2 是 <strong>benchmark 服务协议</strong>，不是 agent 方法版本。下方示例由当前 <code>codex_native</code> 方法（记录版本 <code>codex-native/v2</code>）连接该服务；方法可以变化，服务的观测、动作和原生评分契约保持独立。</p>
 
         <div class="contract-grid">
           <article class="contract-card wide"><h3>协议身份</h3><span class="value" style="font-size:1.12rem;letter-spacing:-.02em">robodojo-direct-v2-rgb-proprio28-eef16-robot-feedback-v1</span><span class="unit">改观测或动作语义必须产生新协议，不是在 server JSON 中换 selector。</span></article>
@@ -695,12 +740,11 @@ rsi-bench serve --benchmark robodojo \
             <pre><code>python -B -m AgentPolicies.gpt6_astra.run \
   --sim-server http://127.0.0.1:8765 \
   --benchmark robodojo \
-  --control-method codex-direct/v3 \
   --seed 20260907 --episodes 5 \
   --max-steps 1100 --max-policy-calls 240 \
   --replan-interval 5 --budget-mode horizon \
   --output-dir AgentPolicies/gpt6_astra/results/robodojo/raw/my-new-run/client \
-  --run-id classify_objects-direct-v3-panel5-my-new-run</code></pre>
+  --run-id DATE-classify_objects-object-sorting-native-panel5-my-new-run</code></pre>
           </div>
         </div>
         <p class="small">示例中的 <code>240</code> 次调用预算和 <code>--replan-interval 5</code> 属于这次模型运行配置，不是所有 benchmark 的要求。自选步长、软限位和主动放弃规则归模型侧；服务不额外裁剪或添加原生接口没有的关节限位。硬件自身的安全机制不在此列。</p>
@@ -756,7 +800,7 @@ rsi-bench serve --benchmark robodojo \
           <aside class="callout warning"><h3>图片只作运行时临时材料</h3><p>正常关闭后，服务检查视频非空、文件哈希稳定、数量不低于声明相机数，再清理临时图片。这不是解码或逐相机内容完整性的验证。条件不满足则保留图片并记录原因；需要长期图片可开启 <code>--retain-frame-images</code>。</p></aside>
         </div>
         <p class="small">保存开关不改变观测、控制和原生评分，也不回溯清理旧结果。具体范围见 <a href="../../docs/recording.md">保存设置</a>。</p>
-        <p class="small">下面按职责展开主要文件；省略包标记及部分测试文件。bench_server 包含服务实现及其协议定义，environment 负责原生运行；根目录 server.py 启动服务，模型侧 trusted driver 通过 HTTP 接口连接。顶层已统一为 benchmarks 和 benchkit，见 <a href="../../docs/package-migration.md">目录迁移说明</a>。</p>
+        <p class="small">下面按职责展开主要文件；省略包标记。bench_server 包含服务实现及其协议定义，environment 负责原生运行；根目录 server.py 启动服务，模型侧 trusted driver 通过 HTTP 接口连接。顶层已统一为 benchmarks 和 benchkit，见 <a href="../../docs/package-migration.md">目录迁移说明</a>。</p>
         <div class="tree"><span class="benchmark">benchmarks/simBenchmarks/RoboDojo/</span>
 ├── README.md / EVALUATION_PROTOCOL.md
 ├── ACTION_VALIDATION.md / ROBOT_FEEDBACK.md
@@ -769,17 +813,17 @@ rsi-bench serve --benchmark robodojo \
 │       ├── task_catalog.json       # task / fast / full 固定计划
 │       ├── task_catalog.py         # 读取并校验协议数据
 │       └── robot_feedback.py       # 公开机器人 ACK 定义
-├── environment/                    # 原生仿真运行层
-│   ├── native_eef_worker.py / worker_runtime.py
-│   ├── eef_kinematics.py / asset_reference.py
-│   └── reference_eef_runtime.py / reference_eef_snapshot.json
-└── checks/                         # 回归测试及固定参考数据
+└── environment/                    # 原生仿真运行层
+    ├── native_eef_worker.py / worker_runtime.py
+    ├── eef_kinematics.py / asset_reference.py
+    └── reference_eef_runtime.py / reference_eef_snapshot.json
 
 <span class="model">AgentPolicies/gpt6_astra/</span>
 ├── run.py                     # 模型侧受信任入口
-├── methods/ + transports/     # 决策实现 / 模型通信
-├── configs/ + prompts/        # 方法配置 / 提示词
-├── docs/ + tools/ + checks/   # 指南 / 诊断 / 回归
+├── codex_native.py            # 唯一方法
+├── configs/                  # 唯一方法的配置、提示词与注册声明
+├── tools/                    # 运行时、通信与观测处理
+├── docs/                     # 使用指南
 └── results/robodojo/           # 可发布结果；raw / media 忽略
 
 <span class="shared">benchkit/</span>
@@ -833,38 +877,119 @@ rsi-bench serve --benchmark robodojo \
     <section id="acceptance">
       <div class="shell">
         <div class="section-head">
-          <div><span class="section-number">11 / EVIDENCE</span><h2>服务实现，<br>不等于评测已通过</h2></div>
-          <p class="section-intro">截至 2026-10-06，仓库有 13 个已实现的开发态 SIM 服务入口。下面是验收层级，不是全部通过的声明；本次文档更新与目录回归没有新增模型评测分数。</p>
+          <div><span class="section-number">11 / VALIDATION SCOPE</span><h2>评测验证<br>与覆盖范围</h2></div>
+          <p class="section-intro">从协议检查、原生环境运行到 Agent 任务评测，我们按四个层级组织验证，分别记录服务行为、运行状态、案例结果与完整任务覆盖。各 Benchmark 的具体进展见下方实验快照。</p>
         </div>
         <div class="principles">
-          <article class="principle"><div class="icon">A</div><h3>离线回归</h3><p>校验协议、生命周期、白名单与错误记账。通过不代表原生环境或渲染已就绪。</p></article>
-          <article class="principle"><div class="icon">B</div><h3>原生短交互</h3><p>独立无模型诊断：真实初始化与 1–2 次控制，检查画面、状态和证据。接通接口不代表任务成功。</p></article>
-          <article class="principle"><div class="icon">C</div><h3>模型单例</h3><p>预声明任务与预算，通过服务尝试一次，保留成败和错误。不代表整个 benchmark 的 SR。</p></article>
-          <article class="principle"><div class="icon">D</div><h3>原生 full 对齐</h3><p>核实完整任务/变体/episode 矩阵和控制条件。不只是加大 horizon 或重复到成功。</p></article>
+          <article class="principle"><div class="icon">A</div><h3>协议与服务回归</h3><p>离线检查接口协议、会话生命周期、观测白名单和错误记录，验证服务行为符合声明的契约。</p></article>
+          <article class="principle"><div class="icon">B</div><h3>原生环境验证</h3><p>通过无模型短交互检查环境初始化、1–2 次控制、渲染画面与状态反馈，确认原生运行链路。</p></article>
+          <article class="principle"><div class="icon">C</div><h3>Agent 单例评测</h3><p>预先声明任务与预算，通过服务完成一次方法评测，分别保留原生成功、任务失败和工程错误。</p></article>
+          <article class="principle"><div class="icon">D</div><h3>完整协议覆盖</h3><p>按原生协议核实任务、变体、种子、episode 计划与控制条件，逐项推进 full 评测的覆盖和对齐。</p></article>
         </div>
         <div class="table-scroll" style="margin-top:20px">
-          <table aria-label="服务集成范围与不能推断的结论">
-            <thead><tr><th>范围</th><th>已有组织或实现</th><th>不能据此推断</th></tr></thead>
+          <table aria-label="Benchmark 服务集成与评测覆盖范围">
+            <thead><tr><th>Benchmark</th><th>服务集成</th><th>评测覆盖说明</th></tr></thead>
             <tbody>
-              <tr><td>RoboDojo</td><td>本文服务协议 Direct v2：classify_objects，fast 5 / full 50 layouts。</td><td>不代表全部 Dojo 任务已开放，也不代表与参考模型 SR 已对齐。</td></tr>
-              <tr><td>SimplerEnv / LIBERO / SIMPLE</td><td>同样的 bench_server / environment / checks 分工，各自保留观测与动作契约。</td><td>不是相同的机器人、控制频率或 horizon；SIMPLE 不是 EEF 控制。</td></tr>
-              <tr><td>其他开发态服务</td><td>RoboCasa365、RoboCasa Tabletop、MetaWorld、LIBERO-Plus、RoboTwin、DOMINO、BEHAVIOR、VLA-Arena、CALVIN。</td><td>任务支持范围与原生验证状态各不相同，不能把入口数量当作完整验收数量。</td></tr>
-              <tr><td>VLN-CE / Real robots</td><td>VLN-CE 等待已授权的导航资产；realRobots 保留硬件接入参考。</td><td>不计入上述 13 个 SIM 服务；不声称统一硬件服务已部署。</td></tr>
+              <tr><td>RoboDojo</td><td>服务协议 Direct v2；classify_objects 提供 fast 5 / full 50 layouts 的固定计划。</td><td>当前开放物体分类任务；更多 Dojo 任务与参考成绩的对齐仍待拓展。</td></tr>
+              <tr><td>SimplerEnv / LIBERO / SIMPLE</td><td>采用统一的服务组织方式，各自保留观测与动作契约。</td><td>分别使用对应机器人的原生控制频率与 horizon；SIMPLE 保留人形控制接口。</td></tr>
+              <tr><td>其他已集成仿真服务</td><td>RoboCasa365、RoboCasa Tabletop、MetaWorld、LIBERO-Plus、RoboTwin、DOMINO、BEHAVIOR-1K、VLA-Arena、CALVIN。</td><td>开发态服务已接入，任务支持范围和原生验证进度按 Benchmark 单独记录。</td></tr>
+              <tr><td>VLN-CE / 真实机器人</td><td>VLN-CE 等待已授权的导航资产；真机接入正在拓展，已有硬件接口与部署参考。</td><td>属于后续接入范围；硬件服务仍需实现与验证，未计入已集成的 13 个仿真 Benchmark。</td></tr>
             </tbody>
           </table>
         </div>
         <div class="callout warning" style="margin-top:16px">
-          <h3>长程评测要验证到最后一步</h3>
-          <p>horizon 附近也要检查原生终止、执行计数与 ACK：动作已执行但终止校验报错，属于基础设施错误，不是正常任务失败。报告分列计划、尝试、完成、错误、原生 success 与部分分数；<strong>40/100 的任务分数不是 40% 成功率。</strong></p>
+          <h3>执行记录与结果解释</h3>
+          <p>评测记录覆盖原生终止、执行计数与 ACK，基础设施错误和正常任务失败分别呈现。报告列出计划、尝试、完成、错误、原生成功与部分分数；任务分数（如 40/100）与案例成功率使用各自的定义和分母。</p>
         </div>
-        <p class="small">各服务的范围与安装条件见 <a href="../../benchmarks/simBenchmarks/SERVICE_SUPPORT.md">SERVICE_SUPPORT.md</a>；具体轮次结论以模型目录下闭合报告及其 server/client 证据为准。页面不因服务可启动就宣称任务成功。</p>
+        <p class="small">已集成数量统计开发态服务接入；任务表现与完整覆盖以对应实验记录为准。各服务的范围与安装条件见<a href="../../benchmarks/simBenchmarks/SERVICE_SUPPORT.md">支持矩阵</a>，已完成实验见下方<a href="#validation-snapshot">验证进展</a>。</p>
+      </div>
+    </section>
+
+    <section id="validation-snapshot">
+      <div class="shell">
+        <div class="section-head">
+          <div><span class="section-number">12 / VALIDATION</span><h2>验证进展<br>2026-10-07 快照</h2></div>
+          <p class="section-intro">根据项目维护者提供的已关闭结果人工快照整理，记录服务完成情况、所选案例的原生结果与覆盖范围。两组实验分别展示，保留失败和工程中断；本页是历史快照，不是实时仪表盘或全 Benchmark 总榜。</p>
+        </div>
+        <div class="split">
+          <article class="callout">
+            <h3>SimplerEnv · 15 个任务，各五个 seed</h3>
+            <p><strong>75 个正常结果：20 成功、55 失败。</strong><br>本轮选定案例成功比例为 <strong>20/75 = 26.7%</strong>。</p>
+            <p>共保留 <strong>76 条尝试记录</strong>：75 条正常结果 + 1 条原始工程错误。勺子 seed 0 在环境构造前检查超时，0 调用、0 控制；关联恢复记录成功，原错误保留，其他正常失败未重跑。</p>
+          </article>
+          <article class="callout">
+            <h3>Direct v3 · 13 个 Benchmark 单案例验收</h3>
+            <p><strong>11 个正常完成：6 成功、5 失败。</strong><br><strong>2 个最新尝试为工程中断</strong>：CALVIN、RoboCasa Tabletop。</p>
+            <p>每个 Benchmark 对应一个所选任务，按最新已授权验收配置记录，不筛选历史最佳成绩。正常完成包括任务失败，不等于全任务覆盖；不计算跨 Benchmark 能力总分。</p>
+          </article>
+        </div>
+
+        <h3 style="margin-top:26px">SimplerEnv · 2026-10-06 轮次</h3>
+        <p class="small">预选 seed 0–4；不同 seed 不保证不同几何布局。使用 <code>prepackaged-development</code> RGB 原生 horizon 轨道，显式开启 <code>action-feedback</code> 和 <code>agent-method</code>，按原生末步判定成功。该轮次不覆盖完整官方 VM/VA，也不与下方单案例验收合并。</p>
+        <details class="snapshot-details">
+          <summary>展开 15 个任务的结果与原生控制预算</summary>
+          <div class="table-scroll" tabindex="0" role="region" aria-label="SimplerEnv 任务结果，可横向滚动">
+            <table aria-label="SimplerEnv 15 任务各五个 seed 的结果" data-snapshot-table="simpler">
+              <thead><tr><th>Canonical task</th><th>简介</th><th>成功数</th><th>每例原生控制预算</th></tr></thead>
+              <tbody>
+                <tr><td>google_robot_pick_horizontal_coke_can</td><td>水平罐抓取</td><td>1/5</td><td>80</td></tr>
+                <tr><td>google_robot_pick_vertical_coke_can</td><td>垂直罐抓取</td><td>2/5</td><td>80</td></tr>
+                <tr><td>google_robot_pick_standing_coke_can</td><td>直立罐抓取</td><td>2/5</td><td>80</td></tr>
+                <tr><td>google_robot_move_near_v0</td><td>移动到物体附近</td><td>0/5</td><td>80</td></tr>
+                <tr><td>google_robot_open_top_drawer</td><td>打开上层抽屉</td><td>0/5</td><td>113</td></tr>
+                <tr><td>google_robot_open_middle_drawer</td><td>打开中层抽屉</td><td>0/5</td><td>113</td></tr>
+                <tr><td>google_robot_open_bottom_drawer</td><td>打开下层抽屉</td><td>0/5</td><td>113</td></tr>
+                <tr><td>google_robot_close_top_drawer</td><td>关闭上层抽屉</td><td>1/5</td><td>113</td></tr>
+                <tr><td>google_robot_close_middle_drawer</td><td>关闭中层抽屉</td><td>0/5</td><td>113</td></tr>
+                <tr><td>google_robot_close_bottom_drawer</td><td>关闭下层抽屉</td><td>1/5</td><td>113</td></tr>
+                <tr><td>google_robot_place_apple_in_closed_top_drawer</td><td>苹果放入抽屉</td><td>1/5</td><td>200</td></tr>
+                <tr><td>widowx_spoon_on_towel</td><td>勺子放毛巾</td><td>3/5</td><td>60</td></tr>
+                <tr><td>widowx_carrot_on_plate</td><td>胡萝卜放盘子</td><td>4/5</td><td>60</td></tr>
+                <tr><td>widowx_stack_cube</td><td>方块堆叠</td><td>3/5</td><td>60</td></tr>
+                <tr><td>widowx_put_eggplant_in_basket</td><td>茄子放篮子</td><td>2/5</td><td>120</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <p class="small">方法为 <code>codex-direct/v3</code>，请求 <code>gpt-6-astra / xhigh</code>，CLI <code>0.154.0</code>；同 episode 持久对话、无跨案例记忆，chunk 上限 5、调用上限 240、预览最长边 480，策略 <code>safety_stop=false</code>。调用上限属于本轮方法配置，提供商身份与内部请求数未独立认证。</p>
+        </details>
+
+        <h3 style="margin-top:28px">Direct v3 · 2026-10-05 至 2026-10-06 验收轮次</h3>
+        <p class="small">调用包括未产出已执行动作的失败调用；动作决策只计至少执行一个控制的决策。以下保留主运行顺序，后续补充项列在其后。</p>
+        <div class="table-scroll" tabindex="0" role="region" aria-label="跨 Benchmark 单案例验收结果，可横向滚动">
+          <table aria-label="13 个 Benchmark 所选案例的最新验收尝试" data-snapshot-table="acceptance">
+            <thead><tr><th>Benchmark</th><th>所选任务</th><th>结果</th><th>调用／动作决策／控制步</th></tr></thead>
+            <tbody>
+              <tr data-outcome="success"><td>RoboDojo</td><td>classify_objects · layout 0</td><td><span class="result-success">成功</span> · 原生 100/100</td><td class="counts">99／99／483</td></tr>
+              <tr data-outcome="success"><td>SimplerEnv</td><td>水平罐抓取</td><td><span class="result-success">成功</span></td><td class="counts">33／33／80</td></tr>
+              <tr data-outcome="success"><td>LIBERO</td><td>spatial task 0 · 黑碗放盘子</td><td><span class="result-success">成功</span></td><td class="counts">27／27／113</td></tr>
+              <tr data-outcome="success"><td>RoboCasa365</td><td>NavigateKitchen</td><td><span class="result-success">成功</span></td><td class="counts">33／33／163</td></tr>
+              <tr data-outcome="failure"><td>RoboTwin</td><td>lift_pot</td><td><span class="result-failure">失败</span> · 达到 400 控制预算</td><td class="counts">156／156／400</td></tr>
+              <tr data-outcome="error"><td>RoboCasa Tabletop</td><td>PnPCupToDrawerClose</td><td><span class="result-error">工程中断</span> · Codex 调用失败</td><td class="counts">81／80／400</td></tr>
+              <tr data-outcome="failure"><td>VLA-Arena</td><td>Level-0 fork on cabinet</td><td><span class="result-failure">失败</span> · 达到本轮 300 控制预算</td><td class="counts">64／64／300</td></tr>
+              <tr data-outcome="failure"><td>SIMPLE</td><td>G1WholebodyBendPickMP-v0</td><td><span class="result-failure">失败</span> · 达到 400 控制预算</td><td class="counts">88／88／400</td></tr>
+              <tr data-outcome="success"><td>MetaWorld</td><td>reach-v3</td><td><span class="result-success">成功</span></td><td class="counts">25／25／123</td></tr>
+              <tr data-outcome="failure"><td>LIBERO-Plus</td><td>spatial task 0 / table1</td><td><span class="result-failure">失败</span> · 达到 220 控制预算</td><td class="counts">47／47／220</td></tr>
+              <tr data-outcome="failure"><td>DOMINO</td><td>click_bell · seed 100000</td><td><span class="result-failure">原生失败</span> · 目标物越界；MS 29.35</td><td class="counts">99／99／99</td></tr>
+              <tr data-outcome="success"><td>BEHAVIOR</td><td>turning_on_radio · public0 / instance301</td><td><span class="result-success">成功</span> · 原生分数 1.0</td><td class="counts">922／922／922</td></tr>
+              <tr data-outcome="error"><td>CALVIN</td><td>debug sequence 0 · 旋转蓝色方块</td><td><span class="result-error">工程中断</span> · 恢复后仍发生 Codex 调用失败</td><td class="counts">249／248／248</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="small">RoboCasa365、RoboTwin、SIMPLE、Tabletop 是关闭策略自愿 safety stop 后的独立实验，原始停止、失败与初始化修复记录保留。CALVIN 此前的 32／31／31 工程中断也保留，未用最新尝试覆盖。请求的模型名称不构成提供商身份认证。</p>
+        <p class="small">VLA-Arena 本轮为 300 控制的 Level-0 预算，底层引擎 horizon 为 1000；Tabletop 的 1000 控制为开发范围，CALVIN 使用 debug 资产，RoboCasa365 使用 <code>egl-owner-material-clamp-v1</code>。这些条件不构成完整官方 full 对齐；DOMINO 的 MS 29.35 是 manipulation score，不是 29.35% 成功率。</p>
+        <div class="callout warning" style="margin-top:20px">
+          <h3>截至快照仍待完成</h3>
+          <p>CALVIN 与 Tabletop 尚未完成这轮正常验收，输出已导出、服务已清理；现有记录不能证明其他 Benchmark 已完成全任务各五例。Planned 跨 Benchmark 批量轮次因 CALVIN 前置检查未通过而未启动；历史独立 RoboDojo Planned 单例（40/100、未成功）另行保留。VLN-CE 仍缺少已授权资产和验证条件，真实机器人不在本轮仿真结果中。</p>
+        </div>
+        <p><a href="../../Projects_readmes/evaluation-snapshot-2026-10-07.md">查看完整快照、源码版本、方法条件与原始运行索引 ↗</a></p>
+        <p class="small">本页于 2026-10-10 收录上述快照，未在本机重新读取 raw 或运行评测。原始记录与视频属于部署环境中的 Git-ignored 产物，当前源码不包含这批文件；新快照与仓库较早轮次分别保存。</p>
       </div>
     </section>
 
     <section id="sources">
       <div class="shell">
         <div class="section-head">
-          <div><span class="section-number">12 / SOURCE</span><h2>实现与设计边界</h2></div>
+          <div><span class="section-number">13 / SOURCE</span><h2>实现与设计边界</h2></div>
           <p class="section-intro">以下是当前实现的主要入口，并非完整文件清单。链接从本页面回到仓库目录；Live Preview 请以仓库根目录为工作区。</p>
         </div>
         <div class="sources">
@@ -881,7 +1006,7 @@ rsi-bench serve --benchmark robodojo \
           <a class="source-link" href="../../benchmarks/simBenchmarks/RoboDojo/bench_server/adapter.py"><span>bench_server/adapter.py</span><span>服务端适配</span></a>
           <a class="source-link" href="../../benchmarks/simBenchmarks/RoboDojo/bench_server/protocol/task_catalog.json"><span>bench_server/protocol/task_catalog.json</span><span>评测协议数据</span></a>
           <a class="source-link" href="../../benchmarks/simBenchmarks/RoboDojo/EVALUATION_PROTOCOL.md"><span>EVALUATION_PROTOCOL.md</span><span>评测协议</span></a>
-          <a class="source-link" href="../../AgentPolicies/gpt6_astra/docs/DIRECT_CONTROL.md"><span>gpt6_astra/docs/DIRECT_CONTROL.md</span><span>模型侧控制</span></a>
+          <a class="source-link" href="../../AgentPolicies/gpt6_astra/README.md"><span>gpt6_astra/README.md</span><span>模型侧控制</span></a>
           <a class="source-link" href="../../benchmarks/realRobots/README.md"><span>realRobots/README.md</span><span>硬件接入现状与前置条件</span></a>
           <a class="source-link" href="../../docs/architecture.md"><span>docs/architecture.md</span><span>职责与实现边界</span></a>
         </div>
@@ -892,7 +1017,7 @@ rsi-bench serve --benchmark robodojo \
   <footer class="shell">
     <div class="footer-line">
       <span>starVLA-RSI · Bench Server architecture guide</span>
-      <span>benchmarks + AgentPolicies + benchkit · updated 2026-10-06</span>
+      <span>benchmarks + AgentPolicies + benchkit · 文案更新 2026-10-10 · 结果快照 2026-10-07</span>
     </div>
   </footer>
 

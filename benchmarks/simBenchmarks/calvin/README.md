@@ -18,9 +18,9 @@ owns the current-language control interface and native score bridge.
 `bench_server/protocol/` owns the immutable sequence inventory and selected
 `frozen_sequence.json`. Those reset vectors and future tasks stay evaluator-private;
 putting them in a protocol package does not expose them to the actor.
-`environment/` owns native loading, source/runtime pins and setup; `checks/`
-contains offline regressions. No old root adapter shim remains. The path changes
-preserve source-data bytes, native scoring and the required prefix-one interface.
+`environment/` owns native loading, source/runtime pins and setup. No old root
+adapter shim remains. The path changes preserve source-data bytes, native scoring
+and the required prefix-one interface.
 
 The frozen record retains its original `sequence_file: environment/eval_sequences.json`
 as historical provenance. The same byte-identical file now lives at
@@ -100,18 +100,10 @@ not this benchmark directory. OpenCV's RGB→BGR conversion is encoding-only;
 native views are not flipped, resized or cropped. Stop the one-sequence service
 after artifact transfer; restarting is not permission to retry a scored attempt.
 
-## Contract regressions
+## Validation scope
 
-```sh
-python -B -m unittest discover \
-  -s benchmarks/simBenchmarks/calvin/checks -p 'test_*.py' -v
-```
-
-These tests use fake native objects; optional array checks need NumPy. The native
-helper parity check needs `CALVIN_NATIVE_SOURCE_ROOT` and pinned NumPy but only
-executes two source-hash-verified pure-math functions. It does not import model
-helpers, construct a simulator, reset or step. Full schedules, alternative
-sequences, D-validation equivalence and native policy-memory-reset parity remain
+Full schedules, alternative sequences, D-validation equivalence and native
+policy-memory-reset parity remain
 unsupported and must be separately versioned and validated.
 
 The separate bounded native check observed one reset physics tick and sixteen

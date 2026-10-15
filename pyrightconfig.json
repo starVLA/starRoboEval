@@ -1,5 +1,5 @@
 {
-  "include": ["harness", "AgentPolicies/anonymous_code_agent", "AgentPolicies/policy_support"],
+  "include": ["benchkit", "AgentPolicies/anonymous_code_agent", "AgentPolicies/gpt6_astra"],
   "exclude": ["results", "logs", "artifacts", "**/__pycache__"],
   "pythonVersion": "3.10",
   "typeCheckingMode": "basic"

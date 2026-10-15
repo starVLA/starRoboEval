@@ -19,7 +19,7 @@ task. Native full evaluation and retained-evaluator parity are not established.
 `server.py` is the public factory/launch entrypoint. `bench_server/adapter.py`
 owns observation, action and native scoring; `bench_server/protocol/task_catalog.json`
 owns the immutable task inventory. `environment/` owns native setup and package
-pins; `checks/` contains offline contract regressions. Deployment paths and the
+pins. Deployment paths and the
 selected schedule belong in an operator copy of `server.example.json`.
 There is no root adapter compatibility entrypoint. This layout changes neither
 the public wire protocol nor native control/scoring semantics.

@@ -57,13 +57,7 @@ broader and separate; existing frozen inventories are unchanged.
 Run only from a stable versioned source snapshot;
 never update files inside an active or historical frozen run.
 
-The standard CPU runner includes this package's cross-benchmark acceptance tests
-as the `benchmark_service` group:
-
-```sh
-python -B -m benchkit.checks.run_regressions --group benchmark_service \
-  --output /absolute/new-regression-report
-```
-
-These checks prohibit native initialization/model calls. They do not replace
-the benchmark's own contract tests or native readiness and model-sample gates.
+The former cross-benchmark CPU regression runner and acceptance fixtures are
+no longer included in the active source tree; recover matching versions from
+Git history when needed. New changes still need independent contract validation.
+Offline validation does not replace native readiness or model-sample checks.

@@ -133,8 +133,9 @@ runner; it need not import or subclass the runner. The exporter reads
 per-episode `result.json` files. Schema, identity, count and outcome consistency
 are checked, including every attempted failure/error and unattempted suffix.
 See the exact [basic-result implementation](../benchkit/reports/basic_result.py)
-and its [contract fixtures](../benchkit/checks/test_basic_result.py) for required
-field types; unsupported layouts fail explicitly, not by guessing metadata.
+and the record contract above for required field types; unsupported layouts fail
+explicitly, not by guessing metadata. Historical contract fixtures are no longer
+included in the active source tree and can be recovered from Git history.
 
 For sufficiently complete event records, the separate
 `python -m benchkit.reports.interaction_history` exporter provides a trajectory

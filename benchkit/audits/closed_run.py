@@ -232,11 +232,14 @@ def audit_model_source(files: ClosedFiles, manifest: dict) -> int:
                   "starvla-rsi.model-source/v3": "AgentPolicies",
                   "starvla-rsi.model-source/v4": "AgentPolicies",
                   "starvla-rsi.model-source/v5": "AgentPolicies",
-                  "starvla-rsi.model-source/v6": "AgentPolicies"}
+                  "starvla-rsi.model-source/v6": "AgentPolicies",
+                  "starvla-rsi.model-source/v7": "AgentPolicies"}
     require(isinstance(snapshot.get("schema_version"), str) and snapshot["schema_version"] in namespaces
             and snapshot.get("path") == "model_source/index.json", "unknown model source schema/path")
     namespace = namespaces[snapshot["schema_version"]]
     grouped = snapshot["schema_version"] == "starvla-rsi.model-source/v4" and profile_id == "gpt6_astra"
+    relocated_support = snapshot["schema_version"] == "starvla-rsi.model-source/v7"
+    flat_native = relocated_support and profile_id == "gpt6_astra"
     generic = snapshot["schema_version"] == "starvla-rsi.model-source/v6" and profile_id == "gpt6_astra"
     current = snapshot["schema_version"] in ("starvla-rsi.model-source/v5", "starvla-rsi.model-source/v6") and profile_id == "gpt6_astra"
     # Independent v5 inventory: never import a producer allowlist or captured Python.
@@ -264,8 +267,22 @@ def audit_model_source(files: ClosedFiles, manifest: dict) -> int:
             "tools/runtime_preflight.py", "tools/public_observation.py",
         )
 
+    if flat_native:
+        current_names = (
+            "__init__.py", "configs/profile.json", "configs/configuration.schema.json", "configs/dependencies.json",
+            "codex_native.py", "configs/codex_native_config.json", "configs/codex_native_prompt.txt",
+            "tools/__init__.py", "tools/persistent_runtime.py", "tools/public_observation.py", "tools/json_io.py",
+            "tools/codex_app_server.py", "tools/codex_runtime.py",
+        )
+
     def relative(name):
-        # Independently declared v4 layout, never import captured model code.
+        # Independently declared layouts, never import captured model code.
+        if flat_native:
+            name = {"config.json": "codex_native_config.json", "prompt.txt": "codex_native_prompt.txt"}.get(name, name)
+            if name in {"profile.json", "configuration.schema.json", "dependencies.json",
+                        "codex_native_config.json", "codex_native_prompt.txt"}:
+                return "configs/" + name
+            return name
         if current:
             if name == "prompt.txt":
                 return "prompts/codex_native_prompt.txt"
@@ -307,9 +324,9 @@ def audit_model_source(files: ClosedFiles, manifest: dict) -> int:
     require(hashlib.sha256(source_bytes).hexdigest() == identity["source_inventory_sha256"],
             "model source identity inventory mismatch")
     prefix = f"model_source/files/{namespace}/{profile_id}/"
-    profile = files.json(prefix + "profile.json")
+    profile = files.json(prefix + relative("profile.json"))
     config = files.json(prefix + relative("config.json"))
-    dependencies = files.json(prefix + "dependencies.json")
+    dependencies = files.json(prefix + relative("dependencies.json"))
     legacy = snapshot["schema_version"] == "starvla-rsi.model-source/v1"
     direct = profile_id == "gpt6_astra" and not legacy
     if direct:
@@ -318,10 +335,11 @@ def audit_model_source(files: ClosedFiles, manifest: dict) -> int:
             and profile.get("schema_version") == "starvla-rsi.model-profile/v1"
             and profile.get("display_name") == "GPT6Astra"
             and profile.get("factory") == f"{namespace}.gpt6_astra." +
-                ("tools.factory:create_policy" if current else
+                ("codex_native:create_policy" if flat_native else
+                 "tools.factory:create_policy" if current else
                  "methods.policy:create_policy" if grouped else "policy:create_policy"),
             "invalid direct model profile semantics")
-        configuration = files.json(prefix + "configuration.schema.json")
+        configuration = files.json(prefix + relative("configuration.schema.json"))
         audit_configuration(config, configuration, profile_id)
         policy = profile.get("policy")
         require(config.get("schema_version") == "starvla-rsi.model-config/v1"
@@ -357,22 +375,35 @@ def audit_model_source(files: ClosedFiles, manifest: dict) -> int:
             "run policy differs from captured model identity")
     require(dependencies.get("schema_version") == "starvla-rsi.model-dependencies/v1"
             and isinstance(dependencies.get("files"), list), "invalid model dependencies")
+    # Independent versioned inventory; package markers do not import Codex code.
+    common_files = ([f"{namespace}/__init__.py", f"{namespace}/gpt6_astra/__init__.py",
+                     f"{namespace}/gpt6_astra/tools/__init__.py", f"{namespace}/gpt6_astra/tools/stop_rules.py"]
+                    if relocated_support else
+                    [f"{namespace}/__init__.py", f"{namespace}/policy_support/__init__.py",
+                     f"{namespace}/policy_support/stop_rules.py"])
     allowed = sorted((["starVLA/__init__.py", "starVLA/model_profiles.py", "starVLA/providers/__init__.py",
                        "starVLA/providers/mailbox.py"] if legacy else
-                      [f"{namespace}/__init__.py", f"{namespace}/policy_support/__init__.py",
-                       f"{namespace}/policy_support/stop_rules.py", f"{namespace}/anonymous_code_agent/mailbox.py",
+                      common_files + [f"{namespace}/anonymous_code_agent/mailbox.py",
                        f"{namespace}/anonymous_code_agent/prompts/control_guidance.txt",
                        f"{namespace}/anonymous_code_agent/prompts/actor_instructions.txt",
                        f"{namespace}/anonymous_code_agent/prompts/simpler_development.txt"]) + [f"{namespace}/{profile_id}/{name}" for name in
                       ("__init__.py", "profile.json", "config.json", "prompt.txt", "dependencies.json", "policy.py")])
     provider_sdk = None
     if direct:
-        allowed = sorted([f"{namespace}/__init__.py", f"{namespace}/policy_support/__init__.py",
-                          f"{namespace}/policy_support/stop_rules.py"] + [f"{namespace}/{profile_id}/{name}" for name in
+        allowed = sorted(common_files + [f"{namespace}/{profile_id}/{name}" for name in
                          ("__init__.py", "profile.json", "config.json", "prompt.txt", "dependencies.json", "policy.py",
                           "responses.py", "configuration.schema.json")])
         method = manifest["policy"].get("version")
         parameters = manifest["policy"]["parameters"]
+        if flat_native:
+            require(method == "codex-native/v2" and parameters.get("control_method") == method
+                    and config.get("control_method") == method
+                    and config.get("transport") == "codex-app-server/v1"
+                    and type(config.get("min_action_decisions_before_give_up")) is int
+                    and config["min_action_decisions_before_give_up"] == 0
+                    and not any(key in config for key in ("codex_direct_extension", "codex_direct_context_extension",
+                                                          "codex_native_extension", "codex_planned_extension", "enforce_action_guard")),
+                    "v7 source requires its single persistent Codex native v2 method")
         if current:
             direct_method = "codex-direct/v3" if generic else "codex-direct/v2"
             require(method in {"codex-native/v1", direct_method, "codex-planned/v1"}
@@ -399,7 +430,7 @@ def audit_model_source(files: ClosedFiles, manifest: dict) -> int:
                 and config["codex_native_extension"] == "native-vectors/v1"),
                 "unsupported native-vector source extension declaration")
         if (parameters.get("control_method") == "codex-native/v1"
-                or (isinstance(method, str) and method.startswith("codex-native/"))):
+                or (isinstance(method, str) and method.startswith("codex-native/"))) and not flat_native:
             require(method == "codex-native/v1" and native_methods,
                     "unsupported or undeclared Codex native method version")
         require(current or not context_methods or (persistent_methods
@@ -413,7 +444,7 @@ def audit_model_source(files: ClosedFiles, manifest: dict) -> int:
         if method == "codex-direct/v3" or parameters.get("control_method") == "codex-direct/v3":
             require(generic and method == "codex-direct/v3" and parameters.get("control_method") == method,
                     "Codex Direct v3 requires its v6 native-vector source layout")
-        if ((parameters.get("transport") == "codex-app-server/v1" and method not in ("codex-planned/v1", "codex-direct/v3"))
+        if ((parameters.get("transport") == "codex-app-server/v1" and method not in ("codex-planned/v1", "codex-direct/v3", "codex-native/v2"))
                 or parameters.get("control_method") in ("codex-direct/v1", "codex-direct/v2")
                 or (isinstance(method, str) and method.startswith("codex-direct/") and method != "codex-direct/v3")):
             require(method in ("codex-direct/v1", "codex-direct/v2") and persistent_methods
@@ -441,8 +472,8 @@ def audit_model_source(files: ClosedFiles, manifest: dict) -> int:
                         if planned_methods:
                             allowed = sorted(allowed + [f"{namespace}/{profile_id}/{name}" for name in (
                                 "codex_planned.py", "codex_planned_config.json", "codex_planned_prompt.txt")])
-            if method == "codex-direct/v3":
-                preset_path = prefix + relative("codex_direct_v3_config.json")
+            if flat_native or method == "codex-direct/v3":
+                preset_path = prefix + relative("codex_native_config.json" if flat_native else "codex_direct_v3_config.json")
                 preset = files.json(preset_path)
                 effective = parameters.get("effective_config")
                 overrides = {"timeout_s", "max_chunk_length", "image_max_edge"}
@@ -470,7 +501,12 @@ def audit_model_source(files: ClosedFiles, manifest: dict) -> int:
                             == json.dumps({k: v for k, v in preset.items() if k not in overrides}, sort_keys=True, allow_nan=False),
                         "Codex Direct v3 effective preset differs outside native-vector overrides")
                 require(files.hashes[preset_path] == parameters.get("preset_sha256")
-                        and preset.get("schema_version") == "starvla-rsi.codex-direct-config/v3"
+                        and preset.get("schema_version") == ("starvla-rsi.model-config/v1" if flat_native
+                                                              else "starvla-rsi.codex-direct-config/v3")
+                        and (not flat_native or (preset.get("profile_id") == "gpt6_astra" and stop_rule is not None
+                            and preset.get("policy_stop_rule_version") == "minimum-action-decisions/v2"
+                            and type(preset.get("min_action_decisions_before_give_up")) is int
+                            and preset["min_action_decisions_before_give_up"] == 0))
                         and preset.get("control_method") == method
                         and parameters.get("transport") == "codex-app-server/v1"
                         and preset.get("transport") == "codex-app-server/v1"
@@ -662,10 +698,9 @@ def audit_model_source(files: ClosedFiles, manifest: dict) -> int:
                 and (provider_sdk.get("version") is None or (isinstance(provider_sdk.get("version"), str)
                     and provider_sdk["version"].strip() and len(provider_sdk["version"]) <= 128)),
                 "invalid declared provider SDK dependency")
-    if current:
-        allowed = sorted([f"{namespace}/__init__.py", f"{namespace}/policy_support/__init__.py",
-                          f"{namespace}/policy_support/stop_rules.py"]
-                         + [f"{namespace}/{profile_id}/{name}" for name in current_names])
+    if current or flat_native:
+        allowed = sorted(set(common_files
+                             + [f"{namespace}/{profile_id}/{name}" for name in current_names]))
     elif grouped:
         model_prefix = f"{namespace}/{profile_id}/"
         allowed = sorted([model_prefix + relative(path.removeprefix(model_prefix))
@@ -1158,7 +1193,7 @@ def audit_run(run: Path) -> dict:
                             "A consistent error or failed task is not a successful task."]}
     if model_count:
         report["model_source_files_verified"] = model_count
-    if manifest["policy"].get("version") in ("codex-direct/v1", "codex-direct/v2", "codex-planned/v1"):
+    if manifest["policy"].get("version") in ("codex-direct/v1", "codex-direct/v2", "codex-planned/v1", "codex-native/v2"):
         report["persistent_direct_artifacts_audited"] = False
         report["limitations"].append(
             "Persistent policy support checks captured configuration and the generic call/ACK ledger only; "

@@ -17,8 +17,7 @@ owns the public sensor/action interface and native score bridge;
 `bench_server/protocol/catalog.py` and `catalogs/` define the immutable task matrix.
 Native installation, source pins and catalog-generation tools belong in
 `environment/`; in particular `native_source_manifest.json` is a runtime pin,
-not a task catalog. `checks/` contains offline regressions. There is no old root
-adapter/catalog shim. Relocation preserves catalog bytes and native behavior;
+not a task catalog. There is no old root adapter/catalog shim. Relocation preserves catalog bytes and native behavior;
 operator paths and selected cases stay in the server configuration.
 
 ## Configure a native environment
@@ -116,13 +115,6 @@ an SSH tunnel, not a publicly exposed server. Every selected session is claimed
 once, including errors; do not retry a failed control acknowledgment.
 
 ## Validate without interpreting it as a model score
-
-CPU contract checks:
-
-```sh
-python -B -m unittest discover \
-  -s benchmarks/simBenchmarks/LIBERO-plus/checks -p 'test_*.py'
-```
 
 Before capability evaluation, explicitly select a separate fixed-action
 infrastructure diagnostic through the same SIM service. Retain reset/frame/action

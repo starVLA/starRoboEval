@@ -23,8 +23,7 @@ incomplete task and partial cost are not a model failure score.
 owns the sensor/action/scoring bridge. `bench_server/protocol/task_catalog.json`
 is immutable benchmark data, not a deployment configuration. `environment/`
 owns native setup, runtime verification and source pins, including
-`native_source_pin.json`; `checks/` contains offline regressions. There is no
-root adapter compatibility shim. This organization preserves the existing
+`native_source_pin.json`. There is no root adapter compatibility shim. This organization preserves the existing
 protocol, task schedule, action semantics and native scorer.
 
 The actor receives only the current instruction and two RGB cameras, and returns

@@ -5,7 +5,9 @@ The provider and model identity remain unknown; it is not a named-model score.
 `policy.py` owns the factory, `config.json` the transport configuration, and
 `prompt.txt` the generic profile instruction. `dependencies.json` declares the
 complete, small source allowlist. `mailbox.py` implements this profile's transport;
-reusable opt-in policy rules live in `../policy_support/`, not the benchmark.
+reusable opt-in policy rules live in [gpt6_astra/tools/stop_rules.py](../gpt6_astra/tools/stop_rules.py).
+The CLI execution loop uses `AgentPolicies.gpt6_astra.tools.runner`; this storage
+location does not apply GPT settings to the anonymous profile.
 
 Prepare a new campaign with `python -m benchkit.campaigns prepare
 --model-profile anonymous_code_agent` plus the benchmark, prompt, mailbox and

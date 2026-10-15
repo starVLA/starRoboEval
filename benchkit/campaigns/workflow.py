@@ -63,7 +63,7 @@ def verify_case_budget(manifest: dict, case: dict) -> None:
     if mode == "decisions" and manifest["max_steps"] != manifest["max_policy_calls"] * manifest["replan_interval"]:
         raise ValueError("campaign decision cap differs from decisions times prefix")
     if "min_action_decisions_before_give_up" in manifest:
-        from AgentPolicies.policy_support.stop_rules import validate_minimum
+        from AgentPolicies.gpt6_astra.tools.stop_rules import validate_minimum
         minimum = validate_minimum(manifest["min_action_decisions_before_give_up"])
         if minimum and minimum >= manifest["max_policy_calls"]:
             raise ValueError("campaign voluntary-stop floor must leave a decision for the stop response")
@@ -91,11 +91,18 @@ def prepare(output: Path, benchmark: str, mailbox_root: Path | None = None, prom
             min_action_decisions_before_give_up: int | None = None) -> dict[str, Any]:
     if not isinstance(prompt, str) or len(prompt) > 32768:
         raise ValueError("a nonempty frozen policy prompt of at most 32768 characters is required")
-    from AgentPolicies.policy_support.stop_rules import validate_minimum, with_stop_rule_prompt
+    from AgentPolicies.gpt6_astra.tools.stop_rules import validate_minimum, with_stop_rule_prompt
     from benchkit.model_profiles import load_profile, validate_policy_parameters
     # New-layout campaigns always freeze a real profile, never an implicit mailbox.
     model_profile = model_profile or "anonymous_code_agent"
     profile = load_profile(model_profile)
+    if profile["config"].get("control_method") == "codex-native/v2":
+        # This frozen local path does not carry the persistent method's horizon
+        # and rejection-feedback contract. Reject before creating a campaign or
+        # claiming a case; historical packages retain their captured behavior.
+        raise ValueError("codex_native requires the service driver: "
+                         "python -m AgentPolicies.gpt6_astra.run; "
+                         "new local campaigns do not support this method")
     direct = profile["execution"] == "direct"
     if not prompt.strip() and (not direct or prompt):
         raise ValueError("a nonempty frozen policy prompt of at most 32768 characters is required")
@@ -193,7 +200,7 @@ def prepare(output: Path, benchmark: str, mailbox_root: Path | None = None, prom
             raise ValueError("model profile changed during campaign preparation")
         manifest.update(model_profile=identity,
                         model_source=model_source, policy=profile["profile"]["policy"])
-    from AgentPolicies.policy_support.stop_rules import stop_constraint
+    from AgentPolicies.gpt6_astra.tools.stop_rules import stop_constraint
     manifest["policy_parameters"] = {"min_action_decisions_before_give_up": min_action_decisions_before_give_up}
     manifest["policy_stop_rule"] = stop_constraint(min_action_decisions_before_give_up)
     if direct:
@@ -312,7 +319,7 @@ def verify_frozen_package(output: Path, manifest: dict[str, Any]) -> None:
         if manifest.get("schema_version") != "starvla-rsi.campaign/v2":
             raise ValueError("model profile/source/stop extensions require campaign/v2")
         from benchkit.model_profiles import verify_model_source
-        from AgentPolicies.policy_support.stop_rules import legacy_stop_constraint as stop_constraint, legacy_stop_constraint_prompt as stop_constraint_prompt, validate_minimum
+        from AgentPolicies.gpt6_astra.tools.stop_rules import legacy_stop_constraint as stop_constraint, legacy_stop_constraint_prompt as stop_constraint_prompt, validate_minimum
         verify_model_source(output, manifest)
         minimum = validate_minimum(manifest.get("min_action_decisions_before_give_up", 0))
         expected_constraint = stop_constraint(minimum)
@@ -328,7 +335,7 @@ def verify_repository_package(output: Path, manifest: dict[str, Any]) -> None:
     """Verify v3 source and model inventories independently before any claim."""
     from benchkit.model_profiles import verify_model_source, validate_policy_parameters
     from benchkit.source_snapshot import inventory_digest
-    from AgentPolicies.policy_support.stop_rules import stop_constraint, with_stop_rule_prompt, validate_minimum
+    from AgentPolicies.gpt6_astra.tools.stop_rules import stop_constraint, with_stop_rule_prompt, validate_minimum
 
     output = _campaign_root(output)
     namespace = runtime_namespace(manifest)

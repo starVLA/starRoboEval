@@ -10,13 +10,20 @@ See [protocol-first method integration](../docs/agent-methods.md).
 
 - `anonymous_code_agent/`: runnable experimental mailbox policy; actual provider
   and model identity remain unknown. Its mailbox implementation lives here.
-- [`gpt6_astra/`](gpt6_astra/README.md): Native, generic persistent Direct v3 and Planned
-  Codex methods; compatibility and evidence are method-specific.
+- [`gpt6_astra/`](gpt6_astra/README.md): one Bench Server validation client,
+  `codex_native` (`codex-native/v2`), preserving the former Direct v3 behavior;
+  no alternate active methods or method-selection step.
 - `opus/`: unconfigured label, not a runnable provider integration.
-- `policy_support/`: reusable agent-side decision loop and policy behavior,
-  including persistence / voluntary-stop rules selected by a policy's own configuration.
-- [`protocol_example/`](protocol_example/README.md): small independent trusted-driver
-  example with no bundled actor or registered model; fake-service tests only.
+- `gpt6_astra/tools/runner.py` and `stop_rules.py`: reusable execution loop and
+  optional policy stop rules, also used by the general CLI and anonymous mailbox
+  workflow. Each profile keeps its own behavior settings.
+
+The [Bench Server protocol skill](../docs/bench-server-protocol/SKILL.md)
+provides development-time integration guidance and a copyable single-case driver
+template. It lives outside `AgentPolicies` and is not a registered profile or
+installed runtime package. The template deliberately requires a complete
+single-case schedule, horizon mode and prefix one; these are template boundaries,
+not general protocol limits. No native/model result is claimed.
 
 Action planning, auxiliary control and decisions to keep trying or give up belong
 to the model/method and must use only declared observations. No policy may obtain
@@ -59,10 +66,13 @@ that substitution inside a frozen package: its captured `starVLA/` modules and
 commands remain historical evidence, not current import entrypoints. Relative
 links within a moved result tree keep their depth and layout.
 
-New model-source bundles use schema `starvla-rsi.model-source/v6`; GPT's three
-active methods are under `methods/`, their helpers under `tools/`, and transports,
-configs and prompts in separate directories. Auditors still validate v1/v2 under
-`starVLA`, v3 under flat `AgentPolicies`, and the earlier grouped v4/v5 layouts with
-their exact historical allowlists. These are frozen-source versions,
-not current import aliases. Reorganization does not upgrade an old score,
-authorize a retry or attest the model provider.
+New GPT model-source bundles use schema `starvla-rsi.model-source/v7`. The sole
+`codex_native.py` policy/factory lives beside `run.py`. The single `codex_native_config.json`, prompt and
+registration declarations live under `configs/`; runtime/transport helpers live
+under `tools/`. Auditors retain the exact historical allowlists for v1/v2
+under `starVLA`, flat v3 under `AgentPolicies`, and grouped v4–v6 captures.
+Those are frozen-source versions, not current import aliases. Retired methods
+and their old guides remain recoverable from Git history and frozen packages.
+The [client README](gpt6_astra/README.md) documents the current
+client; development notes are kept locally. Reorganization
+does not rename an old score, authorize a retry or attest the model provider.

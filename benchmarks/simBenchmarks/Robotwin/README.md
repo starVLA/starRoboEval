@@ -23,9 +23,8 @@ native acceptance; an old reset-only or zero-action model run is not that proof.
 
 `server.py` is the public factory/launch entrypoint; `bench_server/adapter.py`
 owns the supported two-task interface and native scoring. `environment/` owns
-deployment, native/runtime pins and renderer readiness; `checks/` contains offline
-regressions. The small task definition remains in the adapter: no empty catalog
-or protocol package is required. Operator paths and track selection belong in
+deployment, native/runtime pins and renderer readiness. The small task definition
+remains in the adapter: no empty catalog or protocol package is required. Operator paths and track selection belong in
 `server.example.json` or an operator-owned copy. No root adapter shim remains;
 this relocation does not change native actions, budgets or scoring.
 
@@ -151,16 +150,9 @@ or a 10-Hz controller. `frames.jsonl` records physical tick counts. After result
 transfer, stop this one-episode server process: native `close_env` alone does
 not attest GPU-memory reclamation. An errored attempt remains an attempt.
 
-## Regression and remaining scope
+## Validation and remaining scope
 
-```sh
-python -B -m unittest discover \
-  -s benchmarks/simBenchmarks/Robotwin/checks -p 'test_*.py' -v
-```
-
-Tests exercise factory, boundaries, single-attempt lifecycle, counters and
-content-pinned deployment without native reset. Optional array tests need
-NumPy. Native reset plus fixed infrastructure controls must be separately
+Native reset plus fixed infrastructure controls must be separately
 reviewed and recorded as non-capability diagnostics before participant use.
 Randomized settings, the native 50-task/accepted-seed schedule, serial/sharded
 native parity and clean upstream bootstrapping remain unimplemented.

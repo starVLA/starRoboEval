@@ -11,7 +11,7 @@ from typing import Any, Sequence
 
 from benchkit.catalog import load_catalog, validate_repository_catalog
 from benchkit.registry import create_benchmark, create_policy, registered
-from AgentPolicies.policy_support.runner import EvaluationRunner, RunRequest
+from AgentPolicies.gpt6_astra.tools.runner import EvaluationRunner, RunRequest
 
 
 def _json_object(value: str) -> dict[str, Any]:

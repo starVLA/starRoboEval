@@ -1,82 +1,119 @@
-# GPT6Astra agent methods
+# codex_native: a Bench Server validation client
 
-This directory owns model decisions, prompts, public-observation processing and
-results. The benchmark server owns native execution and scoring. The actor sees
-only declared RGB, robot state, action semantics and execution feedback; it never
-receives simulator handles, object truth, scores or administrative credentials.
-See [policy development boundaries](AGENTS.md).
+This profile provides **`codex_native` (`codex-native/v2`)**, a client for validating
+Bench Server integration, observation/action contracts and result recording.
+It selects numeric actions through a conversation that persists within each episode.
+The Benchmark service owns native control, task conditions and scoring;
+interface compatibility alone does not establish native benchmark performance.
 
-## Choose a method
+## File layout
 
-| Method | Behavior | Interface |
-| --- | --- | --- |
-| [`codex-native/v1`](docs/NATIVE_CONTROL.md) | Current observation and the last eight acknowledged action chunks; a bounded CLI request per decision, with declared pre-action transport recovery | Compatible declared numeric action vectors, including joint or delta-pose control |
-| [`codex-direct/v3`](docs/DIRECT_CONTROL.md) | Persistent conversation, image/analysis tools, notes and generic observation–action feedback | Compatible declared numeric action vectors; no fixed robot or benchmark |
-| [`codex-planned/v1`](docs/TOP_DOWN_POLICY.md) | Persistent conversation, structured subgoals, evidence checks and same-episode memory | Compatible declared numeric action vectors; no hardcoded robot or benchmark |
+```text
+gpt6_astra/
+├── run.py                         # Trusted service client and evaluation entrypoint
+├── codex_native.py                # CodexNativePolicy and factory create_policy
+├── configs/
+│   ├── codex_native_config.json   # Single method and registry configuration
+│   ├── codex_native_prompt.txt    # Method prompt
+│   ├── profile.json               # Client identity and factory registration
+│   ├── configuration.schema.json  # Parameter types and allowed overrides
+│   └── dependencies.json          # Pinned source dependencies
+├── tools/
+│   ├── runner.py                  # Reusable execution loop and accounting
+│   ├── stop_rules.py              # Optional policy stopping preferences
+│   ├── persistent_runtime.py      # Conversation, execution feedback and recovery
+│   ├── public_observation.py      # Public observations and image processing
+│   ├── json_io.py                 # Structured data handling
+│   ├── codex_app_server.py        # App-server communication
+│   └── codex_runtime.py           # CLI installation, version and login checks
+├── results/                       # Results organized by Benchmark
+├── README.md                      # This guide
+└── AGENTS.md                      # Development boundary
+```
 
-The factory defaults to **Native**. The server driver `run.py` retains its
-explicit **Direct v3** default; select `--benchmark` and `--control-method` for every
-new experiment. Planned is an experimental method, not a demonstrated improvement
-over either baseline. None uses a VLA, task-solving fallback or local simulator.
+The general CLI and anonymous mailbox workflow also reuse `tools/runner.py` and
+`tools/stop_rules.py`; stopping preferences remain specific to each profile.
 
-Responses API, bounded-memory EEF v1/v2 and robot-specific Direct v1/v2 are no longer active methods.
-Their code can be recovered from Git and their frozen evaluation packages.
-There are no forwarding modules or implicit fallbacks to retired methods.
-Existing results retain their original method, source, outcome and accounting.
+## Configuration
 
-## Directory guide
+Edit the [method parameters](configs/codex_native_config.json) and
+[prompt](configs/codex_native_prompt.txt). There is one method and one default
+configuration; the schema controls allowed CLI overrides. Effective settings are
+recorded in results. Defaults request `gpt-6-astra` / `xhigh` over
+`codex-app-server/v1`, with a chunk limit of 5, a 900-second call timeout and image
+previews with a longest side of 480 pixels. Original PNGs remain available.
+Each run separately declares a finite call cap and the service's execution budget.
 
-| Directory | Contains |
-| --- | --- |
-| `methods/` | Only the three selected policy implementations |
-| `tools/` | Factory, shared persistent runtime, public observation/image helpers, local checks and diagnostics; not automatic robot skills |
-| `transports/` | Codex CLI and persistent app-server communication |
-| `prompts/` | One prompt for each active method |
-| `configs/` | Three method presets plus `config.json`, the registry defaults/override declaration, not a fourth method |
-| `docs/` | Method setup, recovery behavior and reference comparison |
-| `checks/` | Offline regression fixtures, not capability evaluations |
-| `results/` | Published reports; raw evidence and media remain Git-ignored |
+## Installation
 
-The entrypoint and declarations remain at the package root. New internal source
-captures use `model-source/v6` for this layout. Historical v1–v5 captures retain
-their exact original file lists and factories; deleting an active entrypoint
-does not invalidate a frozen record or rewrite its outcome.
-
-## Setup and execution
-
-Install the pinned Codex CLI **0.154.0** and the model-side Python dependencies:
+Use the pinned Codex CLI **0.154.0** with an existing login:
 
 ```sh
 pip install -e '.[gpt6-astra-codex]'
-python -B -m benchkit preflight-policy --model-profile gpt6_astra \
-  --policy-args '{"control_method":"codex-native/v1"}'
+python -B -m benchkit preflight-policy --model-profile gpt6_astra
 ```
 
-These methods use the existing Codex login, without a separate API key or SDK
-fallback. Local preflight does not make an inference request, open a simulator
-or establish model access. Native and persistent methods have different
-permission/evidence limitations, documented in their respective guides.
+Preflight starts neither model inference nor simulation, and does not prove model
+access or native environment readiness. The client uses Codex login through
+app-server, with no additional API key or SDK fallback.
 
-Start the chosen benchmark server using its README, then connect
-[`run.py`](run.py). Use the [Native sample](docs/NATIVE_CONTROL.md#one-task-sample)
-or [Direct panel command](docs/DIRECT_CONTROL.md#run-a-predeclared-comparison),
-with that service's declared action space, task schedule and native horizon.
-Credentials belong only to the trusted driver and server, never the actor.
+## Single-task integration example
 
-The policy owns action chunk length and reasoning. The server executes each
-submitted action under native control and termination rules. Model-call recovery
-is not permission to reset a case or replay an uncertain robot action.
+Start the service following the selected Benchmark's README, then connect:
 
-## Results and recording
+```sh
+python -B -m AgentPolicies.gpt6_astra.run \
+  --sim-server http://127.0.0.1:8765 --benchmark BENCHMARK_ID \
+  --seed SEED --episodes 1 --max-steps ADVERTISED_HORIZON \
+  --max-policy-calls DECLARED_CALL_CAP --replan-interval 5 \
+  --budget-mode horizon --invalid-action-handling feedback \
+  --output-dir AgentPolicies/gpt6_astra/results/BENCHMARK_ID/raw \
+  --run-id DATE-TASK-short-description-native-v2-once
+```
 
-Keep outputs in `results/<benchmark>/` and name runs with their task and a short
-description. Record decision calls, transport attempts, executed decisions and
-controls separately; provider-internal requests and missing usage stay unknown.
-Infrastructure interruptions are not native task failures. A recovered transient
-error remains in the call receipt rather than ending the episode immediately.
+Replace the uppercase placeholders and confirm the complete task schedule, seed,
+episode count and advertised horizon before running. `--control-method` is optional
+and accepts only `codex-native/v2`. The service's `required_replan_interval` must
+match; incompatible contracts fail before a claim. Supply the token to the trusted
+driver through `RSI_SIM_SERVER_TOKEN`, never through model inputs. This method uses
+the service entrypoint; the retained local `campaigns prepare` path does not support
+its horizon/feedback contract.
 
-Interaction history and media are optional, enabled by default. Changing
-retention must not change actor inputs, action behavior or native scoring.
-See [recording options](../../docs/recording.md) and the [result index](results/README.md).
-The owner's attribution of earlier interactive trials does not supply model IDs
-or usage evidence that those historical records never captured.
+## Inputs and execution boundaries
+
+The model receives public task text, RGB images, declared robot state and action
+semantics, remaining control budget and acknowledged execution feedback. It gets
+no administrative client, credentials, layout/seed metadata, private scores,
+simulator handles or reset tools. The driver does not forward arbitrary
+`control_feedback` payloads; the model does not read arbitrary Benchmark files.
+Notes remain within the episode.
+Local permission checks are not OS isolation; see the [development boundary](AGENTS.md).
+
+`robot_act` submits numeric action vectors. The method chooses chunks (configurable
+from 1–32) and repetitions; the service executes each control separately. Invalid
+actions execute nothing and return correction feedback on the next counted call.
+Acknowledged prefixes retain their actual counts; uncertain controls are never
+replayed. The client does not repair actions, solve tasks through fallbacks or
+automatically generate return trajectories. Native termination and budgets always apply.
+
+Ordinary give-up and voluntary `safety_stop` are disabled by default.
+`--safety-stop` enables voluntary stops; `--no-safety-stop` disables them. When disabled,
+an empty-action safety stop is rejected with correction feedback. When enabled, an explained
+stop ends the attempt without awarding success. This does not disable hardware protection.
+
+## Recovery and results
+
+Model-call recovery stays in the same conversation; it cannot reset a task, switch
+models or replay robot actions. Capacity recovery requires an explicitly failed,
+closed turn with `serverOverloaded`; an error notification alone is insufficient.
+Recovery is bounded, and exhaustion remains an infrastructure error, not native
+failure. Native termination cancels the model without an unmetered final continuation.
+
+Write results under `results/<benchmark>/`, with the canonical task ID and a short
+description in run names. Calls, recovery attempts, executed action decisions and
+controls are recorded separately; unknown usage or cost stays unknown. Interaction
+and media recording default to enabled and may be disabled without changing inputs,
+execution or scoring. Essential results, denominators and errors remain available;
+failed runs are not overwritten. See [recording options](../../docs/recording.md) and
+the [historical results index](results/README.md). Historical scores retain their
+original method identities; offline checks prove neither native success nor provider identity.

@@ -1,0 +1,116 @@
+{
+  "schema_version": "starvla-rsi.configuration-schema/v1",
+  "profile_id": "gpt6_astra",
+  "execution": "direct",
+  "runtime_preflight": true,
+  "fields": {
+    "schema_version": {
+      "type": "string",
+      "const": "starvla-rsi.model-config/v1"
+    },
+    "profile_id": {
+      "type": "string",
+      "const": "gpt6_astra"
+    },
+    "control_method": {
+      "type": "string",
+      "const": "codex-native/v2"
+    },
+    "transport": {
+      "type": "string",
+      "const": "codex-app-server/v1"
+    },
+    "model": {
+      "type": "string",
+      "const": "gpt-6-astra"
+    },
+    "provider": {
+      "type": "string",
+      "const": "openai"
+    },
+    "reasoning_effort": {
+      "type": "string",
+      "const": "xhigh"
+    },
+    "history": {
+      "type": "string",
+      "const": "persistent_same_episode_thread"
+    },
+    "timeout_s": {
+      "type": "number",
+      "minimum": 0.001,
+      "maximum": 900
+    },
+    "max_chunk_length": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 32
+    },
+    "ordinary_give_up": {
+      "type": "boolean",
+      "const": false
+    },
+    "safety_stop": {
+      "type": "boolean"
+    },
+    "policy_stop_rule_version": {
+      "type": "string",
+      "const": "minimum-action-decisions/v2"
+    },
+    "min_action_decisions_before_give_up": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 0
+    },
+    "max_image_pixels": {
+      "type": "integer",
+      "const": 4194304
+    },
+    "image_max_edge": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 4096
+    },
+    "max_response_bytes": {
+      "type": "integer",
+      "const": 65536
+    },
+    "execution_history_decisions": {
+      "type": "integer",
+      "const": 8
+    },
+    "feedback_projection": {
+      "type": "string",
+      "const": "acknowledged_counters_and_actions_plus_declared_robot_state"
+    },
+    "initial_state_reference": {
+      "type": "string",
+      "const": "first_public_observation_not_action"
+    },
+    "completed_turn_continuations": {
+      "type": "integer",
+      "const": 2
+    },
+    "network_continuations": {
+      "type": "integer",
+      "const": 20
+    },
+    "network_backoff_s": {
+      "type": "integer",
+      "const": 10
+    },
+    "terminal_delivery": {
+      "type": "string",
+      "const": "cancel_without_continuation"
+    }
+  },
+  "factory_parameters": [
+    "prompt",
+    "timeout_s",
+    "max_chunk_length",
+    "control_method",
+    "image_max_edge",
+    "safety_stop",
+    "min_action_decisions_before_give_up"
+  ]
+}

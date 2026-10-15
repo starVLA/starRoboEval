@@ -51,6 +51,33 @@ with byte-checked relocation and an explicit path/hash receipt, rather than
 keeping old-root aliases. Source moves do not authorize deleting those records
 or restarting evaluations.
 
+## GPT validation client consolidation
+
+`AgentPolicies/gpt6_astra/` now has one active client, `codex_native`
+(`codex-native/v2`), preserving the former Direct v3 prompt, configuration values
+and execution behavior. `run.py` and `codex_native.py` live at the profile root. `configs/` holds the single
+`codex_native_config.json`, `codex_native_prompt.txt`, `profile.json`,
+`configuration.schema.json` and `dependencies.json`; conversation, public-observation
+and transport helpers live under `tools/`. The old `methods/`, `prompts/` and
+`transports/` layers are removed; `configs/` no longer contains alternate method presets.
+There is no old-module forwarding code or alternate active method selection.
+
+New commands can omit `--control-method`; the only accepted explicit value is
+`codex-native/v2`. This is distinct from the former bounded CLI Native v1 method.
+Current setup is documented in [client README](../AgentPolicies/gpt6_astra/README.md).
+Use its service driver for new runs. The retained local `campaigns prepare` path
+rejects `codex-native/v2` before creating outputs because it does not satisfy the
+method's horizon/feedback contract; frozen historical campaigns stay unchanged.
+Current usage is collected in the profile README; development notes are kept
+locally. Old guides remain available from Git history or their frozen source
+packages.
+
+New model-source captures use `starvla-rsi.model-source/v7`. Historical v1–v6
+inventories, results and experiment snapshots retain their original bytes,
+method names and validation rules. Old methods remain recoverable from Git and
+frozen run packages; a historical Direct result does not become a Native v2
+score. This cleanup does not change native benchmark protocols or start a run.
+
 ## Why an old directory may still be visible
 
 Git tracks files, not the existence of a directory. Moving tracked code does not

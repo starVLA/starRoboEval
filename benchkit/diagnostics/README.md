@@ -30,11 +30,10 @@ Native asset, rendering, reset and control readiness tools belong under the
 corresponding benchmark's `benchmarks/.../environment/`. Participant policy
 behavior belongs under `AgentPolicies/<profile>/`.
 
-CPU-only checks for this package:
-
-```sh
-python -B -m unittest benchkit.checks.test_diagnostics -v
-```
+Historical CPU test fixtures for this package are no longer included in the
+active source tree and can be recovered from Git history. The diagnostic tools
+described here remain available; their presence is not evidence of a passed
+native evaluation.
 
 `simpler_mailbox.py` retains the fixed seven-zero-action mailbox-v2 diagnostic
 formerly under SimplerEnv's environment directory. It is an explicitly selected

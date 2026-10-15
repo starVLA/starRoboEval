@@ -3,9 +3,9 @@
   "id": "gpt6_astra",
   "display_name": "GPT6Astra",
   "configured": true,
-  "factory": "AgentPolicies.gpt6_astra.tools.factory:create_policy",
+  "factory": "AgentPolicies.gpt6_astra.codex_native:create_policy",
   "policy": {
-    "name": "gpt6-astra-direct",
+    "name": "gpt6-astra-codex-native",
     "kind": "direct-model",
     "model": "gpt-6-astra",
     "provider": "openai"

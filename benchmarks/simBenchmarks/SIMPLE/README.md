@@ -44,8 +44,7 @@ SIMPLE/
 │       ├── POLICY_GUIDE.md            # declared public sensor/action interface
 │       ├── RELEASED_TASK_SCOPE.md     # released task/reset scope and timing
 │       └── simple_released_tasks.json # pinned task/backend/reset inventory
-├── environment/                      # native worker, runtime pins, diagnostics
-└── checks/                           # protocol and integration regressions
+└── environment/                      # native worker, runtime pins, diagnostics
 ```
 
 The catalog is protocol data consumed by the service; native assets stay outside
@@ -75,17 +74,7 @@ Run one task/backend per adapter. Check GPU capacity before initialization: cont
 
 ## Check the integration
 
-These inventory checks do not import a simulator:
-
-```sh
-PYTHONPATH=. python -B benchmarks/simBenchmarks/SIMPLE/checks/test_inventory.py -v
-PYTHONPATH=. python -B benchmarks/simBenchmarks/SIMPLE/checks/test_instruction_contract.py -v
-PYTHONPATH=. python -B benchmarks/simBenchmarks/SIMPLE/checks/test_server_launcher.py -v
-PYTHONPATH=. python -B benchmarks/simBenchmarks/SIMPLE/checks/verify_inventory.py \
-  --inventory benchmarks/simBenchmarks/SIMPLE/bench_server/protocol/simple_released_tasks.json
-```
-
-Run `checks/test_boundary.py` in the pinned native environment for runtime-dependent checks. [environment/diagnose.py](environment/diagnose.py) performs reset, stabilization, rendering and one measured hold with zero policy calls. Its CLI currently uses site-specific adapter path defaults and the two default task identities; a relocated deployment must use explicit adapter paths in evaluator-owned diagnostic setup. Diagnostic measurements are not a policy feature or capability score.
+[environment/diagnose.py](environment/diagnose.py) performs reset, stabilization, rendering and one measured hold with zero policy calls. Its CLI currently uses site-specific adapter path defaults and the two default task identities; a relocated deployment must use explicit adapter paths in evaluator-owned diagnostic setup. Diagnostic measurements are not a policy feature or capability score.
 
 ## Evaluate one selected task
 
@@ -108,7 +97,7 @@ records in the selected model's results namespace. Native full-mode support is
 not implied by this service entrypoint.
 
 For the model-owned native-vector driver, follow
-[NATIVE_CONTROL.md](../../../AgentPolicies/gpt6_astra/docs/NATIVE_CONTROL.md).
+[client README](../../../AgentPolicies/gpt6_astra/README.md).
 See the [evaluation workflow](../../../docs/evaluation.md) for source capture
 and closed-record reporting.
 

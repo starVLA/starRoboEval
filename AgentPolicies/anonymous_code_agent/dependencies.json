@@ -12,8 +12,9 @@
     "AgentPolicies/anonymous_code_agent/prompts/actor_instructions.txt",
     "AgentPolicies/anonymous_code_agent/prompts/control_guidance.txt",
     "AgentPolicies/anonymous_code_agent/prompts/simpler_development.txt",
-    "AgentPolicies/policy_support/__init__.py",
-    "AgentPolicies/policy_support/stop_rules.py"
+    "AgentPolicies/gpt6_astra/__init__.py",
+    "AgentPolicies/gpt6_astra/tools/__init__.py",
+    "AgentPolicies/gpt6_astra/tools/stop_rules.py"
   ],
   "evaluation_dependency": "harness_source/index.json",
   "provider_sdk": null

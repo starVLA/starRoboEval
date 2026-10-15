@@ -23,8 +23,7 @@ RoboDojo/
 │       ├── task_catalog.json       # task definitions and fixed panels
 │       ├── task_catalog.py         # catalog loading and validation
 │       └── robot_feedback.py       # public robot-control receipt schema
-├── environment/                    # native worker, kinematics and runtime pins
-└── checks/                         # benchmark contract and implementation tests
+└── environment/                    # native worker, kinematics and runtime pins
 ```
 
 `bench_server/` owns both the service implementation and its evaluation protocol.
@@ -55,7 +54,7 @@ read-only finalization. Neither outcome authorizes an automatic case retry.
 The only supported server interface is Direct v2:
 `robodojo-direct-v2-rgb-proprio28-eef16-robot-feedback-v1`.
 This identifies robot observations/actions and native execution, not the agent
-method. The current GPT driver defaults to generic `codex-direct/v3`; using it
+method. The current GPT driver defaults to generic `codex-native/v2`; using it
 does not change this server interface or reproduce the historical v2 method's scores.
 The task catalog currently
 enables `classify_objects` with two immutable schedules:
@@ -113,11 +112,11 @@ Run the model-owned client separately, for example:
 ```sh
 python -B -m AgentPolicies.gpt6_astra.run \
   --sim-server http://127.0.0.1:8765 --benchmark robodojo \
-  --control-method codex-direct/v3 \
+  --control-method codex-native/v2 \
   --seed 20260907 --episodes 5 --max-steps 1100 \
   --max-policy-calls 240 --replan-interval 5 --budget-mode horizon \
   --output-dir /absolute/results-staging/robodojo/client \
-  --run-id classify_objects-category-sorting-direct-v3-panel5
+  --run-id classify_objects-category-sorting-codex-native-v2-panel5
 ```
 
 The client command and credentials are model-owned. The benchmark server does

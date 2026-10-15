@@ -46,10 +46,8 @@ where = ["."]
 include = [
     "benchkit", "benchkit.*",
     "AgentPolicies", "AgentPolicies.anonymous_code_agent", "AgentPolicies.gpt6_astra", "AgentPolicies.opus",
-    "AgentPolicies.gpt6_astra.methods", "AgentPolicies.gpt6_astra.transports", "AgentPolicies.gpt6_astra.tools",
     "AgentPolicies.anonymous_code_agent.tools",
-    "AgentPolicies.policy_support",
-    "AgentPolicies.protocol_example",
+    "AgentPolicies.gpt6_astra.tools",
     "benchmarks", "benchmarks.simBenchmarks",
     "benchmarks.simBenchmarks.SimplerEnv", "benchmarks.simBenchmarks.SimplerEnv.environment",
     "benchmarks.simBenchmarks.SimplerEnv.bench_server", "benchmarks.simBenchmarks.SimplerEnv.bench_server.protocol",
@@ -106,7 +104,7 @@ exclude = [
 "benchmarks.simBenchmarks.calvin.bench_server.protocol" = ["frozen_sequence.json", "eval_sequences.json"]
 "benchmarks.simBenchmarks.calvin.environment" = ["runtime_snapshot.json", "requirements-rgb-setup.txt"]
 "AgentPolicies.anonymous_code_agent" = ["profile.json", "config.json", "dependencies.json", "prompt.txt", "prompts/*.txt"]
-"AgentPolicies.gpt6_astra" = ["profile.json", "configuration.schema.json", "dependencies.json", "configs/*.json", "prompts/*.txt"]
+"AgentPolicies.gpt6_astra" = ["configs/*.json", "configs/*.txt"]
 "AgentPolicies.opus" = ["profile.json", "config.json", "dependencies.json", "prompt.txt"]
 
 [tool.ruff]

@@ -97,16 +97,6 @@ with source counterparts are explicitly excluded. Keep resolved package lists,
 driver identity and setup receipts in deployment evidence. Import success alone
 does not prove offscreen rendering.
 
-Run the non-SIM contract suite in that same environment:
-
-```sh
-/absolute/new-vla-arena-env/bin/python -B -m unittest discover \
-  -s benchmarks/simBenchmarks/VLA-Arena/checks -v
-```
-
-NumPy is required for fake-native/RGB tests. Skipped NumPy tests are not a full
-regression result.
-
 Robosuite enables Numba caching by default. `NUMBA_CACHE_DIR` must be a new,
 empty, private directory for each fresh process, outside both pinned native
 and Robosuite trees. Use a different directory for preflight and the actual

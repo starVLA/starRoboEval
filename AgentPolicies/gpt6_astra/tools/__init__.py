@@ -1,1 +1,1 @@
-"""GPT6Astra tools; no eager runtime initialization."""
+"""Runtime, transport and evaluation helpers for Bench Server clients."""

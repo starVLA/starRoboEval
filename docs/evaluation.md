@@ -84,11 +84,11 @@ all model components/roles and configuration using the
 Additional inference/planning does not expand the robot or environment interface.
 
 `anonymous_code_agent` is an external mailbox with unknown provider/model identity.
-[`gpt6_astra`](../AgentPolicies/gpt6_astra/README.md) supplies Native, persistent
-Direct v3 and Planned Codex methods; their compatibility and evidence differ.
-Its server driver defaults to generic Direct v3 with an explicitly selected
-benchmark. Numeric-interface compatibility is not native validation or universal
-robot capability. `opus` is an unconfigured placeholder.
+[`gpt6_astra`](../AgentPolicies/gpt6_astra/README.md) supplies one Bench Server
+validation client, `codex_native` (`codex-native/v2`). It retains the former Direct v3
+behavior; use its driver with an explicitly selected benchmark, without a method
+selection step. Optional `--control-method` accepts only `codex-native/v2`.
+Numeric-interface compatibility is not native validation or universal robot capability. `opus` is an unconfigured placeholder.
 Profile dependencies and credentials are separate from benchmark installation.
 
 For the mailbox profile, the actor receives only its opaque endpoint and permitted protocol context.
@@ -97,9 +97,9 @@ scoring data. Mailbox-only instructions are not a substitute for enforced proces
 isolation or a trusted provider-request meter.
 
 Start the server following the selected benchmark's guide, then use the current
-[Direct v3 driver command](../AgentPolicies/gpt6_astra/docs/DIRECT_CONTROL.md#run-a-predeclared-comparison).
-Historical model examples named Direct v2 require their original frozen package,
-not today's active factory. The existing RoboDojo **server protocol** still uses
+[current client command](../AgentPolicies/gpt6_astra/README.md#single-task-integration-example).
+Historical Native, Direct and Planned commands require their original frozen
+package or source from Git; the active factory does not select those methods. The existing RoboDojo **server protocol** still uses
 its original Direct-v2 interface identity; a model-method upgrade does not rename
 that server protocol. Use its matching seed and named panel; a separately selected
 one-case development sample is not a full-panel score. Never copy its EEF space or
@@ -112,15 +112,18 @@ only protocol-allowed inputs to the actor. See [method integration](agent-method
 The optional `benchkit run --sim-server` command uses the same agent-side runner,
 not a separate benchmark-control implementation.
 
-The [small independent-driver example](../AgentPolicies/protocol_example/README.md)
-demonstrates its own loop and essential result records, without a registered
-profile. Its single-case/prefix-one scope is intentionally narrow; use the
-benchmark-compatible method driver for full panels and other control contracts.
+The [Bench Server protocol skill](bench-server-protocol/SKILL.md)
+provides development-time integration steps and a copyable single-case driver
+template, including its own loop and essential result records. It is not an
+`AgentPolicies` runtime package or registered profile. The template accepts only
+a complete single-case service schedule with horizon mode and prefix one; these
+are template boundaries, not protocol-wide limits. Use the benchmark-compatible
+method driver for full panels and other control contracts.
 
 Calls, executed decisions, controls and native physics ticks are different
 counters. Invalid-action feedback, motion guards and model network continuation
 are versioned method/track behavior; consult the
-[Direct guide](../AgentPolicies/gpt6_astra/docs/DIRECT_CONTROL.md) and
+[client README](../AgentPolicies/gpt6_astra/README.md) and
 [action validation contract](../benchmarks/simBenchmarks/RoboDojo/ACTION_VALIDATION.md).
 No path automatically retries a physical action after an uncertain ACK.
 
@@ -132,12 +135,13 @@ budget remain benchmark-owned. Existing decision-coupled tracks and any declared
 `required_replan_interval` still require matching configuration; do not silently
 override them when selecting a different method.
 
-Native's model-call recovery is separate from case scheduling: it can wait and
-retry a classified transport failure at the same observation, up to ten total
-attempts before returning an infrastructure error. No decision/control is added
-until an action actually returns and executes. Preserve all transport attempts
-and available usage; never reinterpret model-request recovery as a task reset,
-native failure or permission to replay an uncertain robot action.
+The client's model-call recovery is separate from case scheduling. A definitively
+closed `serverOverloaded` turn can continue in the same thread after 30 seconds,
+up to nine continuations between valid action submissions. Error notification
+alone does not authorize recovery; existing network continuation is separate.
+No executed decision/control is added until an action actually executes. Preserve
+recovery attempts and available usage; exhaustion remains an infrastructure error,
+not native failure or permission to reset a case or replay uncertain robot action.
 
 ## Inspect and report
 
@@ -242,16 +246,21 @@ The endpoint root must be independent of task, date, seed and model identity.
 Campaign preparation freezes cases, budgets, source inventories, effective prompt
 and future endpoint addresses; it does not prove the native environment is ready.
 
-For a direct profile, choose `--model-profile gpt6_astra`, omit `--mailbox-root`
-and use a new path under `AgentPolicies/gpt6_astra/results/<benchmark>/`. Omitting
-`--prompt-file` uses that profile's prompt. No endpoint or actor mailbox is
-created. Direct campaigns reject carry-forward of anonymous historical attempts;
-they require a fresh, explicitly selected schedule. Preparation makes no model
-request. New GPT6Astra packages declare a local runtime preflight: `run-case`
-checks the frozen model's dependencies and credential presence in the same Python
-environment before creating the permanent case claim. Failure leaves the case
-unattempted, with no outcome or policy call. This does not validate the key with
-the provider, check model permissions or prove network/native readiness.
+The current `gpt6_astra` client (`codex-native/v2`) uses the service driver
+`python -m AgentPolicies.gpt6_astra.run`, not this local campaign preparation path.
+`campaigns prepare` rejects that method before creating outputs: the retained
+local path does not satisfy its horizon/feedback contract. Use the
+[current client command](../AgentPolicies/gpt6_astra/README.md#single-task-integration-example)
+and a fresh path under `AgentPolicies/gpt6_astra/results/<benchmark>/` for an
+explicitly selected service run.
+
+Historical direct-profile campaigns retain their captured local implementation,
+method and preflight declaration. Where declared, `run-case` checks the frozen
+model's dependencies and credential presence in the same Python environment
+before the permanent case claim. Failure leaves the case unattempted, with no
+outcome or policy call. This does not validate provider access, model permissions
+or network/native readiness. Do not select the current method to reinterpret or
+restart one of those frozen campaigns.
 
 For local diagnostics without a benchmark or request:
 
@@ -259,12 +268,14 @@ For local diagnostics without a benchmark or request:
 python -B -m benchkit preflight-policy --model-profile gpt6_astra
 ```
 
-The command reports a bounded status/error code only. Campaign preflight discards
-child output, times out after 60 seconds, and rechecks the frozen plan/source
-before its atomic claim. Direct `benchkit run` also checks before constructing the
-benchmark. Runtime state can still change afterward; post-claim errors remain
-permanent attempts. Historical packages without a captured `runtime_preflight`
-declaration retain their original behavior and do not acquire this check retroactively.
+The command reports a bounded status/error code only; it does not make the
+current client compatible with local campaign preparation. The retained campaign
+preflight, where declared by the frozen package, discards child output, times out
+after 60 seconds and rechecks the frozen plan/source before its atomic claim.
+Direct `benchkit run` also checks before constructing the benchmark. Runtime state
+can still change afterward; post-claim errors remain permanent attempts.
+Historical packages without a captured `runtime_preflight` declaration retain
+their original behavior and do not acquire this check retroactively.
 
 Before running, inspect `campaign.json`: selected tasks/states, planned cases,
 seed, action/observation conditions, control prefix, policy-call limits and policy

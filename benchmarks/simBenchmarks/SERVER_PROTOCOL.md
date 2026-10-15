@@ -28,7 +28,7 @@ model <- allowed observation <- trusted driver -- HTTP --> server.py -> native S
   task selection lives in `bench_server/protocol/plan.py`, not an extra
   `evaluation/` package. These path changes do not alter native control semantics.
 - `benchkit/sim_server/` supplies transport, strict serialization,
-  session lifecycle and artifact transfer. `AgentPolicies/policy_support/runner.py`
+  session lifecycle and artifact transfer. `AgentPolicies/gpt6_astra/tools/runner.py`
   supplies an optional reusable agent-side loop. `benchkit` supplies record,
   source-capture and reporting tools, not a separate required control service.
 - `AgentPolicies/<profile>/` contains the model policy/configuration and its results.
@@ -138,13 +138,12 @@ The client uses a direct connection without environment proxies or redirects.
 
 Run the evaluator in its own Python environment (RGB transport needs NumPy):
 
-The model-owned `AgentPolicies.gpt6_astra.run` driver defaults to generic
-[`codex-direct/v3`](../../AgentPolicies/gpt6_astra/docs/DIRECT_CONTROL.md), consuming
-the selected service's numeric action contract rather than assuming EEF16.
-[`codex-native/v1`](../../AgentPolicies/gpt6_astra/docs/NATIVE_CONTROL.md) and
-`codex-planned/v1` are separately selected methods; compatibility does not prove
-native validation or equal capability. RoboDojo's Direct v2 **server interface**
-is a different versioned contract from the model method. Neither name changes
+The model-owned `AgentPolicies.gpt6_astra.run` driver uses the single active
+[`codex-native/v2`](../../AgentPolicies/gpt6_astra/README.md) method,
+consuming the selected service's numeric action contract rather than assuming EEF16.
+Historical method results retain their original identities. Interface compatibility
+does not prove native validation or equal capability. RoboDojo's Direct v2
+**server interface** is a different versioned contract from the model method. Neither name changes
 the shared `starvla-rsi.sim-server/v1` wire protocol. The following mailbox command
 is an optional registered-profile workflow, not a required loop for participants.
 

@@ -23,7 +23,7 @@ TRANSPORT = "codex-app-server/v1"
 # Process startup can outlast an ordinary RPC. This is one bounded handshake,
 # not a retry or extension of model-turn idle timeouts.
 INITIALIZE_TIMEOUT_S = 120
-# Shared Direct/Planned model-service recovery, not benchmark/task retries.
+# Codex native model-service recovery, not benchmark/task retries.
 # Ten failed turns total means at most nine additional turn/start requests.
 OVERLOAD_MAX_ATTEMPTS = 10
 OVERLOAD_BACKOFF_S = 30
@@ -220,12 +220,12 @@ class PersistentRuntime:
     def preflight_runtime(self):
         # Local login plus an ephemeral configuration-only thread. No turn,
         # inference, robot action or permanent case claim is made here.
-        from AgentPolicies.gpt6_astra.transports.codex_cli import preflight_runtime
+        from AgentPolicies.gpt6_astra.tools.codex_runtime import preflight_runtime
         preflight_runtime()
         try:
             import numpy  # noqa: F401
             from PIL import Image  # noqa: F401
-            from AgentPolicies.gpt6_astra.transports.codex_app_server import StdioAppServer  # noqa: F401
+            from AgentPolicies.gpt6_astra.tools.codex_app_server import StdioAppServer  # noqa: F401
         except ImportError:
             raise PolicyPreflightError("dependency_unavailable") from None
         with tempfile.TemporaryDirectory(prefix="rsi-direct-preflight-") as temporary:
@@ -270,8 +270,8 @@ class PersistentRuntime:
         self.workspace = None
 
     def _boot(self, *, ephemeral=False):
-        from AgentPolicies.gpt6_astra.transports.codex_app_server import StdioAppServer
-        from AgentPolicies.gpt6_astra.transports.codex_cli import _environment, _inspect_runtime
+        from AgentPolicies.gpt6_astra.tools.codex_app_server import StdioAppServer
+        from AgentPolicies.gpt6_astra.tools.codex_runtime import _environment, _inspect_runtime
         executable, readiness = _inspect_runtime()
         # Native Codex internals are private temporary state, not report assets.
         (self.actor.parent / "runtime").mkdir(mode=0o700, exist_ok=True)
