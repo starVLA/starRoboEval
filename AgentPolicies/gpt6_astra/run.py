@@ -33,6 +33,12 @@ def build_parser():
     parser.add_argument("--sim-server-timeout", type=float, default=1200)
     parser.add_argument("--benchmark", required=True, help="must match the selected server identity")
     parser.add_argument("--control-method", choices=METHODS, default=METHOD)
+    parser.add_argument("--stagnation-review", action=argparse.BooleanOptionalAction, default=None,
+                        help="advisory repeated-command review, disabled by default; no automatic action or stop")
+    parser.add_argument("--allow-task-completion", action=argparse.BooleanOptionalAction, default=None,
+                        help="opt into model-declared completion, disabled by default; native scoring is separate")
+    parser.add_argument("--stagnation-window", type=int, default=None,
+                        help="review every 2..32 repeated executed decisions, default 4")
     parser.add_argument("--safety-stop", action=argparse.BooleanOptionalAction, default=None,
                         help="permit policy-requested early safety stops; default disabled in SIM")
     parser.add_argument("--image-max-edge", type=int, default=None,
@@ -53,7 +59,8 @@ def build_parser():
     return parser
 
 
-def checked_policy(control_method, *, image_max_edge=None, max_chunk_length=None, safety_stop=None):
+def checked_policy(control_method, *, image_max_edge=None, max_chunk_length=None, safety_stop=None,
+                   stagnation_review=None, stagnation_window=None, allow_task_completion=None):
     """Use shared declarative validation, but construct/check this model here."""
     root = Path(__file__).absolute().parents[2]
     origins = ((Path(profile_records.__file__).absolute(), root / "benchkit/model_profiles.py"),
@@ -71,6 +78,10 @@ def checked_policy(control_method, *, image_max_edge=None, max_chunk_length=None
         parameters["max_chunk_length"] = max_chunk_length
     if safety_stop is not None:
         parameters["safety_stop"] = safety_stop
+    for name, value in (("stagnation_review", stagnation_review), ("stagnation_window", stagnation_window),
+                        ("allow_task_completion", allow_task_completion)):
+        if value is not None:
+            parameters[name] = value
     validate_policy_parameters(data, parameters)
     policy = create_policy(config=data["config"], identity=data["profile"]["policy"], **parameters)
     policy.descriptor = replace(policy.descriptor, parameters={
@@ -98,10 +109,18 @@ def run(args):
     if args.invalid_action_handling == "terminate":
         raise ValueError("codex_native requires recoverable invalid-input feedback")
     policy = checked_policy(args.control_method, image_max_edge=args.image_max_edge,
-                            max_chunk_length=args.replan_interval, safety_stop=args.safety_stop)
+                            max_chunk_length=args.replan_interval, safety_stop=args.safety_stop,
+                            allow_task_completion=args.allow_task_completion,
+                            stagnation_review=args.stagnation_review, stagnation_window=args.stagnation_window)
     if (method is not None and "safety_stop" in method["configuration"]
             and method["configuration"]["safety_stop"] is not policy.descriptor.parameters["safety_stop"]):
         raise ValueError("declared method safety_stop differs from the effective policy setting")
+    if method is not None:
+        for name in ("stagnation_review", "stagnation_window", "allow_task_completion"):
+            if (name in method["configuration"] and
+                    (type(method["configuration"][name]) is not type(policy.descriptor.parameters[name])
+                     or method["configuration"][name] != policy.descriptor.parameters[name])):
+                raise ValueError(f"declared method {name} differs from the effective policy setting")
     benchmark = SimServerBenchmarkAdapter(args.sim_server, os.environ.get(args.token_env, ""),
                                          timeout=args.sim_server_timeout)
     if benchmark.descriptor.name != args.benchmark:

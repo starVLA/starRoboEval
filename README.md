@@ -54,6 +54,7 @@ described by the selected benchmark before attempting a native task.
 - [Agent driver integration skill and template](docs/bench-server-protocol/SKILL.md)
 - [Optional interaction recording and basic results](docs/recording.md)
 - [Run an evaluation](docs/evaluation.md)
+- [跨 Benchmark 运行指南：每任务五案例、执行顺序与已有结果](docs/evaluation-campaign/README.md)
 - [Architecture and ownership](docs/architecture.md)
 - [Bench Server visual introduction](assets/bench_server/index.html)
 - [Add a benchmark server](docs/benchmark-server-guide.md)
@@ -172,7 +173,8 @@ It does not authenticate the actor's provider/model identity, meter hidden
 provider requests or enforce OS isolation. Unknown usage is recorded as
 `null`. [`gpt6_astra`](AgentPolicies/gpt6_astra/README.md) provides one Bench Server
 validation client, `codex_native` (`codex-native/v2`), with an explicitly selected
-benchmark. It preserves the former Direct v3 behavior and declared numeric action
+benchmark. It preserves persistent Direct control, the optional completion and
+repeated-command settings, and the declared numeric action
 interface; there is no method-selection step. The old bounded CLI Native method
 and other retired methods remain in Git and frozen records. Historical results
 keep their original method names and do not become Native v2 scores.

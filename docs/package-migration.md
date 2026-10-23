@@ -54,8 +54,9 @@ or restarting evaluations.
 ## GPT validation client consolidation
 
 `AgentPolicies/gpt6_astra/` now has one active client, `codex_native`
-(`codex-native/v2`), preserving the former Direct v3 prompt, configuration values
-and execution behavior. `run.py` and `codex_native.py` live at the profile root. `configs/` holds the single
+(`codex-native/v2`), consolidating persistent Direct control while retaining the
+later optional completion and repeated-command behavior. Both options remain
+disabled by default. `run.py` and `codex_native.py` live at the profile root. `configs/` holds the single
 `codex_native_config.json`, `codex_native_prompt.txt`, `profile.json`,
 `configuration.schema.json` and `dependencies.json`; conversation, public-observation
 and transport helpers live under `tools/`. The old `methods/`, `prompts/` and
@@ -72,11 +73,13 @@ Current usage is collected in the profile README; development notes are kept
 locally. Old guides remain available from Git history or their frozen source
 packages.
 
-New model-source captures use `starvla-rsi.model-source/v7`. Historical v1–v6
+New model-source captures use `starvla-rsi.model-source/v8`. Historical v1–v7
 inventories, results and experiment snapshots retain their original bytes,
 method names and validation rules. Old methods remain recoverable from Git and
 frozen run packages; a historical Direct result does not become a Native v2
-score. This cleanup does not change native benchmark protocols or start a run.
+score. V7 remains the historical Direct v4 inventory rather than being reused
+for the consolidated client. This cleanup does not change native benchmark
+protocols or start a run.
 
 ## Why an old directory may still be visible
 

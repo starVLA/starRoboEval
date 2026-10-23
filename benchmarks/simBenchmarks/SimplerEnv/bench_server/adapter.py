@@ -19,6 +19,9 @@ from benchkit.registry import register_benchmark
 
 SIMPLER_REVISION = "c701ea271b16b80616d6fed9713c4a50a0adea3b"
 MANISKILL_REVISION = "ef7a4d4fdf4b69f2c2154db5b15b9ac8dfe10682"
+# Shared-filesystem Git metadata scans can exceed 15 s before native creation.
+# Bound each verification command independently; this is not a control budget.
+NATIVE_GIT_TIMEOUT_S = 120
 TASK_HORIZONS = {
     "google_robot_pick_horizontal_coke_can": 80,
     "google_robot_pick_vertical_coke_can": 80,
@@ -44,17 +47,17 @@ def _revision(root: Path, expected: str) -> dict[str, JsonValue]:
     try:
         top = subprocess.run(
             ["git", "-C", str(root), "rev-parse", "--show-toplevel"], check=True,
-            capture_output=True, text=True, timeout=15, env=git_env,
+            capture_output=True, text=True, timeout=NATIVE_GIT_TIMEOUT_S, env=git_env,
         ).stdout.strip()
         if Path(top).resolve() != root.resolve():
             raise CompatibilityError(f"native source must have its own Git root: {root}")
         revision = subprocess.run(
             ["git", "-C", str(root), "rev-parse", "HEAD"], check=True,
-            capture_output=True, text=True, timeout=15, env=git_env,
+            capture_output=True, text=True, timeout=NATIVE_GIT_TIMEOUT_S, env=git_env,
         ).stdout.strip()
         dirty = subprocess.run(
             ["git", "-C", str(root), "status", "--porcelain", "--untracked-files=no"],
-            check=True, capture_output=True, text=True, timeout=15, env=git_env,
+            check=True, capture_output=True, text=True, timeout=NATIVE_GIT_TIMEOUT_S, env=git_env,
         ).stdout.strip()
     except (OSError, subprocess.SubprocessError) as exc:
         raise CompatibilityError(f"cannot verify upstream Git checkout {root}") from exc

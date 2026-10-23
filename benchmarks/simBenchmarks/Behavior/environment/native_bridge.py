@@ -6,8 +6,8 @@ from numbers import Real
 from benchkit.contracts import Observation
 from benchkit.errors import ProtocolError
 from benchmarks.simBenchmarks.Behavior.bench_server.protocol import (
-    ACTION_SPEC, CAMERA_KEYS, CONTROLLER_INDICES, HORIZON, HUMAN_LENGTH,
-    INSTRUCTION, INSTANCE, PROPRIO_FIELDS, STATE_NAMES,
+    ACTION_SPEC, CAMERA_KEYS, CONTROLLER_INDICES,
+    INSTANCE, PROPRIO_FIELDS, STATE_NAMES, TASK, task_definition,
 )
 
 
@@ -18,7 +18,7 @@ def array(value):
     return np.asarray(value)
 
 
-def public_observation(raw, step):
+def public_observation(raw, step, task=TASK):
     import numpy as np
     if not isinstance(raw, Mapping):
         raise ProtocolError("BEHAVIOR native observation must be a mapping")
@@ -31,7 +31,7 @@ def public_observation(raw, step):
     state = array(raw.get("robot_r1::proprio"))
     if state.shape != (61,) or not np.issubdtype(state.dtype, np.floating) or not np.isfinite(state).all():
         raise ProtocolError("BEHAVIOR measured proprioception requires 61 finite floats")
-    return Observation(step, INSTRUCTION, images, tuple(float(x) for x in state),
+    return Observation(step, task_definition(task).instruction, images, tuple(float(x) for x in state),
         {"state_provenance": "measured robot joints/body velocity and base-relative EEF kinematics"})
 
 
@@ -79,14 +79,17 @@ class ExternalAction:
             raise ProtocolError("reset cannot discard a queued action")
 
 
-def initialize_evaluator(evaluator):
+def initialize_evaluator(evaluator, task=TASK):
     """Exactly the native CLI preparation, not one reset per actor action."""
     evaluator.reset()
     evaluator.load_task_instance(INSTANCE)
     evaluator.reset()
+    if task != TASK and evaluator.env.episode_steps != 0:
+        raise ProtocolError("native episode counter must start at zero after reset")
 
 
-def validate_loaded(evaluator, sim):
+def validate_loaded(evaluator, sim, task=TASK):
+    selected = task_definition(task)
     robot = evaluator.robot
     indices = {name: array(values).tolist() for name, values in robot.controller_action_idx.items()}
     # A zero-dimensional native camera controller may be present.
@@ -95,10 +98,15 @@ def validate_loaded(evaluator, sim):
         raise ProtocolError("loaded native action order differs from R1Pro23")
     if robot.model != "r1pro" or robot._grasping_mode != "assisted" or tuple(robot._proprio_obs) != PROPRIO_FIELDS:
         raise ProtocolError("loaded robot/sensors/grasp mechanism differs")
-    if evaluator.human_stats["length"] != HUMAN_LENGTH:
+    if evaluator.human_stats["length"] != selected.human_length:
         raise ProtocolError("native task human horizon changed")
-    if evaluator.env.task._termination_config["max_steps"] != HORIZON:
-        raise ProtocolError("loaded native timeout differs from resolved public cap")
+    if (evaluator.env.task.activity_name != selected.name
+            or evaluator.env.task.scene_name != selected.scene):
+        raise ProtocolError("loaded native task/scene differs from selected case")
+    if evaluator.env.task._termination_config["max_steps"] != selected.native_timeout_steps:
+        raise ProtocolError("loaded native timeout differs from configured task threshold")
+    if task != TASK and evaluator.env._automatic_reset is not False:
+        raise ProtocolError("native automatic reset must remain disabled")
     if not math.isclose(sim.get_physics_dt(), 1 / 120) or not math.isclose(sim.get_sim_step_dt(), 1 / 30):
         raise ProtocolError("native timing differs from declared 120/30 Hz")
     # The evaluator loads the hash-pinned native r1pro YAML. Inspect loaded
@@ -113,6 +121,8 @@ def validate_loaded(evaluator, sim):
             raise ProtocolError("native gripper controller mismatch")
     if cfg["base"]["name"] != "HolonomicBaseJointController":
         raise ProtocolError("native base controller mismatch")
+    budget = ({"native_horizon": selected.horizon} if task == TASK else
+              {"native_timeout_steps": selected.native_timeout_steps, "native_control_cap": selected.control_cap})
     return {"action_indices": indices, "action_dimension": 23, "proprio_dimension": len(STATE_NAMES),
-            "native_horizon": HORIZON, "physics_hz": 120, "control_hz": 30,
+            **budget, "physics_hz": 120, "control_hz": 30,
             "grasping_mode": "assisted", "robot_model": robot.model}

@@ -89,6 +89,7 @@ data/
 .vscode/
 .DS_Store
 *.swp
+**/results/*
 Projects_readmes
 
 # Local checks and debug files stay outside the tracked project.
@@ -96,3 +97,4 @@ Projects_readmes
 **/tests/
 **/test_*
 **/check_*
+**/run_test_*.sh

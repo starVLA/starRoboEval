@@ -12,6 +12,9 @@
   "max_chunk_length": 5,
   "ordinary_give_up": false,
   "safety_stop": false,
+  "allow_task_completion": false,
+  "stagnation_review": false,
+  "stagnation_window": 4,
   "policy_stop_rule_version": "minimum-action-decisions/v2",
   "min_action_decisions_before_give_up": 0,
 

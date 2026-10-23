@@ -53,6 +53,17 @@
     "safety_stop": {
       "type": "boolean"
     },
+    "stagnation_review": {
+      "type": "boolean"
+    },
+    "allow_task_completion": {
+      "type": "boolean"
+    },
+    "stagnation_window": {
+      "type": "integer",
+      "minimum": 2,
+      "maximum": 32
+    },
     "policy_stop_rule_version": {
       "type": "string",
       "const": "minimum-action-decisions/v2"
@@ -111,6 +122,9 @@
     "control_method",
     "image_max_edge",
     "safety_stop",
+    "stagnation_review",
+    "allow_task_completion",
+    "stagnation_window",
     "min_action_decisions_before_give_up"
   ]
 }

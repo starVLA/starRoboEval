@@ -9,6 +9,7 @@ SUPPLEMENTAL_FILES = (
     "benchmarks/simBenchmarks/Robocasa_tabletop/bench_server/adapter.py",
     "benchmarks/simBenchmarks/Robocasa_tabletop/bench_server/protocol/__init__.py",
     "benchmarks/simBenchmarks/Robocasa_tabletop/bench_server/protocol/robocasa_tabletop_contract.json",
+    "benchmarks/simBenchmarks/Robocasa_tabletop/bench_server/protocol/task_catalog.json",
 )
 
 

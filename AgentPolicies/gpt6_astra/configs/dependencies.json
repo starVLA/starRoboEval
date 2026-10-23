@@ -15,6 +15,7 @@
     "AgentPolicies/gpt6_astra/tools/json_io.py",
     "AgentPolicies/gpt6_astra/tools/persistent_runtime.py",
     "AgentPolicies/gpt6_astra/tools/public_observation.py",
+    "AgentPolicies/gpt6_astra/tools/stagnation_review.py",
     "AgentPolicies/gpt6_astra/tools/stop_rules.py"
   ],
   "evaluation_dependency": "harness_source/index.json",

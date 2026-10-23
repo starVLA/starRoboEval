@@ -23,6 +23,7 @@ gpt6_astra/
 │   ├── stop_rules.py              # Optional policy stopping preferences
 │   ├── persistent_runtime.py      # Conversation, execution feedback and recovery
 │   ├── public_observation.py      # Public observations and image processing
+│   ├── stagnation_review.py       # Optional acknowledged-command reminder, not a task solver
 │   ├── json_io.py                 # Structured data handling
 │   ├── codex_app_server.py        # App-server communication
 │   └── codex_runtime.py           # CLI installation, version and login checks
@@ -55,7 +56,8 @@ python -B -m benchkit preflight-policy --model-profile gpt6_astra
 
 Preflight starts neither model inference nor simulation, and does not prove model
 access or native environment readiness. The client uses Codex login through
-app-server, with no additional API key or SDK fallback.
+app-server and requires the existing ChatGPT login in this source version;
+there is no API-key runtime profile or SDK fallback in this checkout.
 
 ## Single-task integration example
 
@@ -101,6 +103,20 @@ Ordinary give-up and voluntary `safety_stop` are disabled by default.
 an empty-action safety stop is rejected with correction feedback. When enabled, an explained
 stop ends the attempt without awarding success. This does not disable hardware protection.
 
+Optional model-declared completion is also **disabled by default**. Configure
+`--allow-task-completion` before an attempt to enable `actions=[]` with
+`stop_reason="task_complete"`; `--no-allow-task-completion` keeps it disabled.
+An enabled declaration ends normally without another control or verification
+cycle. It records the model's judgment, never native success: the benchmark still
+reports its own score and outcome, even when these disagree with the declaration.
+
+`--stagnation-review` enables an advisory after repeated acknowledged constant
+commands (`--stagnation-window 4`, configurable from 2 to 32 decisions).
+This is disabled by default and does not infer a stall, enforce a motion change,
+stop the episode or query hidden scores. Repeated velocity commands may be useful.
+Only acknowledged prefixes count; rejected or uncertain actions do not create
+new evidence. The optional completion operation does not depend on this reminder.
+
 ## Recovery and results
 
 Model-call recovery stays in the same conversation; it cannot reset a task, switch
@@ -108,6 +124,15 @@ models or replay robot actions. Capacity recovery requires an explicitly failed,
 closed turn with `serverOverloaded`; an error notification alone is insufficient.
 Recovery is bounded, and exhaustion remains an infrastructure error, not native
 failure. Native termination cancels the model without an unmetered final continuation.
+Explicitly retrying network notifications keep the current turn pending; they do
+not authorize another action or a new task. Inherited MCP services are checked
+and disabled before any inference, with the effective configuration verified.
+
+This flattened client preserves the local Direct v4 completion/review options
+while exposing only `codex-native/v2`. New internal captures use
+`starvla-rsi.model-source/v8` to distinguish it from the earlier source layouts.
+Historical bounded Native, Direct and Planned methods retain their original
+names, frozen source and results; no old entrypoint forwards to this method.
 
 Write results under `results/<benchmark>/`, with the canonical task ID and a short
 description in run names. Calls, recovery attempts, executed action decisions and

@@ -14,7 +14,7 @@ from benchkit.artifacts import append_jsonl, atomic_write_json
 from benchkit.errors import ProtocolError
 from benchkit.sim_server.wire import dumps, loads, encode_observation, MAX_MESSAGE_BYTES
 from benchmarks.simBenchmarks.Behavior.bench_server.protocol import (
-    ACTION_SPEC, HORIZON, INSTANCE, NATIVE_SEED, OBSERVATION_SPEC, TASK,
+    ACTION_SPEC, INSTANCE, NATIVE_SEED, OBSERVATION_SPEC, TASK, task_definition,
 )
 from benchmarks.simBenchmarks.Behavior.environment.native_bridge import (
     ExternalAction, initialize_evaluator, metric_json, public_observation, validate_loaded,
@@ -26,6 +26,7 @@ RPC_PROTOCOL = "behavior-private-rpc/v1"
 class NativeSession:
     def __init__(self, config):
         self.config = config
+        self.task_spec = task_definition(config.get("task", TASK))
         self.root = Path(config["artifact_dir"])
         self.evaluator = self.og = self.policy = None
         self.writers = {}
@@ -41,7 +42,7 @@ class NativeSession:
             raise ProtocolError("one native reset preparation per claim")
         self.reset_attempted = True
         from benchmarks.simBenchmarks.Behavior.environment.deployment import verify
-        identity = verify(self.config["deployment_manifest"], self.config["deployment_manifest_sha256"])
+        identity = verify(self.config["deployment_manifest"], self.config["deployment_manifest_sha256"], self.task_spec.name)
         atomic_write_json(self.root / "native_deployment.json", identity)
         os.environ["OMNIGIBSON_DATA_PATH"] = identity["data_root"]
         os.environ["OMNIGIBSON_APPDATA_PATH"] = str(self.root / "cache" / "appdata")
@@ -54,7 +55,7 @@ class NativeSession:
         from omnigibson.eval.evaluator import Evaluator, resolve_instance_ids
         from omnigibson.eval.utils.eval_utils import seed_everything
         seed_everything(NATIVE_SEED)
-        if resolve_instance_ids(TASK, [0], "public_test") != [INSTANCE]:
+        if resolve_instance_ids(self.task_spec.name, [0], "public_test") != [INSTANCE]:
             raise ProtocolError("native public instance mapping changed")
         self.policy = ExternalAction(lambda values: torch.tensor(values, dtype=torch.float32))
         supplied = self.policy
@@ -66,16 +67,16 @@ class NativeSession:
         cfg = OmegaConf.create({"env_wrapper": {"_target_": "omnigibson.eval.wrappers.DefaultWrapper"},
             "policy_name": "external-one-action-bridge", "model": None, "headless": True,
             "partial_scene_load": True, "max_steps": None, "write_video": False,
-            "mode": "public_test", "seed": NATIVE_SEED, "task": {"name": TASK}, "robot": None})
+            "mode": "public_test", "seed": NATIVE_SEED, "task": {"name": self.task_spec.name}, "robot": None})
         # Preserve a partially initialized object so cleanup owns its env even
         # if native construction raises after allocating simulation resources.
         self.evaluator = SuppliedActionEvaluator.__new__(SuppliedActionEvaluator)
         SuppliedActionEvaluator.__init__(self.evaluator, cfg)
         from benchmarks.simBenchmarks.Behavior.environment.crash_handler import prepare_crash_handler
         atomic_write_json(self.root / "native_crash_handler_after_init.json", prepare_crash_handler())
-        loaded = validate_loaded(self.evaluator, og.sim)
+        loaded = validate_loaded(self.evaluator, og.sim, self.task_spec.name)
         before = int(og.sim.current_time_step_index)
-        initialize_evaluator(self.evaluator)
+        initialize_evaluator(self.evaluator, self.task_spec.name)
         after = int(og.sim.current_time_step_index)
         self.ready = True
         loaded.update({"reset_load_reset_counter_before": before, "reset_load_reset_counter_after": after,
@@ -84,7 +85,7 @@ class NativeSession:
         return self.observe()
 
     def observe(self):
-        observation = public_observation(self.evaluator.obs, self.steps)
+        observation = public_observation(self.evaluator.obs, self.steps, self.task_spec.name)
         import imageio.v2 as imageio
         for name, rgb in observation.images.items():
             if name not in self.writers:
@@ -95,7 +96,7 @@ class NativeSession:
                 "terminated": self.terminated, "truncated": self.truncated}
 
     def step(self, action):
-        if not self.ready or self.finalized or self.terminated or self.truncated or self.steps >= HORIZON:
+        if not self.ready or self.finalized or self.terminated or self.truncated or self.steps >= self.task_spec.control_cap:
             raise ProtocolError("native episode is not accepting controls")
         values = ACTION_SPEC.validate(action)
         self.policy.queue(values)
@@ -113,7 +114,7 @@ class NativeSession:
             "terminated": self.terminated, "truncated": self.truncated})
         if self.policy.calls != calls + 1 or self.policy.pending is not None or delta != 4:
             raise ProtocolError("native control/action consumption/physics accounting differs")
-        if self.steps == HORIZON and not (self.terminated or self.truncated):
+        if self.steps == self.task_spec.control_cap and not (self.terminated or self.truncated):
             raise ProtocolError("native horizon did not terminate at configured task cap")
         return self.observe()
 

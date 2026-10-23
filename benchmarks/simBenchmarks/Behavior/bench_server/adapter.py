@@ -6,7 +6,8 @@ from benchkit.errors import ProtocolError
 from benchkit.registry import register_benchmark
 from benchkit.sim_server.wire import decode_observation
 from benchmarks.simBenchmarks.Behavior.bench_server.protocol import (
-    ACTION_SPEC, HORIZON, INSTRUCTION, INSTANCE, NATIVE_SEED, OBSERVATION_SPEC, PROTOCOL, REVISION, TASK,
+    ACTION_SPEC, HORIZON, INSTANCE, NATIVE_SEED, OBSERVATION_SPEC, PROTOCOL, REVISION, TASK,
+    EXPANDED_PROTOCOL, task_definition,
 )
 from benchmarks.simBenchmarks.Behavior.bench_server.native_worker_client import NativeWorkerClient
 
@@ -28,7 +29,7 @@ class BehaviorEpisode:
 
     def _observation(self, result):
         observation = decode_observation(result["observation"], OBSERVATION_SPEC)
-        if observation.step != self.steps or observation.instruction != INSTRUCTION:
+        if observation.step != self.steps or observation.instruction != self.benchmark.task_spec.instruction:
             raise ProtocolError("native observation identity/count differs")
         if any(image.shape != (224, 224, 3) for image in observation.images.values()):
             raise ProtocolError("native RGB size differs")
@@ -49,7 +50,7 @@ class BehaviorEpisode:
 
     def step(self, action):
         values = ACTION_SPEC.validate(action)
-        if not self.ready or self.finished or self.steps >= HORIZON:
+        if not self.ready or self.finished or self.steps >= self.benchmark.environment_step_cap:
             raise ProtocolError("BEHAVIOR episode is not running")
         result = self.worker.rpc("step", action=list(values))
         self.steps += 1
@@ -92,7 +93,14 @@ class BehaviorBenchmarkAdapter:
     observation_spec = OBSERVATION_SPEC
     descriptor = BenchmarkDescriptor("behavior", "2026-v3.9.2-defaultwrapper-debug", PROTOCOL, REVISION)
 
-    def __init__(self, deployment_manifest, deployment_manifest_sha256, worker_python, gpu_id=0, worker_timeout=1800):
+    def __init__(self, deployment_manifest, deployment_manifest_sha256, worker_python, gpu_id=0, worker_timeout=1800, task=TASK):
+        self.task_spec = task_definition(task)
+        self.task = self.task_spec.name
+        self.environment_step_cap = self.task_spec.control_cap
+        if task != TASK:
+            self.required_replan_interval = self.replan_interval = None
+            self.descriptor = BenchmarkDescriptor("behavior", "2026-v3.9.2-defaultwrapper-debug-selected-tasks",
+                                                  EXPANDED_PROTOCOL, REVISION)
         for value in (deployment_manifest, worker_python):
             if not isinstance(value, str) or not Path(value).is_absolute() or ".." in Path(value).parts:
                 raise ValueError("explicit absolute deployment manifest/interpreter paths required")
@@ -110,9 +118,12 @@ class BehaviorBenchmarkAdapter:
     def episodes(self, seed, limit=None):
         if type(seed) is not int or not 0 <= seed < 2**32 or (limit is not None and (type(limit) is not int or limit != 1)):
             raise ValueError("one fixed fast case and uint32 harness seed required")
-        return (EpisodeSpec(f"{TASK}-public0-instance{INSTANCE}-rollout0", TASK, seed, INSTRUCTION,
+        budget = ({"native_horizon": self.environment_step_cap} if self.task == TASK else
+                  {"native_timeout_steps": self.task_spec.native_timeout_steps,
+                   "native_control_cap": self.environment_step_cap})
+        return (EpisodeSpec(f"{self.task}-public0-instance{INSTANCE}-rollout0", self.task, seed, self.task_spec.instruction,
             {"evaluation_mode": "fast", "native_seed": NATIVE_SEED, "public_index": 0,
-             "native_instance": INSTANCE, "native_horizon": HORIZON,
+             "native_instance": INSTANCE, **budget,
              "selection": "one selected DefaultWrapper debug case; no full RGBD parity"}),)
 
     def open_episode(self, episode):
@@ -124,7 +135,7 @@ class BehaviorBenchmarkAdapter:
 
 @register_benchmark("behavior")
 def make_behavior(parameters):
-    allowed = {"deployment_manifest", "deployment_manifest_sha256", "worker_python", "gpu_id", "worker_timeout"}
+    allowed = {"deployment_manifest", "deployment_manifest_sha256", "worker_python", "gpu_id", "worker_timeout", "task"}
     if set(parameters) - allowed:
         raise ValueError("unknown BEHAVIOR server parameters")
     return BehaviorBenchmarkAdapter(**parameters)

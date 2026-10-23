@@ -27,6 +27,12 @@ INITIALIZE_TIMEOUT_S = 120
 # Ten failed turns total means at most nine additional turn/start requests.
 OVERLOAD_MAX_ATTEMPTS = 10
 OVERLOAD_BACKOFF_S = 30
+# A local action-wait timeout is not a failed provider turn. Keep consuming the
+# same stream, with ten total finite windows and no additional model request.
+ACTION_WAIT_MAX_WINDOWS = 10
+# Configuration discovery is local and bounded; never a model/action retry.
+MAX_INHERITED_MCP_SERVERS = 128
+MAX_MCP_NAME_BYTES = 1024
 PERMISSIONS = "rsi_direct_actor"
 TOKEN_FIELDS = {"input_tokens": "inputTokens", "output_tokens": "outputTokens",
                 "cached_input_tokens": "cachedInputTokens"}
@@ -44,10 +50,11 @@ def _write(path, value):
     return payload
 
 
-def _toml(value):
+def _toml(value, *, ensure_ascii=True):
     if isinstance(value, dict):
-        return "{" + ", ".join(json.dumps(k) + "=" + _toml(v) for k, v in value.items()) + "}"
-    return json.dumps(value)
+        return "{" + ", ".join(json.dumps(k, ensure_ascii=ensure_ascii) + "="
+                              + _toml(v, ensure_ascii=ensure_ascii) for k, v in value.items()) + "}"
+    return json.dumps(value, ensure_ascii=ensure_ascii)
 
 
 def launch_settings(actor, public, audit):
@@ -106,9 +113,8 @@ def verify_configuration(config, actor, public, audit):
     network = {key: value for key, value in (profile.get("network") or {}).items() if value is not None}
     if filesystem != wanted["permissions." + PERMISSIONS + ".filesystem"] or network != {"enabled": False}:
         raise PolicyError("Direct permission profile contains additional filesystem/network authority")
-    servers = config.get("mcp_servers") or {}
-    if not isinstance(servers, dict) or any(not isinstance(server, dict) or server.get("enabled") is not False
-                                            for server in servers.values()):
+    _, enabled = _inherited_mcp_names(config)
+    if enabled:
         raise PolicyError("inherited MCP servers must be explicitly disabled before Direct execution")
     shell = config.get("shell_environment_policy") or {}
     if shell.get("set") != wanted["shell_environment_policy.set"]:
@@ -121,10 +127,42 @@ def verify_configuration(config, actor, public, audit):
             "kernel_isolation_attested": False}
 
 
-def _launch(executable, actor, public, audit):
+def _inherited_mcp_names(config):
+    """Extract bounded names/flags only; never log endpoints, commands or secrets."""
+    if not isinstance(config, dict):
+        raise PolicyError("invalid effective Codex configuration")
+    servers = config.get("mcp_servers")
+    if servers is None:
+        servers = {}
+    if not isinstance(servers, dict) or len(servers) > MAX_INHERITED_MCP_SERVERS:
+        raise PolicyError("invalid inherited MCP configuration")
+    names, enabled = [], []
+    for name, server in servers.items():
+        try:
+            valid_name = (type(name) is str and bool(name)
+                          and len(name.encode("utf-8")) <= MAX_MCP_NAME_BYTES
+                          and not any(ord(character) < 32 or ord(character) == 127 for character in name))
+        except UnicodeError:
+            valid_name = False
+        if (not valid_name or not isinstance(server, dict)
+                or ("enabled" in server and type(server["enabled"]) is not bool)):
+            raise PolicyError("invalid inherited MCP configuration")
+        names.append(name)
+        if server.get("enabled") is not False:
+            enabled.append(name)
+    return tuple(sorted(names)), tuple(sorted(enabled))
+
+
+def _launch(executable, actor, public, audit, *, disabled_mcp_names=()):
     argv = [str(executable), "app-server", "--stdio", "--strict-config"]
     for key, value in launch_settings(actor, public, audit).items():
         argv += ["-c", key + "=" + _toml(value)]
+    # The pinned CLI's dotted override-key parser is not a TOML key parser.
+    # Put names inside one TOML inline-table VALUE, with a plain top-level key.
+    # Non-ASCII scalars stay literal: JSON surrogate pairs are not valid TOML.
+    names, _ = _inherited_mcp_names({"mcp_servers": {name: {"enabled": False} for name in disabled_mcp_names}})
+    if names:
+        argv += ["-c", "mcp_servers=" + _toml({name: {"enabled": False} for name in names}, ensure_ascii=False)]
     return argv
 
 
@@ -259,6 +297,7 @@ class PersistentRuntime:
         self.issued = self.controls = self.decisions = self.rejected = 0
         self.continuations = self.network_continuations = self.network_consecutive = 0
         self.overload_continuations = self.overload_consecutive = 0
+        self.action_wait_timeouts = self.current_action_wait_timeouts = 0
         self.last_overload_error_code = None
         self.seen_calls = set()
         self.tokens = None
@@ -281,11 +320,42 @@ class PersistentRuntime:
                          else self.actor.parent / "runtime" / "transport")
         self.transport = StdioAppServer(_launch(executable, self.actor, self.public, self.audit),
             transport_dir, cwd=self.actor, env=_environment())
-        self.transport.request("initialize", {"clientInfo": {"name": "rsi-direct", "version": "1"},
-                                              "capabilities": {"experimentalApi": True}}, INITIALIZE_TIMEOUT_S)
-        self.transport.notify("initialized", {})
-        effective = self.transport.request("config/read", {"cwd": str(self.actor), "includeLayers": False}, 30)
-        isolation = verify_configuration(effective.get("config", {}), self.actor, self.public, self.audit)
+
+        def read_configuration():
+            self.transport.request("initialize", {"clientInfo": {"name": "rsi-direct", "version": "1"},
+                                                  "capabilities": {"experimentalApi": True}}, INITIALIZE_TIMEOUT_S)
+            self.transport.notify("initialized", {})
+            response = self.transport.request("config/read", {"cwd": str(self.actor), "includeLayers": False}, 30)
+            if not isinstance(response, dict) or not isinstance(response.get("config"), dict):
+                raise PolicyError("invalid effective Codex configuration")
+            return response["config"]
+
+        effective = read_configuration()
+        inherited_names, enabled_names = _inherited_mcp_names(effective)
+        if enabled_names:
+            # Empty table overrides merge with user configuration. Discover names
+            # before any thread/turn, reap this bootstrap child, then explicitly
+            # disable every inherited server for exactly one replacement child.
+            # No global config writes, actor input, inference or control replay.
+            del effective
+            self.transport.close()  # Failure must prevent the replacement.
+            self._write_audit("configuration_bootstrap.json", {
+                "schema_version": "starvla-rsi.codex-configuration-bootstrap/v1",
+                "inherited_mcp_count": len(inherited_names), "enabled_mcp_count": len(enabled_names),
+                "bootstrap_closed": True, "thread_started": False,
+                "transport_diagnostics": self.transport.diagnostics()}, category="tool_traces")
+            isolated_dir = transport_dir.with_name("transport-isolated")
+            isolated_dir.mkdir(mode=0o700, exist_ok=False)
+            self.transport = StdioAppServer(_launch(executable, self.actor, self.public, self.audit,
+                disabled_mcp_names=inherited_names), isolated_dir, cwd=self.actor, env=_environment())
+            effective = read_configuration()
+            final_names, _ = _inherited_mcp_names(effective)
+            if not set(final_names) <= set(inherited_names):
+                raise PolicyError("inherited MCP configuration changed during child isolation")
+        isolation = verify_configuration(effective, self.actor, self.public, self.audit)
+        del effective
+        if enabled_names:
+            isolation.update(configuration_bootstrap_restarts=1, disabled_inherited_mcp_count=len(inherited_names))
         answer = self.transport.request("thread/start", {
             "cwd": str(self.actor), "model": self.config["model"], "modelProvider": self.config["provider"],
             "config": {"model_reasoning_effort": self.config["reasoning_effort"]},
@@ -401,6 +471,10 @@ class PersistentRuntime:
             "overload_consecutive": self.overload_consecutive,
             "overload_max_attempts": OVERLOAD_MAX_ATTEMPTS,
             "last_overload_error_code": self.last_overload_error_code,
+            "action_wait_timeouts": self.action_wait_timeouts,
+            "current_action_wait_timeouts": self.current_action_wait_timeouts,
+            "action_wait_max_windows": ACTION_WAIT_MAX_WINDOWS,
+            "action_wait_window_s": self.config["timeout_s"],
             "completed_turn_continuations": self.continuations,
             "app_server_reported_cumulative_tokens": self.tokens, "usage_updates": self.usage_updates,
             "zero_or_unavailable_notices": self.zero_usage_notices,
@@ -409,6 +483,22 @@ class PersistentRuntime:
             "transport_diagnostics": self.transport.diagnostics() if self.transport else None}
 
     def _next_action(self):
+        from AgentPolicies.gpt6_astra.tools.codex_app_server import TransportTimeout
+
+        self.current_action_wait_timeouts = 0
+
+        def next_wait_window():
+            self.action_wait_timeouts += 1
+            self.current_action_wait_timeouts += 1
+            self._record("tool_traces", {"event": "action_wait_timeout",
+                "action_wait_timeouts": self.action_wait_timeouts,
+                "current_action_wait_timeouts": self.current_action_wait_timeouts,
+                "max_windows": ACTION_WAIT_MAX_WINDOWS,
+                "window_s": self.config["timeout_s"], "additional_model_request": False})
+            if self.current_action_wait_timeouts >= ACTION_WAIT_MAX_WINDOWS:
+                raise TransportTimeout("event_timeout")
+            return time.monotonic() + self.config["timeout_s"]
+
         deadline = time.monotonic() + self.config["timeout_s"]
         network_error = None
         terminal_network_error = None
@@ -418,15 +508,28 @@ class PersistentRuntime:
             if remaining <= 0:
                 if overload_error:
                     raise _OverloadRecoveryError("server_overloaded_unconfirmed_closure")
+                if terminal_network_error is None:
+                    # A matching willRetry=true network notification leaves
+                    # this turn live. Consume the same bounded wait allowance;
+                    # it neither proves closure nor authorizes another request.
+                    deadline = next_wait_window()
+                    continue
                 raise TimeoutError("Direct agent idle timeout")
             try:
                 event = self.transport.next_message(remaining)
-            except TimeoutError:
+            except TimeoutError as exc:
+                # Request/write timeouts may mean ambiguous delivery. Never
+                # convert them into an event wait or a recovery request.
+                if isinstance(exc, TransportTimeout) and exc.code != "event_timeout":
+                    raise
                 if overload_error:
                     # Unlike legacy network recovery, an idle summary is not
                     # sufficient: wait for this exact turn's failed completion.
                     raise _OverloadRecoveryError("server_overloaded_unconfirmed_closure") from None
                 if not terminal_network_error:
+                    if isinstance(exc, TransportTimeout) and exc.code == "event_timeout":
+                        deadline = next_wait_window()
+                        continue
                     raise
                 # A persistent visual thread can be much larger than the
                 # transport's single-message limit.  Recovery needs only the
@@ -479,8 +582,8 @@ class PersistentRuntime:
                 kind = params.get("item", {}).get("type")
                 if kind in ("webSearch", "mcpToolCall", "collabAgentToolCall"):
                     raise PolicyError("out-of-scope native tool event")
-                if method == "item/completed" and kind in ("commandExecution", "fileChange", "imageView"):
-                    deadline = time.monotonic() + self.config["timeout_s"]
+                # Visible tool/token activity is not the next robot action;
+                # it cannot reset this window or replenish its allowance.
                 if method == "item/completed":
                     self._record_visible_item(params.get("item", {}))
             elif method == "turn/completed":
@@ -518,12 +621,23 @@ class PersistentRuntime:
                         or type(params.get("willRetry")) is not bool):
                     raise PolicyError("invalid app-server error notification")
                 error = params.get("error", params)
-                if _overload_error(error):
+                is_overload, is_network = _overload_error(error), _network_error(error)
+                # Only validated, allowlisted diagnostics: no provider prose,
+                # raw payload, thread/turn identifiers or additional details.
+                self._record("tool_traces", {"event": "app_server_error_notification",
+                    "classification": "overload" if is_overload else "network" if is_network else "other",
+                    "will_retry": params["willRetry"],
+                    "action_wait_timeouts": self.action_wait_timeouts,
+                    "current_action_wait_timeouts": self.current_action_wait_timeouts,
+                    "action_submissions": self.issued, "executed_controls": self.controls,
+                    "network_continuations": self.network_continuations,
+                    "overload_continuations": self.overload_continuations})
+                if is_overload:
                     self.last_overload_error_code = "server_overloaded"
                     overload_error = error
                     network_error = terminal_network_error = None
                     # willRetry is not proof of closure. No turn/start here.
-                elif _network_error(error):
+                elif is_network:
                     overload_error = None
                     network_error = error
                     if params["willRetry"] is False:
@@ -557,6 +671,7 @@ class PersistentRuntime:
 
     def act(self, observation):
         started = time.monotonic()
+        self.current_action_wait_timeouts = 0
         usage = None
         if self.context is None or (self.issued and self.feedback is None):
             raise PolicyError("Direct call without episode or execution acknowledgment")

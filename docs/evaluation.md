@@ -85,11 +85,19 @@ Additional inference/planning does not expand the robot or environment interface
 
 `anonymous_code_agent` is an external mailbox with unknown provider/model identity.
 [`gpt6_astra`](../AgentPolicies/gpt6_astra/README.md) supplies one Bench Server
-validation client, `codex_native` (`codex-native/v2`). It retains the former Direct v3
-behavior; use its driver with an explicitly selected benchmark, without a method
+validation client, `codex_native` (`codex-native/v2`). It consolidates the persistent
+Direct implementation and its optional completion and repeated-command settings;
+use its driver with an explicitly selected benchmark, without a method
 selection step. Optional `--control-method` accepts only `codex-native/v2`.
 Numeric-interface compatibility is not native validation or universal robot capability. `opus` is an unconfigured placeholder.
 Profile dependencies and credentials are separate from benchmark installation.
+The client preserves optional model-declared completion, **disabled by default**;
+`--allow-task-completion` enables it before an attempt, and
+`--no-allow-task-completion` explicitly keeps it off. When enabled, the claim
+ends an attempt normally without additional controls. Native success and score are
+still reported independently of that claim. Its optional repeated-command
+review is off by default. Select these policy settings before the attempt;
+neither changes the benchmark budget nor authorizes a retry.
 
 For the mailbox profile, the actor receives only its opaque endpoint and permitted protocol context.
 Do not provide campaign directories, native workers, evaluator state or private
@@ -200,6 +208,29 @@ actions or raw chat. It does not prove backend consumption or final ACK delivery
 Review recorded task text and notes before sharing. Benchmark-specific score,
 environment/asset provenance and video publication stay in their existing tools;
 they are not guessed from arbitrary nested metadata.
+
+For video-linked review of explicitly selected closed episodes, use
+`python -B -m benchkit.reports.episode_viewer build --config /private/viewer.json
+--output /new/presentation/directory`, then
+`python -B -m benchkit.reports.episode_viewer serve --directory /new/presentation/directory`.
+The private config supplies `tasks`, each with `id`, `title`, `task`, `run_id`,
+`client_dir` and explicit `videos`. A video entry supplies `camera`, `run_id`,
+`task`, absolute MP4 `path`, `bytes`, `sha256`, `fps`, `frames` and
+`mapping: initial_frame_then_one_per_control`. This mapping requires prior
+native recording/decoding evidence; it is not guessed from video duration.
+Currently each selected client run must contain one episode.
+
+The viewer retains every recorded call and its input, submitted actions, and
+first/last ACK; intermediate ACK observations are explicitly omitted. It exposes
+only `metrics.native_benchmark_score` as a separately labelled post-evaluation
+score, not actor input. Recorded notes are not a complete conversation or hidden
+reasoning. Video time represents control frames, not model latency.
+The loopback-only server supports seeking, verifies media hashes at startup,
+and allowlists the page and explicit MP4s; it does not serve raw directories or
+its private `.media-map.json`. Forward its port over SSH or VS Code. Videos remain
+in their original server directories; no duplicate video is produced. Ignore
+generated `data.js` and `.media-map.json` if retaining the page sources in Git.
+See the [four-task BEHAVIOR review](../AgentPolicies/gpt6_astra/results/behavior/interaction/2026-10-four-task-review/README.md).
 
 Report the selected denominator, attempted/completed/unattempted counts, successes,
 policy/protocol errors and infrastructure errors. Preserve every original failure.

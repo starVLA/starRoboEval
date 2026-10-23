@@ -20,17 +20,21 @@ from AgentPolicies.gpt6_astra.tools.persistent_runtime import (
     ROOT, TRANSPORT, PersistentRuntime, _bad, _json, _write,
 )
 from AgentPolicies.gpt6_astra.tools.public_observation import image_edge, public_state, public_images
+from AgentPolicies.gpt6_astra.tools.stagnation_review import RepeatedCommandReview
 
 METHOD = "codex-native/v2"
 METHODS = (METHOD,)
 
 
 class CodexNativePolicy(PersistentRuntime):
+    METHOD = METHOD
+
     def __init__(self, *, identity, prompt=None, timeout_s=None, max_chunk_length=None,
-                 min_action_decisions_before_give_up=None, image_max_edge=None, safety_stop=None):
+                 min_action_decisions_before_give_up=None, image_max_edge=None, safety_stop=None,
+                 allow_task_completion=None, stagnation_review=None, stagnation_window=None):
         payload = (ROOT / "configs/codex_native_config.json").read_bytes()
         self.config = json.loads(payload, object_pairs_hook=_strict_object, parse_constant=_invalid_constant)
-        if (self.config["control_method"] != METHOD or self.config["transport"] != TRANSPORT
+        if (self.config["control_method"] != self.METHOD or self.config["transport"] != TRANSPORT
                 or self.config["model"] != "gpt-6-astra" or self.config["provider"] != "openai"
                 or self.config["reasoning_effort"] != "xhigh" or self.config["ordinary_give_up"] is not False
                 or type(self.config["safety_stop"]) is not bool):
@@ -39,11 +43,17 @@ class CodexNativePolicy(PersistentRuntime):
                 or isinstance(min_action_decisions_before_give_up, bool)):
             raise ValueError("Codex native disables ordinary give-up; no mandatory persistence floor")
         for key, value in (("timeout_s", timeout_s), ("max_chunk_length", max_chunk_length),
-                           ("image_max_edge", image_max_edge), ("safety_stop", safety_stop)):
+                           ("image_max_edge", image_max_edge), ("safety_stop", safety_stop),
+                           ("allow_task_completion", allow_task_completion),
+                           ("stagnation_review", stagnation_review), ("stagnation_window", stagnation_window)):
             if value is not None:
                 self.config[key] = value
         if type(self.config["safety_stop"]) is not bool:
             raise ValueError("Codex native safety_stop must be a boolean")
+        if type(self.config["allow_task_completion"]) is not bool:
+            raise ValueError("Codex native allow_task_completion must be a boolean")
+        # Validate the opt-in advisory before any actor/runtime starts.
+        RepeatedCommandReview(self.config["stagnation_review"], self.config["stagnation_window"])
         if (type(self.config["timeout_s"]) not in (int, float)
                 or not math.isfinite(self.config["timeout_s"]) or not 0 < self.config["timeout_s"] <= 900):
             raise ValueError("Codex native timeout must be finite and in (0,900]")
@@ -54,22 +64,15 @@ class CodexNativePolicy(PersistentRuntime):
                              if prompt is None else prompt)
         if not isinstance(self._prompt_base, str) or not self._prompt_base.strip() or len(self._prompt_base) > 32000:
             raise ValueError("Codex native prompt must be bounded nonempty text")
-        stop_rule = (
-            'safety_stop=true: an explained voluntary stop is permitted with actions=[] and stop_reason="safety_stop".'
-            if self.config["safety_stop"] else
-            'safety_stop=false: voluntary safety stops are disabled for this simulation evaluation. '
-            'Submit at least one valid action and stop_reason=null. Do not end the episode merely because '
-            'progress is uncertain, an object is dropped, or contact is possible; use public feedback to replan.'
-        )
-        self.prompt = (self._prompt_base + "\nEffective policy stop configuration: " + stop_rule +
-                       " Native termination, execution budgets, protocol errors and external safeguards remain authoritative.\n")
-        self.descriptor = PolicyDescriptor(**identity, version=METHOD, parameters={
-            "control_method": METHOD, "transport": TRANSPORT, "effective_config": self.config.copy(),
+        self.prompt = self._effective_prompt()
+        self.descriptor = PolicyDescriptor(**identity, version=self.METHOD, parameters={
+            "control_method": self.METHOD, "transport": TRANSPORT, "effective_config": self.config.copy(),
             "preset_sha256": hashlib.sha256(payload).hexdigest(),
             "prompt_sha256": hashlib.sha256(self.prompt.encode()).hexdigest(),
             **{key: self.config[key] for key in ("max_chunk_length", "timeout_s", "image_max_edge",
                                                 "ordinary_give_up", "safety_stop", "feedback_projection",
-                                                "initial_state_reference")},
+                                                "initial_state_reference", "allow_task_completion",
+                                                "stagnation_review", "stagnation_window")},
             "model_identity_evidence": "requested and app-server-reported; not independent provider attestation",
             "isolation": "public-only actor workspace; explicit Codex permission profile, not kernel attestation",
             "provider_calls": None, "automatic_crash_resume": False,
@@ -77,15 +80,55 @@ class CodexNativePolicy(PersistentRuntime):
         super().__init__()
         self._clear_native()
 
+    def _stop_rule(self):
+        completion = (
+            'allow_task_completion=true: when you believe the task is complete, call robot_act '
+            'with the current request_id, actions=[], stop_reason="task_complete", and a concise reason. '
+            'This normally ends the interaction immediately. No extra verification, holding actions, '
+            'or waiting for the execution budget is required. Your declaration is recorded separately '
+            'from native success and scoring; it does not award success. '
+            if self.config["allow_task_completion"] else
+            'allow_task_completion=false: task_complete is not available in this configuration. '
+        )
+        safety = (
+            'safety_stop=true: an explained voluntary safety stop is also permitted with '
+            'actions=[] and stop_reason="safety_stop". '
+            if self.config["safety_stop"] else
+            'safety_stop=false: the safety_stop reason is disabled. '
+        )
+        return completion + safety + (
+            'For continued control, submit at least one valid action and stop_reason=null. '
+            'Ordinary give-up is not enabled; uncertainty alone is not a task-completion declaration.'
+        )
+
+    def _effective_prompt(self):
+        return (self._prompt_base + "\nEffective policy stop configuration: " + self._stop_rule() +
+                " Native termination, execution budgets, protocol errors and external safeguards remain authoritative.\n")
+
+    def _stop_reasons(self):
+        return (("safety_stop",) if self.config["safety_stop"] else ()) + (
+            ("task_complete",) if self.config["allow_task_completion"] else ())
+
+    def _tool_description(self):
+        if self.config["allow_task_completion"]:
+            return ('Submit direct native actions, or declare task completion with actions=[] and '
+                    'stop_reason="task_complete" to normally end the interaction without another control or check. '
+                    'Completion is your judgment, not a native success claim. ' +
+                    ('An explained safety_stop with actions=[] is also permitted. ' if self.config["safety_stop"] else ''))
+        return ("Submit direct native action vectors or an explained safety stop. "
+                if self.config["safety_stop"] else "Submit direct native action vectors; voluntary stops are disabled. ")
+
     def _clear_native(self):
         self.initial_robot_state = None
         self.initial_observation_path = None
         self.execution_memory = deque(maxlen=self.config["execution_history_decisions"])
+        self.review = RepeatedCommandReview(self.config["stagnation_review"], self.config["stagnation_window"])
 
     def _preflight_policy(self):
         return CodexNativePolicy(identity={key: getattr(self.descriptor, key)
             for key in ("name", "kind", "model", "provider")}, prompt=self._prompt_base,
-            **{key: self.config[key] for key in ("timeout_s", "max_chunk_length", "image_max_edge", "safety_stop")})
+            **{key: self.config[key] for key in ("timeout_s", "max_chunk_length", "image_max_edge", "safety_stop",
+                                               "allow_task_completion", "stagnation_review", "stagnation_window")})
 
     def start_episode(self, context):
         super().start_episode(context)
@@ -115,19 +158,23 @@ class CodexNativePolicy(PersistentRuntime):
         vector = {"type": "array", "minItems": 1, "maxItems": 256, "items": {"type": "number"}}
         if self.context is not None:
             vector.update(minItems=self.context.action_spec.size, maxItems=self.context.action_spec.size)
+        stop_reasons = self._stop_reasons()
+        feedback_hint = (
+            "For continued control, the next reply supplies public observations and actual execution feedback; no reset or score query."
+            if "task_complete" in stop_reasons else
+            "The next reply supplies public observations and actual execution feedback; no reset or score query."
+        )
         return {"type": "function", "name": self._tool_name(),
-            "description": ("Submit direct native action vectors or an explained safety stop. "
-                            if self.config["safety_stop"] else "Submit direct native action vectors; voluntary stops are disabled. ") +
-                           "The next reply supplies public observations and actual execution feedback; no reset or score query.",
+            "description": self._tool_description() + feedback_hint,
             "inputSchema": {"type": "object", "additionalProperties": False,
                 "required": ["request_id", "actions", "reason", "stop_reason"],
                 "properties": {
                     "request_id": {"type": "string", "minLength": 1, "maxLength": 64},
-                    "actions": {"type": "array", "minItems": 0 if self.config["safety_stop"] else 1,
+                    "actions": {"type": "array", "minItems": 0 if stop_reasons else 1,
                                 "maxItems": self.config["max_chunk_length"], "items": vector},
                     "reason": {"type": "string", "minLength": 1, "maxLength": 1024},
-                    "stop_reason": {"type": ["string", "null"] if self.config["safety_stop"] else "null",
-                                    "enum": [None, "safety_stop"] if self.config["safety_stop"] else [None]},
+                    "stop_reason": {"type": ["string", "null"] if stop_reasons else "null",
+                                    "enum": [None, *stop_reasons]},
                 }}}
 
     def _validate_action(self, arguments, packet):
@@ -147,9 +194,7 @@ class CodexNativePolicy(PersistentRuntime):
         if type(actions) is not list or len(actions) > self.config["max_chunk_length"]:
             _bad("invalid_length", "action")
         stop = arguments["stop_reason"]
-        if stop == "safety_stop" and not self.config["safety_stop"]:
-            _bad("invalid_stop", "safety_stop")
-        if stop not in (None, "safety_stop") or (stop is None) != bool(actions):
+        if stop not in (None, *self._stop_reasons()) or (stop is None) != bool(actions):
             _bad("invalid_stop", "safety_stop")
         if any(type(action) is not list for action in actions):
             _bad("invalid_type", "action")
@@ -168,6 +213,7 @@ class CodexNativePolicy(PersistentRuntime):
 
     def _feedback(self, feedback):
         proposal = self.pending_action
+        before = self.packet.get("state") if self.packet is not None else None
         previous = self.controls
         super()._feedback(feedback)
         if feedback.executed_steps:
@@ -175,6 +221,7 @@ class CodexNativePolicy(PersistentRuntime):
                 "control_start": previous + 1, "control_end": self.controls,
                 "actions": proposal["actions"][:feedback.executed_steps],
                 "authority": "acknowledged_execution_not_task_effect"})
+            self.review.acknowledge(proposal["actions"][:feedback.executed_steps], before)
 
     def _observation(self, observation):
         spec = self.context.observation_spec
@@ -210,9 +257,15 @@ class CodexNativePolicy(PersistentRuntime):
             "raw_control_feedback_forwarded": False, "workspace_context": self.workspace,
             "image_max_edge": self.config["image_max_edge"], "request_id": uuid.uuid4().hex,
             "next_call": {"tool": self._tool_name(), "observation_path": str(path)}}
+        self._extend_packet(packet)
         self._remember_public(path, _write(path, packet))
         self.packet = packet
         return packet, attachments
+
+    def _extend_packet(self, packet):
+        # The recorded packet schema remains distinct from the method identity.
+        packet["schema_version"] = "starvla-rsi.direct-observation/v4"
+        packet["policy_review"] = self.review.feedback(packet["state"], packet["state_names"])
 
     def end_episode(self):
         try:
@@ -226,6 +279,7 @@ def create_policy(*, config, identity, control_method=None, **parameters):
     if (control_method or config.get("control_method")) != METHOD:
         raise ValueError("unknown or retired model control method")
     for key in ("timeout_s", "max_chunk_length", "image_max_edge", "safety_stop",
-                "min_action_decisions_before_give_up"):
+                "min_action_decisions_before_give_up", "allow_task_completion",
+                "stagnation_review", "stagnation_window"):
         parameters.setdefault(key, config[key])
     return CodexNativePolicy(identity=identity, **parameters)

@@ -97,7 +97,8 @@ not assets or deployment paths; no task-specific server copy is required.
 Their actions remain benchmark-native. The model-owned
 [`codex_native` (`codex-native/v2`)](../AgentPolicies/gpt6_astra/README.md)
 validation client supplies numeric vectors in the service-declared action space.
-It preserves the former Direct v3 behavior without applying the historical
+It preserves persistent Direct control and the later optional completion and
+repeated-command settings without applying the historical
 Dojo-specific EEF method.
 The shared
 `benchkit/sim_server/` transport provides a remote `BenchmarkAdapter`, fixed
@@ -234,6 +235,14 @@ Only public robot observations enter its workspace. SIM credentials, scoring
 and native handles stay in the trusted driver/server. Termination cancels the
 model without an unmetered final continuation. See [client README](../AgentPolicies/gpt6_astra/README.md).
 
+The client retains Direct v4's optional model completion claim, disabled by default.
+When explicitly enabled in the policy configuration before an attempt, it closes
+the attempt normally, with no additional controls or completion-review requirement.
+This records `policy:task_complete`, not native success: the benchmark still
+supplies the score and outcome. Its repeated-command reminder is optional and
+disabled by default. These are policy settings, never server rules; historical
+captured methods retain their original settings.
+
 The client reads the service-declared action specification, arbitrary camera/state
 channels and acknowledged action prefixes. Its first public observation supplies
 an episode-local reference for task-required physical return, never an automatic
@@ -359,7 +368,7 @@ event/result consistency without requiring every frozen source file. Existing
 full source/model audits remain independent and unchanged.
 
 New campaigns use `campaign/v3` with `runtime_namespace: benchkit` and
-`harness-source/v2`; current GPT6Astra captures use `model-source/v7`.
+`harness-source/v2`; current GPT6Astra captures use `model-source/v8`.
 Other profiles retain their own declared source schema. Historical unmarked v3
 campaigns still select their captured `harness` package, not a current alias.
 Output-tool, service and explicitly named trusted-driver sources are captured separately from explicitly
@@ -381,9 +390,13 @@ The former root package `starVLA/` is now `AgentPolicies/`, without an import sh
 Historical model-source v1/v2 bundles keep their old namespace; v3 binds the
 flat AgentPolicies layout, and v4 binds the earlier grouped method/transports/preset
 layout. V5 captures the earlier three-method layout with Direct v2. V6 captures
-generic Direct v3, shared persistent runtime and public sensor helpers. V7
-captures the single `codex_native` method at the profile root, its `tools/`
-helpers and `configs/` declarations, with one method configuration and prompt. Retired methods remain in Git and
+generic Direct v3, shared persistent runtime and public sensor helpers. V7 adds
+the Direct v4 repeated-command advisory helper, preset and prompt, without
+restoring retired API/EEF/Direct-v1/v2 entrypoints. V8 captures the consolidated
+`codex_native` method at the profile root, its `tools/` helpers and `configs/`
+declarations while preserving the completion and repeated-command options.
+This uses a new inventory version rather than reinterpreting existing v7 records.
+Retired methods remain in Git and
 frozen packages, without old code entrypoints. Old inventories remain version-specific, not interchangeable
 path aliases. See the [namespace and artifact relocation note](../AgentPolicies/README.md#namespace-and-preserved-results).
 

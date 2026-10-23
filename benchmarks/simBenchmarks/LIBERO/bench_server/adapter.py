@@ -189,6 +189,12 @@ class LiberoEpisode:
         initial_states = suite.get_task_init_states(task_id)
         if len(initial_states) != frozen["released_initial_state_count"]:
             raise CompatibilityError("pinned LIBERO task initial-state count differs from the catalog")
+        initial_state_index = self.episode.metadata["initial_state_index"]
+        if (type(initial_state_index) is not int
+                or initial_state_index not in self.benchmark.initial_state_indices
+                or not 0 <= initial_state_index < len(initial_states)):
+            raise CompatibilityError("selected LIBERO initial-state index is outside the frozen panel")
+        selected_state = initial_states[initial_state_index]
         controller = robosuite.load_controller_config(default_controller="OSC_POSE")
         if (
             controller["input_min"] != -1 or controller["input_max"] != 1
@@ -201,11 +207,11 @@ class LiberoEpisode:
             "upstream_revision": LIBERO_REVISION,
             "suite": suite_name, "selection_scope": self.benchmark.scope,
             "task_order_index": 0, "task_id": task_id,
-            "task_name": task.name, "initial_state_index": 0,
+            "task_name": task.name, "initial_state_index": initial_state_index,
             "available_initial_states": len(initial_states), "reset_seed": self.episode.seed,
             "bddl_sha256": hashlib.sha256(bddl.read_bytes()).hexdigest(),
             "initial_states_file_sha256": hashlib.sha256(initial_file.read_bytes()).hexdigest(),
-            "selected_state_sha256": hashlib.sha256(np.asarray(initial_states[0]).tobytes()).hexdigest(),
+            "selected_state_sha256": hashlib.sha256(np.asarray(selected_state).tobytes()).hexdigest(),
             **self.benchmark.budget_metadata(), "settle_steps": SETTLE_STEPS,
             "native_engine_horizon": self.benchmark.native_engine_horizon,
             "image_transform": "native_rgb[::-1,::-1], contiguous copy; no resize or crop",
@@ -230,7 +236,7 @@ class LiberoEpisode:
             raise CompatibilityError("native LIBERO action bounds must be seven dimensions in [-1, 1]")
         self.env.seed(self.episode.seed)
         self.env.reset()
-        raw = self.env.set_init_state(initial_states[0])
+        raw = self.env.set_init_state(selected_state)
         for _ in range(SETTLE_STEPS):
             raw, _reward, native_success, _info = self.env.step([0.0] * 6 + [-1.0])
             if native_success:
@@ -306,11 +312,12 @@ class LiberoEpisode:
 
 
 class LiberoBenchmarkAdapter:
-    """One fixed initial state per selected task; no sampling or success retries."""
+    """Fixed task/state cells, once each; no sampling or success retries."""
 
     def __init__(
         self, task_ids: Sequence[int] | None = None, *,
         suite: str = "libero_10", scope: str = "development",
+        initial_state_indices: Sequence[int] | None = None,
         proprioception: bool = False, render_gpu_device_id: int = 0,
         budget_mode: str = "horizon", max_policy_calls: int | None = None,
         replan_interval: int | None = None,
@@ -334,6 +341,22 @@ class LiberoBenchmarkAdapter:
             or list(task_ids) != sorted(task_ids)
         ):
             raise ValueError(f"task_ids must be a unique, increasing subset of native indices 0..{count - 1}")
+        explicit_state_panel = initial_state_indices is not None
+        if explicit_state_panel:
+            if scope != "task_coverage":
+                raise ValueError("explicit initial_state_indices require scope=task_coverage")
+            if (not isinstance(initial_state_indices, (list, tuple)) or not initial_state_indices
+                    or any(type(index) is not int or index < 0 for index in initial_state_indices)
+                    or len(set(initial_state_indices)) != len(initial_state_indices)
+                    or list(initial_state_indices) != sorted(initial_state_indices)):
+                raise ValueError("initial_state_indices must be a nonempty unique, increasing list of nonnegative integers")
+            for task_id in task_ids:
+                released_count = self.suite_catalog["tasks"][task_id]["released_initial_state_count"]
+                if type(released_count) is not int or released_count <= 0:
+                    raise CompatibilityError("catalog released initial-state count must be a positive integer")
+                if initial_state_indices[-1] >= released_count:
+                    raise ValueError(f"initial_state_indices exceed task {task_id}'s {released_count} released states")
+        self.initial_state_indices = tuple(initial_state_indices) if explicit_state_panel else (0,)
         if not isinstance(proprioception, bool):
             raise TypeError("proprioception must be boolean")
         if type(render_gpu_device_id) is not int or render_gpu_device_id < 0:
@@ -361,11 +384,14 @@ class LiberoBenchmarkAdapter:
         selection = "first2" if set(self.task_ids) <= {0, 1} else "first5"
         protocol = (f"libero10-{selection}-development" if scope == "development"
                     else f"libero-task-coverage/{suite}")
+        if explicit_state_panel:
+            protocol = f"libero-initial-state-panel/{suite}"
         budget_track = f"/decision-{max_policy_calls}-prefix-{replan_interval}" if budget_mode == "decisions" else ""
         self.descriptor = BenchmarkDescriptor(
-            name="libero", version="0.1.0" if scope == "development" else "0.2.0",
+            name="libero", version=("0.3.0" if explicit_state_panel else
+                                    "0.1.0" if scope == "development" else "0.2.0"),
             protocol_version=protocol + "/" + ("rgb-qpos" if proprioception else "rgb")
-            + budget_track + "/v1",
+            + budget_track + ("/v2" if explicit_state_panel else "/v1"),
             source_revision=LIBERO_REVISION,
         )
         self.observation_spec = ObservationSpec(
@@ -397,17 +423,18 @@ class LiberoBenchmarkAdapter:
     def episodes(self, seed: int, limit: int | None = None) -> Sequence[EpisodeSpec]:
         if type(seed) is not int or seed != FIRST_PASS_SEED:
             raise ValueError(f"frozen LIBERO selection requires seed={FIRST_PASS_SEED}")
-        if limit is not None and (type(limit) is not int or not 1 <= limit <= len(self.task_ids)):
-            raise ValueError("episode limit must select a nonempty prefix without repeating any task")
+        episode_count = len(self.task_ids) * len(self.initial_state_indices)
+        if limit is not None and (type(limit) is not int or not 1 <= limit <= episode_count):
+            raise ValueError("episode limit must select a nonempty task/state prefix without repeating a cell")
         return [EpisodeSpec(
-            id=f"{('libero10' if self.scope == 'development' else self.suite)}-task{task_id:02d}-init00",
+            id=f"{('libero10' if self.scope == 'development' else self.suite)}-task{task_id:02d}-init{state_index:02d}",
             task=f"{self.suite}/task-{task_id}",
             seed=seed, instruction=self.suite_catalog["tasks"][task_id]["instruction"],
             metadata={"suite": self.suite, "task_id": task_id,
                       "task_name": self.suite_catalog["tasks"][task_id]["native_name"],
-                      "task_order_index": 0, "initial_state_index": 0, "attempt": 1,
+                      "task_order_index": 0, "initial_state_index": state_index, "attempt": 1,
                       **self.budget_metadata(), "settle_steps": SETTLE_STEPS},
-        ) for task_id in self.task_ids[:limit]]
+        ) for task_id in self.task_ids for state_index in self.initial_state_indices][:limit]
 
     def open_episode(self, episode: EpisodeSpec) -> LiberoEpisode:
         if episode not in self.episodes(FIRST_PASS_SEED):
@@ -418,7 +445,7 @@ class LiberoBenchmarkAdapter:
 @register_benchmark("libero")
 def make_libero(parameters: Mapping[str, JsonValue]) -> LiberoBenchmarkAdapter:
     unknown = set(parameters) - {"task_ids", "suite", "scope", "proprioception", "render_gpu_device_id",
-                                 "budget_mode", "max_policy_calls", "replan_interval"}
+                                 "budget_mode", "max_policy_calls", "replan_interval", "initial_state_indices"}
     if unknown:
         raise ValueError(f"unknown LIBERO parameters: {sorted(unknown)}")
     return LiberoBenchmarkAdapter(**parameters)

@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self'; media-src 'self'; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'">
+  <meta name="color-scheme" content="light">
+  <title>BEHAVIOR · 评测回放</title>
+  <link rel="stylesheet" href="style.css">
+  <script defer src="data.js"></script>
+  <script defer src="app.js"></script>
+</head>
+<body>
+  <header class="page-header">
+    <div><p class="eyebrow">BEHAVIOR / RECORDED EVALUATION</p><h1 id="page-title">评测回放</h1><p class="subtitle">从相机画面到动作记录，逐次查看一次评测的执行过程。</p></div>
+    <div id="summary" class="summary" aria-label="评测汇总"></div>
+  </header>
+  <main>
+    <p id="load-status" class="notice" role="status">正在读取本地回放数据…</p>
+    <nav id="task-tabs" class="task-tabs" aria-label="选择评测任务"></nav>
+    <div id="workspace" hidden>
+      <section class="task-heading" aria-labelledby="task-title"><div><p id="task-id" class="eyebrow"></p><h2 id="task-title"></h2></div><div id="task-outcome" class="outcome"></div></section>
+      <p class="method-note">Q 是评测结束后的原生任务进度，不是模型输入，也不代表成功率。下方备注是记录中的模型输出，不是隐藏推理。</p>
+      <div class="workspace-grid">
+        <section class="playback panel" aria-labelledby="playback-title">
+          <div class="panel-heading"><h3 id="playback-title">执行画面</h3><span class="tag">原始相机 · 224 × 224</span></div>
+          <div id="camera-grid" class="camera-grid"></div>
+          <p id="video-status" class="video-status" role="status"></p>
+          <div class="playback-options"><label>播放速度 <select id="playback-speed" aria-label="播放速度"><option value="1">1×</option><option value="2">2×</option><option value="4">4×</option><option value="8">8×</option></select></label><label class="checkbox-label"><input id="auto-follow" type="checkbox" checked> 随视频定位记录</label><span id="frame-label" class="muted"></span></div>
+          <div class="decision-navigation">
+            <div class="navigation-heading"><h3>决策时间线</h3><span id="decision-position" class="mono"></span></div>
+            <label class="sr-only" for="decision-slider">选择决策记录</label><input id="decision-slider" class="decision-slider" type="range" min="0" max="0" value="0">
+            <div class="navigation-actions"><button id="previous-call" type="button">← 上一次</button><div class="seek-buttons"><button id="seek-before" type="button">动作前</button><button id="seek-after" type="button">动作后</button></div><button id="next-call" type="button">下一次 →</button></div>
+            <div id="checkpoints" class="checkpoints" aria-label="等距决策采样点"></div><p class="microcopy">采样点按决策序号等距划分，不表示任务完成进度。</p>
+          </div>
+        </section>
+        <aside class="notes panel" aria-labelledby="notes-title"><div class="panel-heading"><h3 id="notes-title">输出备注索引</h3><span id="search-count" class="muted"></span></div><label class="sr-only" for="note-search">搜索记录中的备注</label><input id="note-search" class="search" type="search" placeholder="搜索记录中的备注…" autocomplete="off"><div id="notes-list" class="notes-list"></div><div class="pagination"><button id="previous-page" type="button" aria-label="上一页备注">←</button><span id="page-position"></span><button id="next-page" type="button" aria-label="下一页备注">→</button></div></aside>
+      </div>
+      <section class="record panel" aria-labelledby="record-title">
+        <div class="panel-heading"><h3 id="record-title">选中记录</h3><span id="call-label" class="mono"></span></div>
+        <div id="call-metrics" class="call-metrics"></div>
+        <div class="record-columns">
+          <div><h4>模型输出备注</h4><p id="decision-note" class="record-note"></p><div id="record-flags" class="record-flags"></div><details><summary>本次输入中的任务指令</summary><p id="instruction" class="pre-wrap"></p></details></div>
+          <div><h4>执行确认（ACK）</h4><p id="ack-summary"></p><div id="ack-boundaries" class="ack-boundaries"></div><p class="microcopy">仅展示首尾确认摘要；中间确认未在此视图展开。提交动作不等于已执行动作。</p></div>
+        </div>
+        <details id="actions-details"><summary id="actions-summary">提交的动作</summary><p id="action-contract" class="microcopy"></p><pre id="actions-json" tabindex="0" aria-label="本次提交动作 JSON"></pre></details>
+        <details id="state-details"><summary>动作前状态 · 输入观测</summary><p class="microcopy">来自本次策略调用的输入，按记录中的状态字段名称对照。</p><div class="table-scroll"><table><thead><tr><th scope="col">状态字段</th><th scope="col">记录值</th></tr></thead><tbody id="state-table"></tbody></table></div></details>
+        <details id="after-state-details"><summary>动作后状态 · 末个 ACK 执行记录</summary><p class="microcopy">来自本次末个执行确认中的机器人状态；它不一定已作为后续模型输入送达。</p><div class="table-scroll"><table><thead><tr><th scope="col">状态字段</th><th scope="col">记录值</th></tr></thead><tbody id="after-state-table"></tbody></table></div></details>
+      </section>
+      <details class="source panel"><summary>来源与评测信息</summary><dl id="source-details" class="source-details"></dl><p class="microcopy">此页面是本地记录的呈现副本；视频时间按“初始帧 + 每个控制一帧”对齐，不包含模型推理等待耗时。视频画面与记录可能因编码取整存在一帧差异。</p></details>
+    </div>
+  </main>
+  <footer>本地回看 · 视频时间按控制帧计算，不是模型推理耗时 <span id="generated-at"></span></footer>
+  <noscript><p class="notice">请启用 JavaScript 以查看本地评测记录。</p></noscript>
+</body>
+</html>

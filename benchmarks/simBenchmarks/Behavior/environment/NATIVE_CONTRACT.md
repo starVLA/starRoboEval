@@ -1,7 +1,7 @@
 # BEHAVIOR 2026 native contract review
 
-Status: source/asset review supporting the implemented fixed DefaultWrapper
-debug service. The fixed public case passed a two-control HTTP native smoke
+Status: source/asset review supporting the selected-case DefaultWrapper
+debug service. The historical radio public case passed a two-control HTTP native smoke
 check on 2026-09-23; see [verified scope](../README.md#verified-scope).
 This does not establish model capability or full-challenge parity.
 Source pin:
@@ -47,6 +47,10 @@ Code declares action/rendering at 30 Hz and physics at 120 Hz. The initial
 service should accept one action per control (normally four physics ticks),
 with no autonomous stepping between requests. Validate actual clock deltas in
 the native diagnostic, separately from model decisions and initialization.
+In selected-task protocols v2/v3, the agent may issue multiple sequenced controls
+from one decision; the service imposes no prefix-one requirement. The historical
+radio v1 requirement remains unchanged. Policy chunks do not change native
+control timing or permit execution beyond native termination or the horizon.
 
 ## Public sensors, not arbitrary native observation dictionaries
 
@@ -92,9 +96,28 @@ settling ticks; reset/load also perform other simulation and rendering work.
 Do not report 25 as the total initialization count without measuring it.
 No actor-controlled reset, seed search or fallback to training instances.
 
-Task horizon is `int(mean_human_length * 1.5)` unless an explicitly declared
-native override is selected. A two-control diagnostic limit is separate; it
-does not replace the native horizon or create a completed task failure.
+Native timeout configuration is `H = int(mean_human_length * 1.5)` unless an
+explicit native override is selected. This parameter is not the number of
+controls at which the pinned implementation returns timeout:
+
+1. `envs/env_base.py::_reset_variables` starts `_current_step` at zero.
+2. `_post_step` calls `task.step`, whose `termination_conditions/timeout.py`
+   condition checks `env.episode_steps >= H`.
+3. `_post_step` then increments `_current_step` and returns terminal flags.
+4. `eval/eval.py` runs until native flags terminate; it adds no independent H cap.
+
+Consequently, absent earlier termination, native timeout occurs after **H + 1
+executed controls**. Selected-task protocol v3 exposes H + 1 as its effective
+control cap while validating the loaded native timeout against H. Do not set
+the native timeout to H + 1, fabricate truncation at H, or replay the last action
+of an interrupted old run. Historical radio v1 and selected-task v2 caps/records
+remain unchanged; they must not be claimed to establish native-timeout parity.
+A two-control diagnostic limit is separate; it does not replace either quantity
+or create a completed task failure.
+The selected task names, language provenance, human lengths, horizons and exact
+instance hashes are pinned in `bench_server/protocol/__init__.py`; see the
+[task table](../EVALUATION_PROTOCOL.md). New-task deployment v2 captures bind
+one task and its selected instance; a radio v1 receipt cannot stand in for it.
 
 Preserve native evaluator step and metric ordering. Binary success comes from
 `env.task.success`; native final `q_score` is partial goal progress, not success

@@ -24,8 +24,9 @@ from benchkit.artifacts import atomic_write_json
 from benchkit.source_snapshot import _identity, _open_source_file, inventory_digest
 
 PROFILE_SCHEMA = "starvla-rsi.model-profile/v1"
-SOURCE_SCHEMA = "starvla-rsi.model-source/v7"
-GENERIC_SOURCE_SCHEMA = "starvla-rsi.model-source/v6"
+SOURCE_SCHEMA = "starvla-rsi.model-source/v8"
+REVIEW_SOURCE_SCHEMA = "starvla-rsi.model-source/v7"
+NATIVE_VECTOR_SOURCE_SCHEMA = "starvla-rsi.model-source/v6"
 TOOLS_SOURCE_SCHEMA = "starvla-rsi.model-source/v5"
 GROUPED_SOURCE_SCHEMA = "starvla-rsi.model-source/v4"
 FLAT_AGENT_SOURCE_SCHEMA = "starvla-rsi.model-source/v3"
@@ -33,18 +34,18 @@ PREVIOUS_SOURCE_SCHEMA = "starvla-rsi.model-source/v2"
 LEGACY_SOURCE_SCHEMA = "starvla-rsi.model-source/v1"
 MAX_FILE_BYTES = 256 * 1024
 MAX_TOTAL_BYTES = 1024 * 1024
-_V5_V6_FACTORIES = {
+_V5_V7_FACTORIES = {
     "anonymous_code_agent": "AgentPolicies.anonymous_code_agent.policy:create_policy",
     "gpt6_astra": "AgentPolicies.gpt6_astra.tools.factory:create_policy",
     "opus": "AgentPolicies.opus.policy:create_policy",
 }
-_FACTORIES = {**_V5_V6_FACTORIES, "gpt6_astra": "AgentPolicies.gpt6_astra.codex_native:create_policy"}
+_FACTORIES = {**_V5_V7_FACTORIES, "gpt6_astra": "AgentPolicies.gpt6_astra.codex_native:create_policy"}
 _GROUPED_FACTORIES = {**_FACTORIES, "gpt6_astra": "AgentPolicies.gpt6_astra.methods.policy:create_policy"}
 _FLAT_FACTORIES = {**_FACTORIES, "gpt6_astra": "AgentPolicies.gpt6_astra.policy:create_policy"}
 _HISTORICAL_FACTORIES = {profile: factory.replace("AgentPolicies.", "starVLA.", 1)
                          for profile, factory in _FLAT_FACTORIES.items()}
 _COMMON_FILES = ("AgentPolicies/__init__.py", "AgentPolicies/policy_support/__init__.py", "AgentPolicies/policy_support/stop_rules.py")
-# v1-v6 retain the historical common paths above. Current profiles share only
+# v1-v7 retain the historical common paths above. Current profiles share only
 # these side-effect-free package markers and the relocated stopping rules.
 _CURRENT_COMMON_FILES = (
     "AgentPolicies/__init__.py", "AgentPolicies/gpt6_astra/__init__.py",
@@ -76,16 +77,23 @@ _GPT_V6_FILES = (
     "tools/native_io.py", "tools/json_io.py", "tools/persistent_runtime.py",
     "tools/runtime_preflight.py", "tools/public_observation.py",
 )
-_GPT_V7_FILES = (
+# Additive v7 inventory. V6 remains exact for historical Direct v3 bundles.
+_GPT_V7_FILES = _GPT_V6_FILES + (
+    "configs/codex_direct_v4_config.json", "prompts/codex_direct_v4_prompt.txt",
+    "tools/stagnation_review.py",
+)
+# The flattened client is a new schema, never a reinterpretation of v7 runs.
+_GPT_V8_FILES = (
     "__init__.py", "configs/profile.json", "configs/configuration.schema.json", "configs/dependencies.json",
     "codex_native.py", "configs/codex_native_config.json", "configs/codex_native_prompt.txt",
     "tools/__init__.py", "tools/persistent_runtime.py", "tools/public_observation.py", "tools/json_io.py",
-    "tools/codex_app_server.py", "tools/codex_runtime.py",
+    "tools/codex_app_server.py", "tools/codex_runtime.py", "tools/stagnation_review.py",
 )
 _LEGACY_COMMON_FILES = ("starVLA/__init__.py", "starVLA/model_profiles.py", "starVLA/providers/__init__.py")
 _CONFIGURATION_SCHEMA = "starvla-rsi.configuration-schema/v1"
 _FACTORY_PARAMETERS = frozenset({"prompt", "timeout_s", "max_chunk_length", "min_action_decisions_before_give_up",
-                                 "control_method", "enforce_action_guard", "image_max_edge", "safety_stop"})
+                                 "control_method", "enforce_action_guard", "image_max_edge", "safety_stop",
+                                 "stagnation_review", "stagnation_window", "allow_task_completion"})
 _CREDENTIAL_FIELDS = frozenset({"api_key", "apikey", "authorization", "credentials", "credential",
                                "secret", "client_secret", "password", "token", "api_token",
                                "access_token", "refresh_token", "bearer_token"})
@@ -101,7 +109,8 @@ def profile_ids() -> tuple[str, ...]:
 
 def _source_namespace(source_schema: str) -> str:
     """Bind one exact package root to each immutable source schema."""
-    if source_schema in (SOURCE_SCHEMA, GENERIC_SOURCE_SCHEMA, TOOLS_SOURCE_SCHEMA, GROUPED_SOURCE_SCHEMA, FLAT_AGENT_SOURCE_SCHEMA):
+    if source_schema in (SOURCE_SCHEMA, REVIEW_SOURCE_SCHEMA, NATIVE_VECTOR_SOURCE_SCHEMA,
+                         TOOLS_SOURCE_SCHEMA, GROUPED_SOURCE_SCHEMA, FLAT_AGENT_SOURCE_SCHEMA):
         return "AgentPolicies"
     if source_schema in (LEGACY_SOURCE_SCHEMA, PREVIOUS_SOURCE_SCHEMA):
         return "starVLA"
@@ -116,10 +125,11 @@ def _profile_relative(profile_id: str, name: str, source_schema: str) -> str:
                     "codex_native_config.json", "codex_native_prompt.txt"}:
             return "configs/" + name
         return name
-    if source_schema in (GENERIC_SOURCE_SCHEMA, TOOLS_SOURCE_SCHEMA) and profile_id == "gpt6_astra":
+    if source_schema in (REVIEW_SOURCE_SCHEMA, NATIVE_VECTOR_SOURCE_SCHEMA, TOOLS_SOURCE_SCHEMA) and profile_id == "gpt6_astra":
         if name == "prompt.txt":
             return "prompts/codex_native_prompt.txt"
-        names = _GPT_V6_FILES if source_schema == GENERIC_SOURCE_SCHEMA else _GPT_V5_FILES
+        names = (_GPT_V7_FILES if source_schema == REVIEW_SOURCE_SCHEMA else
+                 _GPT_V6_FILES if source_schema == NATIVE_VECTOR_SOURCE_SCHEMA else _GPT_V5_FILES)
         return next((path for path in names if path.rsplit("/", 1)[-1] == name), name)
     if source_schema != GROUPED_SOURCE_SCHEMA or profile_id != "gpt6_astra":
         return name
@@ -149,9 +159,10 @@ def _allowed_files(profile_id: str, *, legacy: bool = False, source_schema: str 
     namespace = _source_namespace(source_schema)
     if source_schema == SOURCE_SCHEMA and profile_id == "gpt6_astra":
         return tuple(sorted(set(_CURRENT_COMMON_FILES + tuple("AgentPolicies/gpt6_astra/" + name
-                                                              for name in _GPT_V7_FILES))))
-    if source_schema in (GENERIC_SOURCE_SCHEMA, TOOLS_SOURCE_SCHEMA) and profile_id == "gpt6_astra":
-        names = _GPT_V6_FILES if source_schema == GENERIC_SOURCE_SCHEMA else _GPT_V5_FILES
+                                                              for name in _GPT_V8_FILES))))
+    if source_schema in (REVIEW_SOURCE_SCHEMA, NATIVE_VECTOR_SOURCE_SCHEMA, TOOLS_SOURCE_SCHEMA) and profile_id == "gpt6_astra":
+        names = (_GPT_V7_FILES if source_schema == REVIEW_SOURCE_SCHEMA else
+                 _GPT_V6_FILES if source_schema == NATIVE_VECTOR_SOURCE_SCHEMA else _GPT_V5_FILES)
         return tuple(sorted(_COMMON_FILES + tuple("AgentPolicies/gpt6_astra/" + name
                                                  for name in names)))
     legacy = source_schema == LEGACY_SOURCE_SCHEMA
@@ -326,7 +337,7 @@ def _profile_data(profile_id: str, payloads: dict[str, bytes], *, require_config
     namespace = _source_namespace(source_schema)
     legacy = source_schema == LEGACY_SOURCE_SCHEMA
     factories = (_FACTORIES if source_schema == SOURCE_SCHEMA else
-                 _V5_V6_FACTORIES if source_schema in (GENERIC_SOURCE_SCHEMA, TOOLS_SOURCE_SCHEMA) else
+                 _V5_V7_FACTORIES if source_schema in (REVIEW_SOURCE_SCHEMA, NATIVE_VECTOR_SOURCE_SCHEMA, TOOLS_SOURCE_SCHEMA) else
                  _GROUPED_FACTORIES if source_schema == GROUPED_SOURCE_SCHEMA else
                  _FLAT_FACTORIES if namespace == "AgentPolicies" else _HISTORICAL_FACTORIES)
     prefix = f"{namespace}/{profile_id}/"
@@ -360,15 +371,16 @@ def _profile_data(profile_id: str, payloads: dict[str, bytes], *, require_config
             or config.get("min_action_decisions_before_give_up") != 0
             or any(key in config for key in ("codex_direct_extension", "codex_direct_context_extension",
                                             "codex_native_extension", "codex_planned_extension", "enforce_action_guard"))):
-        raise ValueError("v7 registry requires the single persistent Codex native v2 method")
-    direct_method = "codex-direct/v3" if source_schema == GENERIC_SOURCE_SCHEMA else "codex-direct/v2"
-    if source_schema in (GENERIC_SOURCE_SCHEMA, TOOLS_SOURCE_SCHEMA) and profile_id == "gpt6_astra" and (
-            config.get("control_method") not in ("codex-native/v1", direct_method, "codex-planned/v1")
+        raise ValueError("v8 registry requires the single persistent Codex native v2 method")
+    direct_methods = (("codex-direct/v3", "codex-direct/v4") if source_schema == REVIEW_SOURCE_SCHEMA else
+                      ("codex-direct/v3",) if source_schema == NATIVE_VECTOR_SOURCE_SCHEMA else ("codex-direct/v2",))
+    if source_schema in (REVIEW_SOURCE_SCHEMA, NATIVE_VECTOR_SOURCE_SCHEMA, TOOLS_SOURCE_SCHEMA) and profile_id == "gpt6_astra" and (
+            config.get("control_method") not in ("codex-native/v1", *direct_methods, "codex-planned/v1")
             or any(key in config for key in ("codex_direct_extension", "codex_direct_context_extension",
                                              "codex_native_extension", "codex_planned_extension"))):
         raise ValueError("versioned registry requires an active method without historical extension markers")
-    if source_schema == GENERIC_SOURCE_SCHEMA and profile_id == "gpt6_astra" and "enforce_action_guard" in config:
-        raise ValueError("v6 registry cannot declare the retired Dojo action guard")
+    if source_schema in (REVIEW_SOURCE_SCHEMA, NATIVE_VECTOR_SOURCE_SCHEMA) and profile_id == "gpt6_astra" and "enforce_action_guard" in config:
+        raise ValueError("native-vector registry cannot declare the retired Dojo action guard")
     if dependencies != {
         "schema_version": "starvla-rsi.model-dependencies/v1",
         "files": list(_allowed_files(profile_id, source_schema=source_schema, method_extensions=method_extensions,
@@ -444,6 +456,13 @@ def validate_policy_parameters(data: dict[str, Any], parameters: dict[str, Any])
     allowed = set(data["factory_parameters"])
     if set(parameters) - allowed:
         raise ValueError(f"unsupported profile policy parameters: {sorted(set(parameters) - allowed)}")
+    if (data["profile"]["id"] == "gpt6_astra"
+            and {"stagnation_review", "stagnation_window"}.intersection(parameters)
+            and (parameters.get("control_method") or data["config"].get("control_method")) not in ("codex-direct/v4", "codex-native/v2")):
+        raise ValueError("stagnation overrides require a method with declared review support")
+    if (data["profile"]["id"] == "gpt6_astra" and "allow_task_completion" in parameters
+            and (parameters.get("control_method") or data["config"].get("control_method")) not in ("codex-direct/v4", "codex-native/v2")):
+        raise ValueError("allow_task_completion requires a method with declared completion support")
     if data["configuration"] is not None:
         effective = {**data["config"], **{key: value for key, value in parameters.items()
                                        if key != "prompt" and value is not None}}
@@ -676,7 +695,7 @@ def _verify_bundle(output: Path, identity: dict, snapshot: dict, *, freeze: bool
         raise ValueError("model source index must be an object")
     extensions = {"method_extensions": True, "feedback_extensions": True, "persistent_extensions": True,
                   "context_extensions": True}
-    if profile_id == "gpt6_astra" and not legacy and schema not in (SOURCE_SCHEMA, GENERIC_SOURCE_SCHEMA, TOOLS_SOURCE_SCHEMA):
+    if profile_id == "gpt6_astra" and not legacy and schema not in (SOURCE_SCHEMA, REVIEW_SOURCE_SCHEMA, NATIVE_VECTOR_SOURCE_SCHEMA, TOOLS_SOURCE_SCHEMA):
         # Read as bounded data only; the authenticated index, file hashes and
         # complete inventory are checked below. Original Responses-only v2
         # bundles predate the selectable method and keep their exact allowlist.
@@ -805,25 +824,31 @@ def verify_policy_source(run_dir: Path, policy_descriptor: dict, snapshot: dict)
             or _sha(prompt) != policy_descriptor.get("parameters", {}).get("prompt_sha256")):
         raise ValueError("run policy identity or effective prompt differs from model source bundle")
     if snapshot.get("schema_version") in (PREVIOUS_SOURCE_SCHEMA, FLAT_AGENT_SOURCE_SCHEMA,
-                                          GROUPED_SOURCE_SCHEMA, TOOLS_SOURCE_SCHEMA, GENERIC_SOURCE_SCHEMA, SOURCE_SCHEMA):
+                                          GROUPED_SOURCE_SCHEMA, TOOLS_SOURCE_SCHEMA, NATIVE_VECTOR_SOURCE_SCHEMA,
+                                          REVIEW_SOURCE_SCHEMA, SOURCE_SCHEMA):
         namespace = _source_namespace(snapshot["schema_version"])
         parameters = policy_descriptor.get("parameters", {})
         method = policy_descriptor.get("version")
         native_v2 = snapshot["schema_version"] == SOURCE_SCHEMA and identity["id"] == "gpt6_astra"
         if native_v2 and (method != "codex-native/v2" or parameters.get("control_method") != method):
-            raise ValueError("v7 source requires its single persistent Codex native v2 method")
-        generic = snapshot["schema_version"] == GENERIC_SOURCE_SCHEMA and identity["id"] == "gpt6_astra"
-        current = snapshot["schema_version"] in (GENERIC_SOURCE_SCHEMA, TOOLS_SOURCE_SCHEMA) and identity["id"] == "gpt6_astra"
-        direct_method = "codex-direct/v3" if generic else "codex-direct/v2"
-        if current and (method not in {"codex-native/v1", direct_method, "codex-planned/v1"}
+            raise ValueError("v8 source requires its single persistent Codex native v2 method")
+        review = snapshot["schema_version"] == REVIEW_SOURCE_SCHEMA and identity["id"] == "gpt6_astra"
+        generic = snapshot["schema_version"] in (REVIEW_SOURCE_SCHEMA, NATIVE_VECTOR_SOURCE_SCHEMA) and identity["id"] == "gpt6_astra"
+        current = snapshot["schema_version"] in (REVIEW_SOURCE_SCHEMA, NATIVE_VECTOR_SOURCE_SCHEMA, TOOLS_SOURCE_SCHEMA) and identity["id"] == "gpt6_astra"
+        direct_methods = {"codex-direct/v3", "codex-direct/v4"} if review else {"codex-direct/v3"} if generic else {"codex-direct/v2"}
+        if current and (method not in {"codex-native/v1", *direct_methods, "codex-planned/v1"}
                         or parameters.get("control_method") != method):
             raise ValueError("unsupported or mismatched versioned model method")
-        if native_v2 or (identity["id"] == "gpt6_astra" and (method == "codex-direct/v3"
-                                               or parameters.get("control_method") == "codex-direct/v3")):
-            if not native_v2 and (not generic or method != "codex-direct/v3" or parameters.get("control_method") != method):
-                raise ValueError("Codex Direct v3 requires its v6 native-vector source layout")
+        if current and method != "codex-direct/v4" and {"stagnation_review", "stagnation_window", "allow_task_completion"}.intersection(parameters):
+            raise ValueError("completion and stagnation-review parameters require Direct v4")
+        if native_v2 or (identity["id"] == "gpt6_astra" and (method in ("codex-direct/v3", "codex-direct/v4")
+                                               or parameters.get("control_method") in ("codex-direct/v3", "codex-direct/v4"))):
+            if not native_v2 and (not generic or method not in direct_methods or parameters.get("control_method") != method
+                                 or (method == "codex-direct/v4" and not review)):
+                raise ValueError("Codex Direct requires its versioned native-vector source layout")
+            version = method.rsplit("/", 1)[-1]
             path = f"{namespace}/gpt6_astra/" + ("configs/codex_native_config.json" if native_v2
-                                                    else "configs/codex_direct_v3_config.json")
+                                                    else f"configs/codex_direct_{version}_config.json")
             preset = _json(data["payloads"][path])
             effective = parameters.get("effective_config")
             overrides = {"timeout_s", "max_chunk_length", "image_max_edge"}
@@ -835,6 +860,28 @@ def verify_policy_source(run_dir: Path, policy_descriptor: dict, snapshot: dict)
                         or "safety_stop" not in data["factory_parameters"]):
                     raise ValueError("invalid captured Direct safety-stop declaration")
                 overrides.add("safety_stop")
+            if native_v2 or method == "codex-direct/v4":
+                review_fields = {"stagnation_review": {"type": "boolean"},
+                                 "stagnation_window": {"type": "integer", "minimum": 2, "maximum": 32}}
+                if any((data["configuration"] or {}).get("fields", {}).get(key) != rule
+                       or key not in data["factory_parameters"] for key, rule in review_fields.items()):
+                    raise ValueError("invalid captured Direct stagnation-review declaration")
+                overrides.update(review_fields)
+                if (not isinstance(preset, dict) or not isinstance(effective, dict)
+                        or any(type(source.get("stagnation_review")) is not bool
+                               or type(source.get("stagnation_window")) is not int
+                               or not 2 <= source["stagnation_window"] <= 32 for source in (preset, effective))):
+                    raise ValueError("invalid captured Direct stagnation-review configuration")
+                # V7 predates optional model-declared completion. Only a preset
+                # explicitly carrying this flag can grant or record it.
+                if "allow_task_completion" in preset:
+                    if ((data["configuration"] or {}).get("fields", {}).get("allow_task_completion") != {"type": "boolean"}
+                            or "allow_task_completion" not in data["factory_parameters"]
+                            or any(type(source.get("allow_task_completion")) is not bool for source in (preset, effective))):
+                        raise ValueError("invalid captured Direct task-completion declaration")
+                    overrides.add("allow_task_completion")
+                elif "allow_task_completion" in parameters or "allow_task_completion" in effective:
+                    raise ValueError("historical Direct preset does not declare task completion")
             retired_fields = {"required_protocol", "protocol_presets", "protocol_preset", "native_horizon",
                               "enforce_action_guard", "effective_action_rules", "public_feedback_schema",
                               "workspace_context_version", "max_translation_per_decision_m",
@@ -851,7 +898,7 @@ def verify_policy_source(run_dir: Path, policy_descriptor: dict, snapshot: dict)
                        != json.dumps({k: v for k, v in preset.items() if k not in overrides}, sort_keys=True, allow_nan=False)
                     or parameters.get("preset_sha256") != _sha(data["payloads"][path])
                     or preset.get("schema_version") != ("starvla-rsi.model-config/v1" if native_v2
-                                                          else "starvla-rsi.codex-direct-config/v3")
+                                                          else f"starvla-rsi.codex-direct-config/{version}")
                     or (native_v2 and (preset.get("profile_id") != "gpt6_astra" or stop_rule is None
                         or preset.get("policy_stop_rule_version") != "minimum-action-decisions/v2"
                         or type(preset.get("min_action_decisions_before_give_up")) is not int
@@ -873,12 +920,12 @@ def verify_policy_source(run_dir: Path, policy_descriptor: dict, snapshot: dict)
                     or type(effective.get("safety_stop")) is not bool
                     or any(type(parameters.get(k)) is not type(effective[k]) or parameters[k] != effective[k]
                            for k in overrides)):
-                raise ValueError("Codex Direct v3 differs from captured native-vector configuration")
+                raise ValueError("Codex Direct differs from captured native-vector configuration")
             return
         if identity["id"] == "gpt6_astra" and (
                 parameters.get("control_method") == "codex-planned/v1"
                 or (isinstance(method, str) and method.startswith("codex-planned/"))):
-            if method != "codex-planned/v1" or snapshot["schema_version"] not in (GROUPED_SOURCE_SCHEMA, TOOLS_SOURCE_SCHEMA, GENERIC_SOURCE_SCHEMA):
+            if method != "codex-planned/v1" or snapshot["schema_version"] not in (GROUPED_SOURCE_SCHEMA, TOOLS_SOURCE_SCHEMA, NATIVE_VECTOR_SOURCE_SCHEMA, REVIEW_SOURCE_SCHEMA):
                 raise ValueError("unsupported or mismatched Codex planned method version")
             path = f"{namespace}/gpt6_astra/configs/codex_planned_config.json"
             if (not current and not _method_extensions(data["config"])["planned_extensions"]) or path not in data["payloads"]:

@@ -10,6 +10,7 @@ Robocasa_tabletop/
 │   └── protocol/
 │       ├── plan.py                 # predeclared fast selection
 │       ├── robocasa_tabletop_contract.json # pinned sensor/action/source contract
+│       ├── task_catalog.json        # official 24-task order and layout candidates
 │       └── POLICY_GUIDE.md           # public robot interface, not a model prompt
 └── environment/                    # native readiness, runtime pins and helpers
 ```
@@ -26,7 +27,14 @@ do not establish native service readiness or native-full evaluation support.
 
 The `robocasa_tabletop` adapter evaluates GR1 whole-upper-body manipulation using native [RoboCasa GR1 Tabletop](https://github.com/robocasa/robocasa-gr1-tabletop-tasks) tasks and success predicates. This is distinct from PandaOmron RoboCasa365.
 
-The official set contains 24 tasks. The implemented fast selections are two explicit pairs: indices 0/19 or 1/2. Other task identities and native-aligned full evaluation are not implemented. See [EVALUATION_PROTOCOL.md](EVALUATION_PROTOCOL.md) for task names, variants, sensors, physical joint actions and scoring.
+The official set contains 24 tasks. `task_scope="tabletop24-seeded-v1"` supports
+all 24 through an explicit one-to-five-seed development panel, ordered first by
+sample, then by task: cover every task once before moving to the next seed.
+Historical fast pairs (indices 0/19 or 1/2) remain unchanged. Five seeds do not
+mean five distinct layouts; each task retains its native layout and all 12 style
+candidates. Native-aligned full evaluation is not implemented. See
+[EVALUATION_PROTOCOL.md](EVALUATION_PROTOCOL.md) for the complete catalog, selection
+rules, sensors, physical joint actions and scoring.
 
 ## Prepare and verify
 
@@ -98,8 +106,62 @@ asset substitution is enabled. Keep original service/client records and videos
 under the model result namespace and verify source integrity before and after.
 The evaluator does not need the native Python version or renderer settings.
 Native-free service checks do not establish native service-mode validation,
-full 24-task support or object-library completeness. The frozen campaign path
+completed 24-task coverage or object-library completeness. The frozen campaign path
 and legacy artifact auditors do not yet support remote service records.
+
+### NVML resource index and EGL renderer index
+
+`render_gpu_device_id` selects the **NVML / nvidia-smi resource index** checked
+for other processes before native reset. The optional `egl_device_id` selects
+`MUJOCO_EGL_DEVICE_ID` independently; when omitted it defaults to the same
+integer, preserving prior configurations. Both must be nonnegative integers.
+EGL enumeration can differ from NVML enumeration, so identical numbers do not
+prove that the renderer uses the GPU protected by the resource check.
+
+Before claiming a task on a new machine or driver configuration, run a separate
+renderer-only preflight and match the actual graphics process GPU by UUID /
+PCI address to the intended NVML resource. Supply the verified EGL index in the
+operator-owned configuration if the enumerations differ. For example,
+`"render_gpu_device_id": 0, "egl_device_id": 1` is valid **only if preflight on
+that machine verifies this mapping**; it is not a portable GPU mapping.
+The service neither guesses a mapping nor silently falls back to another GPU.
+Both configured indices are recorded in native provenance; those indices alone
+are not proof of physical-device identity. Do not change them during a run.
+
+## Cover all tasks with five declared seeds
+
+For the new service scope, retain the source/inventory paths and GPU fields from
+your operator-owned server JSON, and replace the selection with:
+
+```json
+{
+  "task_scope": "tabletop24-seeded-v1",
+  "episode_seeds": [20261020, 20261021, 20261022, 20261023, 20261024],
+  "budget_mode": "horizon",
+  "control_step_cap": 1000
+}
+```
+
+Omitting `task_ids` selects all 24 official tasks. Start the server with
+`--seed 20261020 --episodes 120` and a new output directory. Connect the
+trusted driver using the same schedule seed and episode count. A predeclared
+external queue may instead launch a singleton `task_ids` / `episode_seeds`
+selection per service, while preserving the overall sample-major task order.
+This is a service scope; the historical in-process campaign plan does not
+implement this new selection.
+
+The launch seed must match the first configured episode seed. Each case uses
+its own declared seed for native construction and reset. Selecting seeds is not
+requesting particular styles, and actual styles can repeat. Retain every outcome;
+successful or normally budget-exhausted cases are not repeated to improve scores.
+Infrastructure interruption stays a separate error record; any separately
+authorized repair attempt uses a new run ID without overwriting the original.
+
+This is the retained **1000-control development track**, not the pinned upstream
+README's Isaac-GR00T example with 720 steps and 10 episodes. A method owns its
+action chunk and call allowance; the service executes one native control per
+step and stops at native success / termination or the selected control cap.
+Completed native evaluation must be demonstrated separately for each case.
 
 ## In-process compatibility
 

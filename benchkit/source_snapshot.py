@@ -118,6 +118,7 @@ def repository_source_files(root: Path, max_files: int) -> list[tuple[Path, tupl
                "benchmarks/simBenchmarks/SIMPLE/bench_server/native_worker_client.py",
                "benchmarks/simBenchmarks/Robocasa_365/bench_server/protocol/robocasa365_target50.json",
                "benchmarks/simBenchmarks/Robocasa_tabletop/bench_server/protocol/robocasa_tabletop_contract.json",
+               "benchmarks/simBenchmarks/Robocasa_tabletop/bench_server/protocol/task_catalog.json",
                "benchmarks/simBenchmarks/Robocasa_365/environment/render_lifecycle.py",
                # Standalone native services have no frozen campaign plan yet.
                "benchmarks/simBenchmarks/MetaWorld/__init__.py",

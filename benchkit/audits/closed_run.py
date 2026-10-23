@@ -131,7 +131,8 @@ def audit_configuration(config: dict, schema: dict, profile_id: str) -> None:
             and all(isinstance(key, str) for key in parameters) and len(parameters) == len(set(parameters))
             and not set(parameters) - {"prompt", "timeout_s", "max_chunk_length",
                                        "min_action_decisions_before_give_up", "control_method",
-                                       "enforce_action_guard", "protocol_preset", "image_max_edge", "safety_stop"},
+                                       "enforce_action_guard", "protocol_preset", "image_max_edge", "safety_stop",
+                                       "stagnation_review", "stagnation_window", "allow_task_completion"},
             "invalid direct configuration fields or factory parameters")
     forbidden = {"api_key", "apikey", "authorization", "credentials", "credential", "secret", "client_secret",
                  "password", "token", "api_token", "access_token", "refresh_token", "bearer_token"}
@@ -206,12 +207,12 @@ def audit_model_source(files: ClosedFiles, manifest: dict) -> int:
     snapshot = manifest.get("model_source")
     selected_method = selected_policy.get("version")
     if ((isinstance(selected_method, str) and selected_method.startswith("codex-direct/"))
-            or selected_parameters.get("control_method") in ("codex-direct/v1", "codex-direct/v2")
+            or selected_parameters.get("control_method") in ("codex-direct/v1", "codex-direct/v2", "codex-direct/v3", "codex-direct/v4")
             or selected_parameters.get("transport") == "codex-app-server/v1"):
         require(isinstance(identity, dict) and isinstance(snapshot, dict),
                 "Codex Direct requires an explicit bound model source bundle")
     if ((isinstance(selected_method, str) and selected_method.startswith("codex-native/"))
-            or selected_parameters.get("control_method") == "codex-native/v1"):
+            or selected_parameters.get("control_method") in ("codex-native/v1", "codex-native/v2")):
         require(isinstance(identity, dict) and isinstance(snapshot, dict),
                 "Codex native requires an explicit bound model source bundle")
     if ((isinstance(selected_method, str) and selected_method.startswith("codex-planned/"))
@@ -233,15 +234,17 @@ def audit_model_source(files: ClosedFiles, manifest: dict) -> int:
                   "starvla-rsi.model-source/v4": "AgentPolicies",
                   "starvla-rsi.model-source/v5": "AgentPolicies",
                   "starvla-rsi.model-source/v6": "AgentPolicies",
-                  "starvla-rsi.model-source/v7": "AgentPolicies"}
+                  "starvla-rsi.model-source/v7": "AgentPolicies",
+                  "starvla-rsi.model-source/v8": "AgentPolicies"}
     require(isinstance(snapshot.get("schema_version"), str) and snapshot["schema_version"] in namespaces
             and snapshot.get("path") == "model_source/index.json", "unknown model source schema/path")
     namespace = namespaces[snapshot["schema_version"]]
     grouped = snapshot["schema_version"] == "starvla-rsi.model-source/v4" and profile_id == "gpt6_astra"
-    relocated_support = snapshot["schema_version"] == "starvla-rsi.model-source/v7"
+    relocated_support = snapshot["schema_version"] == "starvla-rsi.model-source/v8"
     flat_native = relocated_support and profile_id == "gpt6_astra"
-    generic = snapshot["schema_version"] == "starvla-rsi.model-source/v6" and profile_id == "gpt6_astra"
-    current = snapshot["schema_version"] in ("starvla-rsi.model-source/v5", "starvla-rsi.model-source/v6") and profile_id == "gpt6_astra"
+    review = snapshot["schema_version"] == "starvla-rsi.model-source/v7" and profile_id == "gpt6_astra"
+    generic = snapshot["schema_version"] in ("starvla-rsi.model-source/v6", "starvla-rsi.model-source/v7") and profile_id == "gpt6_astra"
+    current = snapshot["schema_version"] in ("starvla-rsi.model-source/v5", "starvla-rsi.model-source/v6", "starvla-rsi.model-source/v7") and profile_id == "gpt6_astra"
     # Independent v5 inventory: never import a producer allowlist or captured Python.
     current_names = (
         "__init__.py", "profile.json", "configuration.schema.json", "dependencies.json",
@@ -266,13 +269,16 @@ def audit_model_source(files: ClosedFiles, manifest: dict) -> int:
             "tools/factory.py", "tools/native_io.py", "tools/json_io.py", "tools/persistent_runtime.py",
             "tools/runtime_preflight.py", "tools/public_observation.py",
         )
+    if review:
+        current_names += ("configs/codex_direct_v4_config.json", "prompts/codex_direct_v4_prompt.txt",
+                          "tools/stagnation_review.py")
 
     if flat_native:
         current_names = (
             "__init__.py", "configs/profile.json", "configs/configuration.schema.json", "configs/dependencies.json",
             "codex_native.py", "configs/codex_native_config.json", "configs/codex_native_prompt.txt",
             "tools/__init__.py", "tools/persistent_runtime.py", "tools/public_observation.py", "tools/json_io.py",
-            "tools/codex_app_server.py", "tools/codex_runtime.py",
+            "tools/codex_app_server.py", "tools/codex_runtime.py", "tools/stagnation_review.py",
         )
 
     def relative(name):
@@ -403,18 +409,20 @@ def audit_model_source(files: ClosedFiles, manifest: dict) -> int:
                     and config["min_action_decisions_before_give_up"] == 0
                     and not any(key in config for key in ("codex_direct_extension", "codex_direct_context_extension",
                                                           "codex_native_extension", "codex_planned_extension", "enforce_action_guard")),
-                    "v7 source requires its single persistent Codex native v2 method")
+                    "v8 source requires its single persistent Codex native v2 method")
         if current:
-            direct_method = "codex-direct/v3" if generic else "codex-direct/v2"
-            require(method in {"codex-native/v1", direct_method, "codex-planned/v1"}
+            direct_methods = {"codex-direct/v3", "codex-direct/v4"} if review else {"codex-direct/v3"} if generic else {"codex-direct/v2"}
+            require(method in {"codex-native/v1", *direct_methods, "codex-planned/v1"}
                     and parameters.get("control_method") == method,
                     "unsupported or mismatched versioned model method")
-            require(config.get("control_method") in ("codex-native/v1", direct_method, "codex-planned/v1")
+            require(method == "codex-direct/v4" or not {"stagnation_review", "stagnation_window", "allow_task_completion"}.intersection(parameters),
+                    "completion and stagnation-review parameters require Direct v4")
+            require(config.get("control_method") in {"codex-native/v1", *direct_methods, "codex-planned/v1"}
                     and not any(key in config for key in ("codex_direct_extension", "codex_direct_context_extension",
                                                           "codex_native_extension", "codex_planned_extension")),
                     "versioned registry requires an active method without historical extension markers")
             require(not generic or "enforce_action_guard" not in config,
-                    "v6 registry cannot declare the retired Dojo action guard")
+                    "native-vector registry cannot declare the retired Dojo action guard")
         persistent_methods = current or "codex_direct_extension" in config
         context_methods = current or "codex_direct_context_extension" in config
         native_methods = current or "codex_native_extension" in config
@@ -441,12 +449,13 @@ def audit_model_source(files: ClosedFiles, manifest: dict) -> int:
                 "unsupported persistent model source extension declaration")
         require("enforce_action_guard" not in config or "control_method" in config,
                 "feedback model source extension lacks method declaration")
-        if method == "codex-direct/v3" or parameters.get("control_method") == "codex-direct/v3":
-            require(generic and method == "codex-direct/v3" and parameters.get("control_method") == method,
-                    "Codex Direct v3 requires its v6 native-vector source layout")
-        if ((parameters.get("transport") == "codex-app-server/v1" and method not in ("codex-planned/v1", "codex-direct/v3", "codex-native/v2"))
+        if method in ("codex-direct/v3", "codex-direct/v4") or parameters.get("control_method") in ("codex-direct/v3", "codex-direct/v4"):
+            require(generic and method in ("codex-direct/v3", "codex-direct/v4")
+                    and (method != "codex-direct/v4" or review) and parameters.get("control_method") == method,
+                    "Codex Direct requires its versioned native-vector source layout")
+        if ((parameters.get("transport") == "codex-app-server/v1" and method not in ("codex-planned/v1", "codex-direct/v3", "codex-direct/v4", "codex-native/v2"))
                 or parameters.get("control_method") in ("codex-direct/v1", "codex-direct/v2")
-                or (isinstance(method, str) and method.startswith("codex-direct/") and method != "codex-direct/v3")):
+                or (isinstance(method, str) and method.startswith("codex-direct/") and method not in ("codex-direct/v3", "codex-direct/v4"))):
             require(method in ("codex-direct/v1", "codex-direct/v2") and persistent_methods
                     and (method != "codex-direct/v2" or context_methods),
                     "unsupported or undeclared Codex Direct method version")
@@ -472,8 +481,9 @@ def audit_model_source(files: ClosedFiles, manifest: dict) -> int:
                         if planned_methods:
                             allowed = sorted(allowed + [f"{namespace}/{profile_id}/{name}" for name in (
                                 "codex_planned.py", "codex_planned_config.json", "codex_planned_prompt.txt")])
-            if flat_native or method == "codex-direct/v3":
-                preset_path = prefix + relative("codex_native_config.json" if flat_native else "codex_direct_v3_config.json")
+            if flat_native or method in ("codex-direct/v3", "codex-direct/v4"):
+                version = method.rsplit("/", 1)[-1]
+                preset_path = prefix + relative("codex_native_config.json" if flat_native else f"codex_direct_{version}_config.json")
                 preset = files.json(preset_path)
                 effective = parameters.get("effective_config")
                 overrides = {"timeout_s", "max_chunk_length", "image_max_edge"}
@@ -485,6 +495,29 @@ def audit_model_source(files: ClosedFiles, manifest: dict) -> int:
                             and "safety_stop" in configuration["factory_parameters"],
                             "invalid captured Direct safety-stop declaration")
                     overrides.add("safety_stop")
+                if flat_native or method == "codex-direct/v4":
+                    review_fields = {"stagnation_review": {"type": "boolean"},
+                                     "stagnation_window": {"type": "integer", "minimum": 2, "maximum": 32}}
+                    require(all(configuration.get("fields", {}).get(key) == rule
+                                and key in configuration["factory_parameters"] for key, rule in review_fields.items()),
+                            "invalid captured Direct stagnation-review declaration")
+                    overrides.update(review_fields)
+                    require(isinstance(preset, dict) and isinstance(effective, dict)
+                            and all(type(source.get("stagnation_review")) is bool
+                                    and type(source.get("stagnation_window")) is int
+                                    and 2 <= source["stagnation_window"] <= 32 for source in (preset, effective)),
+                            "invalid captured Direct stagnation-review configuration")
+                    # Historical v7 captures without the preset flag retain
+                    # their original non-completion policy; do not infer it.
+                    if "allow_task_completion" in preset:
+                        require(configuration.get("fields", {}).get("allow_task_completion") == {"type": "boolean"}
+                                and "allow_task_completion" in configuration["factory_parameters"]
+                                and all(type(source.get("allow_task_completion")) is bool for source in (preset, effective)),
+                                "invalid captured Direct task-completion declaration")
+                        overrides.add("allow_task_completion")
+                    else:
+                        require("allow_task_completion" not in parameters and "allow_task_completion" not in effective,
+                                "historical Direct preset does not declare task completion")
                 retired_fields = {"required_protocol", "protocol_presets", "protocol_preset", "native_horizon",
                                   "enforce_action_guard", "effective_action_rules", "public_feedback_schema",
                                   "workspace_context_version", "max_translation_per_decision_m",
@@ -499,10 +532,10 @@ def audit_model_source(files: ClosedFiles, manifest: dict) -> int:
                         and not retired_fields.intersection(preset) and not retired_fields.intersection(parameters)
                         and json.dumps({k: v for k, v in effective.items() if k not in overrides}, sort_keys=True, allow_nan=False)
                             == json.dumps({k: v for k, v in preset.items() if k not in overrides}, sort_keys=True, allow_nan=False),
-                        "Codex Direct v3 effective preset differs outside native-vector overrides")
+                        "Codex Direct effective preset differs outside native-vector overrides")
                 require(files.hashes[preset_path] == parameters.get("preset_sha256")
                         and preset.get("schema_version") == ("starvla-rsi.model-config/v1" if flat_native
-                                                              else "starvla-rsi.codex-direct-config/v3")
+                                                              else f"starvla-rsi.codex-direct-config/{version}")
                         and (not flat_native or (preset.get("profile_id") == "gpt6_astra" and stop_rule is not None
                             and preset.get("policy_stop_rule_version") == "minimum-action-decisions/v2"
                             and type(preset.get("min_action_decisions_before_give_up")) is int
@@ -523,7 +556,7 @@ def audit_model_source(files: ClosedFiles, manifest: dict) -> int:
                         and type(preset.get("safety_stop")) is bool
                         and type(effective.get("safety_stop")) is bool
                         and all(type(parameters.get(k)) is type(effective[k]) and parameters[k] == effective[k] for k in overrides),
-                        "Codex Direct v3 native-vector configuration or method declaration changed")
+                        "Codex Direct native-vector configuration or method declaration changed")
             if method == "codex-planned/v1":
                 preset_path = prefix + relative("codex_planned_config.json")
                 preset = files.json(preset_path)
@@ -1193,7 +1226,8 @@ def audit_run(run: Path) -> dict:
                             "A consistent error or failed task is not a successful task."]}
     if model_count:
         report["model_source_files_verified"] = model_count
-    if manifest["policy"].get("version") in ("codex-direct/v1", "codex-direct/v2", "codex-planned/v1", "codex-native/v2"):
+    if manifest["policy"].get("version") in ("codex-direct/v1", "codex-direct/v2", "codex-direct/v3",
+                                             "codex-direct/v4", "codex-planned/v1", "codex-native/v2"):
         report["persistent_direct_artifacts_audited"] = False
         report["limitations"].append(
             "Persistent policy support checks captured configuration and the generic call/ACK ledger only; "

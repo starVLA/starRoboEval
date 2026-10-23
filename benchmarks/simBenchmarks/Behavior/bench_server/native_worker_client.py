@@ -10,7 +10,7 @@ import uuid
 from benchkit.artifacts import atomic_write_json
 from benchkit.errors import ProtocolError
 from benchkit.sim_server.wire import dumps, loads, MAX_MESSAGE_BYTES
-from benchmarks.simBenchmarks.Behavior.environment.deployment import digest
+from benchmarks.simBenchmarks.Behavior.environment.deployment import digest, validate_manifest_task
 
 RPC_PROTOCOL = "behavior-private-rpc/v1"
 
@@ -37,6 +37,7 @@ class NativeWorkerClient:
         if digest(manifest) != self.benchmark.deployment_manifest_sha256:
             raise ProtocolError("deployment manifest hash differs")
         identity = loads(Path(manifest).read_bytes())
+        validate_manifest_task(identity, self.benchmark.task)
         source = Path(identity["source_root"])
         python = self.benchmark.worker_python
         if identity["runtime"]["executable"] != str(python) or digest(python) != identity["runtime"]["executable_sha256"]:
@@ -46,7 +47,7 @@ class NativeWorkerClient:
         cache.mkdir(exist_ok=False)
         config = {"artifact_dir": str(self.root), "deployment_manifest": str(manifest),
                   "deployment_manifest_sha256": self.benchmark.deployment_manifest_sha256,
-                  "gpu_id": self.benchmark.gpu_id}
+                  "gpu_id": self.benchmark.gpu_id, "task": self.benchmark.task}
         config_path = self.root / "private_worker_config.json"
         atomic_write_json(config_path, config)
         env = os.environ.copy()

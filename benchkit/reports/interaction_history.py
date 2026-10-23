@@ -53,7 +53,14 @@ class _Files(ClosedFiles):
     def raw(self, relative):
         size = self.path(relative).stat().st_size
         require(self.total_bytes + size <= MAX_BYTES, "interaction input exceeds total byte limit")
-        payload = super().raw(relative)
+        # Long closed episodes can exceed the base auditor's 64 MiB per-file
+        # limit. This exporter has its own stricter aggregate allocation bound;
+        # enforce that bound during the read as well as before/after it.
+        with self.path(relative).open("rb") as stream:
+            payload = stream.read(MAX_BYTES - self.total_bytes + 1)
+        require(self.total_bytes + len(payload) <= MAX_BYTES,
+                "interaction input exceeds total byte limit")
+        self.hashes[relative] = hashlib.sha256(payload).hexdigest()
         self.total_bytes += len(payload)
         self.sizes[relative] = len(payload)
         require(self.total_bytes <= MAX_BYTES, "interaction input exceeds total byte limit")

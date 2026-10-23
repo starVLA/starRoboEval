@@ -50,6 +50,34 @@ The [source-level contract review](NATIVE_CONTRACT.md) records the 23-action /
 
 ## Runtime compatibility and deployment acceptance
 
+### Node-local temporary files
+
+Set `TMPDIR` **before starting the server**, to a fresh operator-owned directory
+on a node-local filesystem; the isolated worker inherits it. Keep results,
+deployment manifests and evidence on persistent storage. No additional server
+parameter or change to the native controller is required.
+
+The pinned native runtime creates its temporary USD directory during import and
+removes it before closing the Kit application. On NFS, an open file can become a
+temporary `.nfs*` entry during unlink; recursive directory removal can then fail
+with `ENOTEMPTY`. This failure was reproduced independently with an open-file
+fixture on the evaluation deployment. A subsequent native shutdown crash must
+still be recorded as an infrastructure error, not suppressed or converted to a
+successful evaluation.
+
+Use a dedicated mode-0700 child directory, not `/tmp`, `/dev/shm`, or a workspace
+root itself. A tmpfs such as `/dev/shm` is an option only when both filesystem
+capacity and the process cgroup memory budget have adequate headroom: its free
+space is not a memory reservation. Check actual mount type, ownership, capacity
+and memory before launching; do not infer local storage from a directory name.
+Keep workers sequential when resources are constrained. Never delete other
+runs' temporary files or discard failed-run evidence to make a check pass.
+
+After changing the launch setting, use a new run ID and verify native controls,
+video decoding and graceful worker cleanup through the same service. Do not
+patch `og.cleanup`, ignore its errors or change native scoring. This is a
+deployment correction, not a new observation/action protocol or a score result.
+
 ### CPython crash-handler initialization
 
 The private worker starts with `python -X faulthandler -B -m ...`, registering

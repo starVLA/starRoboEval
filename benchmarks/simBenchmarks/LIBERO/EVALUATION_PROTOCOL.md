@@ -20,7 +20,39 @@ evidence, not an execution manifest or a model result.
 
 Fast mode evaluates each preselected task once. Direct adapter defaults select LIBERO-10 indices 0 and 1. The compatibility scope `development` permits indices 0–4 of that suite; `scope="task_coverage"` with explicit `suite` and `task_ids` supports complete suite ordering. The [selection plan](bench_server/protocol/plan.py) selects all 130 entries once. Keep every failure and environment error; do not automatically retry or search resets.
 
-The fixed selection uses released initial-state index 0, task-order index 0 and seed 20260907. LIBERO-10 has 50 released `.pruned_init` states per task, or 500 task-state cells. This does not certify a 130 × 50 full schedule.
+Without `initial_state_indices`, the fixed selection uses released initial-state
+index 0, task-order index 0 and seed 20260907. These legacy defaults and their
+protocol identities are unchanged. LIBERO-10 has 50 released `.pruned_init`
+states per task, or 500 task-state cells. This does not certify a 130 × 50 full schedule.
+
+### Explicit released-state panel
+
+With `scope="task_coverage"`, the service additionally accepts
+`initial_state_indices`, a nonempty, unique, increasing list of nonnegative
+integers. Each selected index must exist in **every selected task's** catalog
+entry. The service validates this before claims and rechecks the native state
+count and selected index during reset. It installs that exact released tensor
+and records the index and selected-state hash in evaluator-private provenance.
+An initial-state index selects a released reset, not a new random seed or a
+retry of the preceding episode. No guarantee of visually distinct layouts is
+implied merely by selecting distinct indices.
+
+An explicit panel uses version `0.3.0` and protocol
+`libero-initial-state-panel/<suite>/<rgb-or-rgb-qpos>[/decision-D-prefix-K]/v2`.
+Even an explicit `[0]` uses this separate identity. Observation/action semantics,
+native controller, fixed seed, settling and reference horizons do not change.
+Only the schedule expands: task-major, then state-minor, each cell once, with
+IDs such as `libero_spatial-task00-init04`. `--episodes` limits an episode prefix,
+not the number of tasks; omit truncation to execute the complete selected panel.
+
+For a four-suite sample, select `libero_spatial`, `libero_object`, `libero_goal`
+and `libero_10` (the latter is commonly called LIBERO-Long), tasks `[0,1,2,3,4]`
+and states `[0,1,2,3,4]` in each suite. This predeclares **100 task/state cells**:
+25 per suite, 5 per task. It is a selected panel, not all-suite/full-native
+evaluation. Freeze selection before running; report all selected cells,
+failures, infrastructure errors and unattempted cells without success-seeking
+resampling. The retained 130-entry campaign plan remains its original index-0
+schedule; this panel is selected through the service configuration.
 
 **Native-aligned full mode is not implemented.** It requires an explicitly validated per-suite task/reset/episode schedule and baseline-equivalent budgets. All tasks sampled once, or repeated attempts at failed tasks, are not native full evaluation.
 

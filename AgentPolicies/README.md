@@ -42,7 +42,8 @@ and profile-registry integration are optional. The existing
 - `anonymous_code_agent/`: runnable experimental mailbox policy; actual provider
   and model identity remain unknown. Its mailbox implementation lives here.
 - [`gpt6_astra/`](gpt6_astra/README.md): one Bench Server validation client,
-  `codex_native` (`codex-native/v2`), preserving the former Direct v3 behavior;
+  `codex_native` (`codex-native/v2`), preserving persistent Direct control and its
+  optional completion and repeated-command settings;
   no alternate active methods or method-selection step.
 - `opus/`: unconfigured label, not a runnable provider integration.
 - `gpt6_astra/tools/runner.py` and `stop_rules.py`: reusable execution loop and
@@ -98,11 +99,13 @@ that substitution inside a frozen package: its captured `starVLA/` modules and
 commands remain historical evidence, not current import entrypoints. Relative
 links within a moved result tree keep their depth and layout.
 
-New GPT model-source bundles use schema `starvla-rsi.model-source/v7`. The sole
+New GPT model-source bundles use schema `starvla-rsi.model-source/v8`. The sole
 `codex_native.py` policy/factory lives beside `run.py`. The single `codex_native_config.json`, prompt and
 registration declarations live under `configs/`; runtime/transport helpers live
 under `tools/`. Auditors retain the exact historical allowlists for v1/v2
-under `starVLA`, flat v3 under `AgentPolicies`, and grouped v4–v6 captures.
+under `starVLA`, flat v3 under `AgentPolicies`, and grouped v4–v7 captures.
+Existing Direct v4 captures keep their v7 identity; the new layout does not
+reuse that version for a different file inventory.
 Those are frozen-source versions, not current import aliases. Retired methods
 and their old guides remain recoverable from Git history and frozen packages.
 The [client README](gpt6_astra/README.md) documents the current

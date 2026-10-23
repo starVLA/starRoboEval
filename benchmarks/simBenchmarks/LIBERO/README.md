@@ -118,4 +118,40 @@ failed reset retains its attempt. No automatic reset/action retry is enabled.
 remote service workflow. Keep server/client evidence and media under the model
 result namespace; legacy artifact auditors do not yet validate this layout.
 
-Fast mode means one attempt per preselected task, preserving failures and errors without automatic retry. The direct adapter defaults to LIBERO-10 tasks 0 and 1; the [selection plan](bench_server/protocol/plan.py) selects all 130 suite-task entries once. Neither is full native reset-state coverage. See [the evaluation workflow](../../../docs/evaluation.md), [the catalog](bench_server/protocol/libero_catalog.json) and [protocol limitations](EVALUATION_PROTOCOL.md).
+### Select five released states per task
+
+To evaluate multiple predeclared resets, use an operator-owned configuration
+such as this (select the available GPU explicitly):
+
+```json
+{
+  "suite": "libero_spatial",
+  "scope": "task_coverage",
+  "task_ids": [0, 1, 2, 3, 4],
+  "initial_state_indices": [0, 1, 2, 3, 4],
+  "proprioception": false,
+  "render_gpu_device_id": 0,
+  "budget_mode": "horizon"
+}
+```
+
+This schedules 25 distinct task/state cells in task-major/state-minor order.
+Omit `--episodes` or set it to 25 on the server, and explicitly select all 25
+on the trusted client. Unlike the decision-budget example above, this uses the
+retained per-suite reference horizon (spatial 220, object 280, goal 300,
+LIBERO-10/Long 520 controls). The method chooses its own action chunks and
+inference allowance; these do not change the declared execution cap.
+Select the same five tasks and five state indices for `libero_object`,
+`libero_goal` and `libero_10` in separate fixed suite services for a 100-cell
+panel. Use separate service/output identities and explicit resource allocation;
+this example does not itself start or schedule parallel services.
+
+The state indices refer to released `.pruned_init` entries, not arbitrary seeds.
+They are checked against every selected task's catalog before claims. Each cell
+gets one attempt; a normal failure is retained and does not request a retry.
+An explicit panel has its own versioned protocol, including when it contains
+only state 0. Omitting `initial_state_indices` preserves the original index-0
+schedule and descriptor. Reset metadata and hashes remain private from the
+actor. See [panel semantics](EVALUATION_PROTOCOL.md#explicit-released-state-panel).
+
+Fast mode means one attempt per preselected case, preserving failures and errors without automatic retry. The direct adapter defaults to LIBERO-10 tasks 0 and 1; the [selection plan](bench_server/protocol/plan.py) selects all 130 suite-task entries once at state 0. Neither that plan nor a selected five-state panel is full native reset-state coverage. See [the evaluation workflow](../../../docs/evaluation.md), [the catalog](bench_server/protocol/libero_catalog.json) and [protocol limitations](EVALUATION_PROTOCOL.md).
