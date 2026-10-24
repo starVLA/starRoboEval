@@ -1,4 +1,4 @@
-# Native rendering acceptance
+# Native renderer setup
 
 The selected native setup uses the SAPIEN `rt` shader, 32 samples per pixel,
 path depth 8 and the `oidn` denoiser. The pinned SAPIEN package bundles Open Image
@@ -44,7 +44,7 @@ loading failure from a loaded plugin with no supported physical devices. Do not
 assume that adding a library search path fixes an architecture mismatch. The
 probe uses the pinned [OIDN C API](https://github.com/RenderKit/oidn/blob/v2.0.1/include/OpenImageDenoise/oidn.h).
 
-## Opt-in OIDN 2.3.3 CUDA compatibility track
+## Opt-in OIDN 2.3.3 CUDA runtime
 
 The explicit `renderer_runtime: oidn_2_3_3_cuda_v1` track uses the
 [official OIDN 2.3.3 release](https://github.com/RenderKit/oidn/releases/tag/v2.3.3),
@@ -70,7 +70,7 @@ The helper refuses an existing output or mismatched archive/base environment.
 It copies verified SAPIEN package files, three unchanged `sapien.libs` binaries
 and distribution metadata. Only the OIDN core/main/CUDA libraries and the two
 literal loader version paths are replaced; the loader carries a change notice.
-It regenerates `RECORD` with exact file hashes, records a separate compatibility
+It regenerates `RECORD` with exact file hashes, records a separate runtime
 receipt, and leaves the base Python environment and RoboTwin deployment alone.
 There is no CPU/SYCL/HIP denoiser plugin in this selected closure. All other
 Python dependencies continue to come from the original environment. The overlay
@@ -95,7 +95,7 @@ python -B -m benchmarks.simBenchmarks.Robotwin.environment.renderer_readiness \
 ```
 
 The original protocol remains the default. Select the new track explicitly in
-the [compatibility server configuration](../server-oidn233.example.json); no
+the [OIDN 2.3.3 server configuration](../server-oidn233.example.json); no
 runtime is inferred from the GPU name. Supplying the new libraries under the
 old track, or selecting the new track without its complete overlay, fails.
 Runtime checks reject a shadowed SAPIEN import, a mismatched `RECORD`, extra

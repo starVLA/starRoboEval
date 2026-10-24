@@ -10,15 +10,15 @@ truth, hidden predicates or hypothetical simulator outcomes.
 | --- | --- | --- |
 | EEF16: two `[x,y,z,qw,qx,qy,qz,opening]` targets, finite numbers, unit wxyz quaternions, opening `[0,1]` | Benchmark [Direct v2 EEF interface](environment/REFERENCE_EEF.md); norm tolerance `1e-4` | Mandatory, versioned input validity |
 | Fixed IK and per-control numerical bounds | Benchmark robot-only low-level conversion | Another declared benchmark track is required to change it |
-| Per-decision 5 cm / 0.35 rad, binary opening 0 or 1 | Current model's `AgentPolicies/gpt6_astra/` action guard | Optional, enabled by default |
+| Optional motion-size guards, binary-gripper preferences, action grouping | Selected agent method | Method-owned; not server action validity |
 | Response JSON fields, repeated-target count, memory/note lengths, safety-stop representation | Selected model's output/memory protocol | Declared in model configuration, not native scoring |
 
-The 5 cm / 0.35 rad guard and 1–5 repeated controls were settings of the first
-Codex EEF method, not universal RoboDojo limits. Another model may declare its
-own preferences while respecting the same mandatory benchmark action contract.
-The benchmark accepts continuous opening commands; binary opening is only a
-model preference. Direct v2 aligns its target tolerance with GPT-as-Policy
-Direct at commit `8f3d362b077d8efb77e2a7274d5b2c20e2243846`.
+An agent may declare its own optional guards while respecting mandatory
+benchmark action validity. The service does not impose a model's per-decision
+motion limit or number of controls per decision. It accepts continuous opening
+commands; binary opening is a method preference. Numerical execution provenance
+is pinned in [the runtime binding](environment/REFERENCE_EEF.md); it does not
+require participants to adopt the reference repository's agent implementation.
 
 The accepted submitted quaternion is retained unchanged in action records;
 conversion to a rotation uses SciPy's quaternion interpretation, as upstream
@@ -41,8 +41,8 @@ A corrected command can use that same control sequence. The model's driver
 returns the issue through the next normal policy call with the last acknowledged
 observation. That call and its available usage are counted; an invalid target
 adds zero executed action decisions, controls or physics ticks. Any previously
-acknowledged valid prefix remains real execution. Invalid output does not become
-an executed history entry or a successful memory update.
+acknowledged valid prefix remains real execution. An invalid output is not an
+executed control; an agent may retain the rejection in its own memory.
 
 Lost acknowledgements, native exceptions, corrupt responses, authentication
 failures and uncertain execution still fault the stream. Native end, valid
@@ -51,22 +51,20 @@ repairs, clips, normalizes or substitutes a target, calls a model, or supplies
 task-solving feedback. Public rejection data excludes raw provider/native error
 text, arbitrary JSON keys, credentials and hidden state.
 
-## Model configuration and budgets
+## Client behavior and budgets
 
-The [Codex v2 client](../../../AgentPolicies/gpt6_astra/README.md) defaults to feedback
-handling with enabled extra guards. `--no-action-guard` disables only extra
-motion/binary-gripper preferences. Mandatory validity checks remain.
-`--invalid-action-handling terminate` explicitly selects terminal rejection.
-Choices are frozen before execution and recorded with the method version.
+A client may act on deterministic rejection feedback or end its attempt;
+declare the handling before execution and retain every rejection. Optional
+agent guards cannot disable mandatory server validity. See the
+[agent-method contract](../POLICY_PROTOCOL.md) for ownership and the selected
+method's guide for configuration flags and defaults.
 
-Feedback mode requires a finite policy-call budget, since invalid outputs do
-not advance the simulator horizon. The model driver declares this budget with
-`--max-policy-calls`; the current RoboDojo service does not assign a model-call
-allowance. Rejections consume that same call budget, with no hidden extra
-messages. The native 1100-control horizon is a separate benchmark limit.
+The optional reference feedback loop requires a finite policy-call cap because
+invalid outputs do not advance simulation. That is a driver constraint, not a
+model-call allowance assigned by RoboDojo. Disclose the selected cap and count
+correction calls and available usage. The native 1100-control horizon remains
+separate. No automatic replay, extra observation or reset is granted.
 
-Frozen `codex-eef/v1` attempts retain their original terminal-error handling.
-Keep v2 and repair-round results separate; never replace first-panel failures.
-The model-method version `codex-eef/v2` and the fixed benchmark protocol are
-independent version namespaces. Bind both sides before any attempt.
+Benchmark protocol and agent method versions are independent. Retain the
+conditions of each attempt and do not overwrite failures after a correction.
 CPU fixtures validate interface/accounting mechanics, not native capability or SR.

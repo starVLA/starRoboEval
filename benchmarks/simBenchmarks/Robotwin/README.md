@@ -1,161 +1,149 @@
 # RoboTwin
 
-This benchmark-owned server exposes native Aloha joint-target control, three
-RGB cameras, language, 12 measured arm joint angles and two explicitly labeled
-gripper command values. The model generates all task actions. The server
-does not expose expert rollouts, object poses, IK or task-planning methods.
+RoboTwin 2.0 evaluates bimanual robotic manipulation across household and
+tabletop tasks. Its native task definitions cover coordinated lifting,
+handover, object placement, tool use and articulated-object operation.
 
-The adapter is a development fast track, not the native full score: choose
-`lift_pot` or `click_bell`, one predeclared unscreened seed, one attempt.
-Native imports, reset, image correctness and compiled controller validation are
-runtime acceptance gates; a listening server or CPU test is not a native pass.
-See [EVALUATION_PROTOCOL.md](EVALUATION_PROTOCOL.md) for exact differences.
+- [Evaluation protocol](EVALUATION_PROTOCOL.md): task/reset selection, joint
+  commands, timing, observations and native success.
+- [Environment setup](environment/README.md): required archive, runtime,
+  deployment preparation and renderer selection.
+- [Shared service protocol](../SERVER_PROTOCOL.md): authenticated connection,
+  lifecycle and result collection.
 
-The current `state14/fast-v3` and OIDN-compatible `state14-oidn233/fast-v4`
-protocols add this robot-state reference for absolute joint control. The former
-RGB-only v1/v2 results keep their frozen contracts; they do not gain retrospective
-state. Arm positions come from native measured-joint getters, not the
-misleadingly named `joint_action` drive targets. Gripper values remain commands,
-not measured opening or grasp evidence. The new observation track needs its own
-native acceptance; an old reset-only or zero-action model run is not that proof.
+## Native tasks and scene variation
 
-## Directory responsibilities
+The official [50-task catalog](https://robotwin-platform.github.io/doc/tasks/index.html)
+includes tasks such as `lift_pot`, `handover_block`, `open_microwave`,
+`beat_block_hammer`, `stack_bowls_three` and `click_bell`. Each task defines its
+objects, initialization and native success predicate; these examples are not
+the entire benchmark task set.
 
-`server.py` is the public factory/launch entrypoint; `bench_server/adapter.py`
-owns the supported two-task interface and native scoring. `environment/` owns
-deployment, native/runtime pins and renderer readiness. The small task definition
-remains in the adapter: no empty catalog or protocol package is required. Operator paths and track selection belong in
-`server.example.json` or an operator-owned copy. No root adapter shim remains;
-this relocation does not change native actions, budgets or scoring.
+Native scene configuration is separate from task identity. Clean and randomized
+settings control backgrounds, clutter, lighting, table height and head-camera
+perturbations. Task code also samples eligible object variants and placements.
+The native framework supports multiple robot embodiments; specify the
+embodiment and scene configuration along with the task. See the
+[native configuration guide](https://robotwin-platform.github.io/doc/usage/configurations.html).
 
-## Native environment and assets
+The reference evaluator screens candidate seeds with the expert planner until
+100 solvable episodes are accepted per task, then evaluates the participant on
+those scenes. This is initialization selection, not a task-count definition.
+Success comes from the task's native predicate; target-control limits are
+task-specific. The [protocol](EVALUATION_PROTOCOL.md) distinguishes this native
+sampling procedure from the service sampler below.
 
-The inspected local RoboTwin archive has no own Git revision. Its selected
-runtime closure is pinned in [environment/native_snapshot.json](environment/native_snapshot.json):
-2,088 files / 1,011,813,984 bytes, including Aloha, both object variants for the
-two tasks, native task/config code and its CuRobo package. `native_source_revision`
-is `null`; the descriptor uses a content-inventory SHA-256, not an invented
-upstream or parent-repository commit.
+## Current Bench Server integration
 
-This initial archive-specific adapter is not yet a one-command clean upstream
-installation. An arbitrary current RoboTwin clone or the public asset release
-alone will not satisfy the source pin. Supply the exact matching archive, or
-review and version a new source inventory/protocol explicitly. Do not regenerate
-the accepted inventory merely to bypass a mismatch.
+The current adapter exposes native Aloha joint control for the following two
+tasks under `demo_clean`; it does not expose all 50 tasks or randomized settings.
+See [service support](../SERVICE_SUPPORT.md).
 
-The intended native environment is Linux/Python 3.11.15, SAPIEN 3.0.0b1,
-MPLib 0.2.1 and TOPPRA 0.6.3, with the exact versions and SAPIEN/MPLib/TOPPRA
-package bytes in [environment/runtime_snapshot.json](environment/runtime_snapshot.json).
-The adapter checks them without importing the simulator. This is not a full
-transitive environment, GPU driver or CUDA JIT attestation. Dependencies,
-renderer/GPU availability and matching asset bytes are separate requirements.
-In particular, bundled OIDN 2.0.1 has a limited CUDA architecture range. Run the
-[renderer readiness check](environment/RENDERING.md) on the allocated device:
-valid files and nonempty RGB frames do not establish a working denoiser.
-For CUDA devices outside that version's architecture range, an explicit
-`oidn_2_3_3_cuda_v1` renderer track is available. Follow the
-[owned overlay instructions](environment/RENDERING.md#opt-in-oidn-233-cuda-compatibility-track)
-and use [server-oidn233.example.json](server-oidn233.example.json). It keeps the
-original environment and native task bytes untouched. The new renderer track
-has a different protocol identity and does not claim image parity with 2.0.1;
-the default example still selects the original track.
+| Task | Task description | Native control budget |
+| --- | --- | ---: |
+| `lift_pot` | Lift the pot | 400 target controls |
+| `click_bell` | Press the bell | 400 target controls |
 
-To materialize a new deployment from a matching reference archive:
+The configured `task` and unscreened `native_seed` define the service's single
+episode. The native expert-screened repetition schedule is not exposed.
 
-```sh
-python -B -m benchmarks.simBenchmarks.Robotwin.environment.deployment prepare \
-  --reference-root /absolute/path/to/matching-reference-archive \
-  --output-dir /absolute/path/to/new-owned-robotwin-deployment
-```
+Both native object variants for each supported task are retained. Task
+instructions use the native fixed `full_description`; there is no expert
+execution or outcome-driven seed selection during the participant attempt.
 
-This copies the selected closure without changing the reference. Only the two
-Aloha `curobo_left.yml` / `curobo_right.yml` files are derived from their pinned
-native `_tmp.yml` templates by native `ASSETS_PATH` expansion. The receipt records
-original/template/deployed hashes and the `deployment_manifest_sha256`. Every
-other byte and the exact file set must match. Extra source overrides, symlinks
-and bytecode caches are rejected. Do not run a native wholesale installer
-against an existing environment: its package patches, path rewrites and
-unpinned downloads are not this deployment.
+`native_seed` accepts a uint32 integer and controls native scene generation;
+it is not a layout or object-variant ID. `lift_pot` keeps pot variants 0 and 1;
+`click_bell` keeps bell variants 0 and 1. Native seeded sampling selects the
+variant/placement. The service has no independent layout, object-variant or
+multi-seed selector: one deployment represents one task/seed pair.
 
-The closure includes `assets/objects/objaverse/list.json` and
-`assets/objects/same.json`: native utility imports read both even when clutter
-is disabled. They are unchanged native metadata, not generated substitutes.
-These two clean tasks do not use randomized background/clutter geometry. That
-does not establish release completeness or enable the randomized/full track.
-Leave at least the selected closure's size plus headroom for a new copy, native
-JIT caches and model-owned media. Full RoboTwin assets are substantially larger.
+## Service robot interface
 
-## Start one SIM service
+| Channel | Published contract |
+| --- | --- |
+| RGB | `head_camera`, `left_camera`, `right_camera`; native 320 × 240 RGB |
+| State | 12 measured arm joint angles and two **commanded** gripper values |
+| Action | 14 absolute targets: six left-arm joints, left gripper, six right-arm joints, right gripper |
+| Units | Arm radians; normalized grippers, 0 closed / 1 open |
+| Execution | Native qpos/TOPP interpolation; variable number of 250-Hz physics ticks per target |
+| Success | Native cached `eval_success`; first success ends the episode |
 
-From the RSI repository root, copy [server.example.json](server.example.json)
-to an evaluator-private configuration. Replace both placeholder deployment
-fields; the all-zero digest is intentionally not runnable. Select the task and
-native seed before the attempt. The shared harness seed is recorded separately
-and does not search for a native seed.
+The **14-dimensional action** is ordered as follows:
 
-First verify files/runtime only:
+| Slots | Meaning and units |
+| --- | --- |
+| 0–5 | Left `fl_joint1` through `fl_joint6`, absolute native joint coordinates in radians |
+| 6 | Absolute left gripper command in [0,1]: 0 closed, 1 open |
+| 7–12 | Right `fr_joint1` through `fr_joint6`, absolute native joint coordinates in radians |
+| 13 | Absolute right gripper command in [0,1]: 0 closed, 1 open |
 
-```sh
-python -B -m benchmarks.simBenchmarks.Robotwin.environment.runtime \
-  --root /absolute/path/to/new-owned-robotwin-deployment \
-  --manifest-sha256 YOUR_DEPLOYMENT_MANIFEST_SHA256
-```
+Arm command bounds are [-10,10] rad. Grippers use the native [-0.01,0.045] m
+scale. These are joint coordinates, not world/base-frame EEF deltas. Native
+TOPP determines a variable target duration in 4 ms physics ticks; there is no
+fixed wall-time duration per target or fixed control frequency.
 
-Set the same evaluator-only `RSI_SIM_SERVER_TOKEN` (32–256 URL-safe characters)
-in the server and evaluator environments. The adapter creates a fresh per-episode
-`cache/curobo-jit` and scopes `TORCH_EXTENSIONS_DIR` there during native calls;
-it stays outside the pinned deployment and is excluded from artifact transfer.
-Using the native environment, start:
+The two gripper values are command history, not measured opening or grasp
+evidence. The [protocol](EVALUATION_PROTOCOL.md#observation-boundary) specifies
+all state names and sources. Object poses, depth, expert trajectories, task
+metadata and private scoring are excluded from agent observations.
+
+One service step executes one target. The agent chooses how many targets to
+send between decisions; the native 400-control horizon remains authoritative.
+Video FPS is not control frequency: target durations vary with interpolation.
+Native setup/settling is distinct from participant actions.
+
+## Start the benchmark service
+
+Prepare the matching deployment and native environment using
+[environment/README.md](environment/README.md). Copy
+[server.example.json](server.example.json) to an operator-owned file and replace
+`source_root` and `deployment_manifest_sha256` with its verified values. Select
+`task`, `native_seed` and renderer track before launching. The all-zero digest
+is a placeholder, not a runnable deployment identity.
+
+Set `RSI_SIM_SERVER_TOKEN` privately in the server and trusted evaluator
+environments as described in the [connection guide](../SERVER_PROTOCOL.md#launch-and-connect).
+From the repository root, using the prepared native interpreter:
 
 ```sh
 python -B -m benchmarks.simBenchmarks.Robotwin.server \
-  --parameters /absolute/private/robotwin-server.json \
+  --parameters /absolute/robotwin-server.json \
   --seed 20260907 --episodes 1 --port 8771 \
-  --output-dir AgentPolicies/anonymous_code_agent/results/robotwin/raw/lift_pot-pot-lifting-service
+  --output-dir /absolute/new-robotwin-run/server
 ```
 
-`-B` is required. The server binds loopback and starts with zero native resets.
-Calls are serialized; waiting for a model does not advance physics. Follow the
-[shared service setup](../SERVER_PROTOCOL.md) for evaluator-only URL/token setup
-and SSH forwarding when the evaluator is on another node. Never give service
-credentials or evaluator-side native records to the actor.
+The launch `--seed` is recorded separately from the native scene seed in the
+JSON. The service binds loopback; use SSH forwarding for a remote evaluator.
+Startup/description performs zero resets. A trusted participant driver connects
+through the shared protocol and gives its agent only the declared observations.
+Its model, prompts, tools and decision loop are independent of this package.
 
-## Run a participant through the evaluator
+Use `-B` to keep bytecode out of pinned sources. Native JIT outputs are isolated
+in episode-local `cache/curobo-jit`, excluded from artifact transfer. Close and
+stop this one-episode service after results are collected; native `close_env`
+alone does not demonstrate GPU-memory reclamation. Never replay a control after
+an uncertain acknowledgement.
 
-Use a fresh model-owned result directory and a previously prepared opaque policy
-mailbox; model setup belongs under `AgentPolicies/<profile>/`, not here.
-For the external code-agent mailbox, the evaluator command is:
+## Results
 
-```sh
-python -B -m benchkit run \
-  --benchmark robotwin \
-  --sim-server http://127.0.0.1:8771 \
-  --model-profile anonymous_code_agent \
-  --policy-args '{"directory":"/absolute/opaque-mailbox"}' \
-  --seed 20260907 --episodes 1 \
-  --budget-mode horizon --max-policy-calls 200 --replan-interval 5 --max-steps 1000 \
-  --output-dir AgentPolicies/anonymous_code_agent/results/robotwin/raw/lift_pot-pot-lifting-evaluation
-```
+Report the task, native seed, renderer/protocol identity, native outcome and
+separate counts for decisions, target controls and physics ticks. Errors can
+leave an in-flight target partly executed; preserve that uncertainty separately
+from acknowledged transitions.
 
-The native task still stops at 400 absolute joint-target controls, or native
-success earlier. The runner's separate 200 calls / prefix 5 / 1,000-control
-ceiling does not extend that horizon. Native controls, action decisions and
-variable 250-Hz physics ticks are different counters. Policy persistence rules
-are not benchmark requirements. No automatic reset, step replay or retry occurs.
+Optional videos are `head_camera.mp4`, `left_camera.mp4` and
+`right_camera.mp4`. Their 10-fps playback presents control-boundary samples,
+not real-time physics. See [recording guidance](../../../docs/recording.md) for
+default server media ownership and optional frame retention.
 
-Videos are named `head_camera.mp4`, `left_camera.mp4`, `right_camera.mp4` under
-the model's result namespace, never here. PNG/hash records preserve delivered
-RGB bytes; 10-fps MP4s present control-boundary samples, not real-time physics
-or a 10-Hz controller. `frames.jsonl` records physical tick counts. After result
-transfer, stop this one-episode server process: native `close_env` alone does
-not attest GPU-memory reclamation. An errored attempt remains an attempt.
+## Runtime requirements
 
-## Validation and remaining scope
+The source pin is an archive content inventory, not a verified upstream Git
+revision. Fresh upstream bootstrapping and the 50-task accepted-seed schedule
+remain unsupported. The bundled OIDN 2.0.1 and opt-in OIDN 2.3.3 renderer tracks have
+different protocol identities and do not claim interchangeable pixels/scores.
+Validate rendering and controls on the intended deployment before evaluation.
 
-Native reset plus fixed infrastructure controls must be separately
-reviewed and recorded as non-capability diagnostics before participant use.
-Randomized settings, the native 50-task/accepted-seed schedule, serial/sharded
-native parity and clean upstream bootstrapping remain unimplemented.
-
-Retired StarVLA model integration code remains in Git history, not as a server
-dependency or supported evaluation entrypoint.
+`server.py` is the launcher, `bench_server/adapter.py` owns the two-task
+contract and native scoring, and `environment/` owns deployment and runtime
+verification. Participant methods and their results live outside this package.

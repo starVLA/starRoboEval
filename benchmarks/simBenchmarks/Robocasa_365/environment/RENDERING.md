@@ -27,7 +27,7 @@ buffer contents. This explains why an invalid frame can still be a correctly
 shaped, decodable RGB array. See the [pinned binding source](https://github.com/ARISE-Initiative/robosuite/blob/85abee228d1c43ab1939bce33028099945d453b4/robosuite/utils/binding_utils.py)
 and [MuJoCo's context requirements](https://mujoco.readthedocs.io/en/3.3.1/programming/visualization.html).
 
-## Controlled evidence and limits
+## Renderer lifetime failure
 
 A separate synthetic scene used two native offscreen contexts, three cameras,
 and forced collection of the retired context. It loaded no benchmark assets and
@@ -42,7 +42,7 @@ performed **zero benchmark resets, physics steps, controls or model calls**.
 The broken path produced error 1286 after native `render()` (which includes its
 first readback), then error 1282 in a separate sentinel readback. The latter left
 100% of the sentinel unchanged. These checks establish the pinned lifecycle bug;
-they are not proof that collection happened at a specific historical control.
+they are not proof that collection happened at a specific recorded control.
 
 Closed-run RGB forensics also found alternating near-exact vertical copies and
 cross-camera collapse, with tiny differences confined to edge-row bytes. That is
@@ -53,9 +53,8 @@ are not an observation modality and should not be published as model inputs.
 
 ## Operational boundary
 
-The separately versioned `egl-owner-restore-v1` compatibility track is implemented
-in [render_lifecycle.py](render_lifecycle.py). It is opt-in; the historical
-`native-v1` track is unchanged. The repair operates only in a fresh Linux/EGL
+The separately versioned `egl-owner-restore-v1` rendering track is implemented
+in [render_lifecycle.py](render_lifecycle.py). Select it explicitly; `native-v1` does not enable the repair. The repair operates only in a fresh Linux/EGL
 process, verifies the exact native files and loaded Python method code structure, and does
 not edit the native checkouts or installed packages. It is installed before the
 first environment construction and remains installed for the process lifetime so
@@ -90,11 +89,11 @@ the native renderer was never called. Error phases distinguish pre-operation,
 native-operation and post-operation failure.
 
 Do not relabel old images, switch renderer tracks silently, rerun failed tasks,
-or erase historical results. A deployment must pass both the synthetic checks
+or erase recorded results. A deployment must pass both the synthetic checks
 below and separately declared native reset/control/media validation before new
 capability trials. Native benchmark validation and model scoring remain distinct.
 
-## Separate material compatibility track
+## Material-clamping rendering track
 
 The lifecycle guard also revealed a different failure on the first native kitchen
 draw: scene material shininess outside `[0,1]`. The actual observed scene contained
@@ -107,7 +106,7 @@ invalid shininess value; the legal `0.5` control did not.
 Pinned [MuJoCo rendering](https://github.com/google-deepmind/mujoco/blob/3.3.1/src/render/render_gl3.c)
 multiplies scene shininess by 128; [OpenGL](https://github.com/KhronosGroup/OpenGL-Refpages/blob/main/gl2.1/glMaterial.xml)
 accepts an exponent from 0 to 128. This is distinct from the retired-context/FBO
-bug, and is not grounds to ignore error 1281 or reinterpret historical pixels.
+bug, and is not grounds to ignore error 1281 or reinterpret recorded pixels.
 
 `egl-owner-material-clamp-v1` (`/v3`) explicitly adds a visual conversion: during
 one managed native draw, finite expanded-scene shininess is clamped to `[0,1]`,
@@ -166,7 +165,7 @@ PY
 
 Keep both reports, lifecycle receipts, XML inputs and PNGs. These tiny scenes
 qualify only the declared material/lifecycle operations, not native task success,
-all asset types, or parity with historical invalid-material images.
+all asset types, or parity with images rendered from invalid materials.
 
 ## Geometry-only validation
 

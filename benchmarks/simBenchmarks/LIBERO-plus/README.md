@@ -1,14 +1,66 @@
-# LIBERO-Plus SIM server
+# LIBERO-Plus
 
-Run a pinned LIBERO-Plus simulator independently of the model/evaluator Python
-environment. This benchmark owns native tasks, perturbations, observations,
-actions and success. Policies stay in `AgentPolicies/<profile>`; shared transport and
-records stay in `harness`.
+LIBERO-Plus evaluates the robustness of language-conditioned robot manipulation
+under changes to visual appearance, camera views, language, object layouts,
+robot initialization and sensor noise. This integration serves the pinned native
+variants with a declared RGB/action interface and native success checks,
+independent of the participating agent method.
 
 - [Evaluation protocol and 10,030-variant inventory](EVALUATION_PROTOCOL.md)
 - [Server parameters](server.example.json)
-- [Shared server interface and evaluator launch](../SERVER_PROTOCOL.md)
-- Retired StarVLA model launchers remain in Git history, not the active interface
+- [Shared server interface](../SERVER_PROTOCOL.md)
+
+## Benchmark tasks and variations
+
+The [official benchmark](https://github.com/sylvestf/LIBERO-plus) contains
+10,030 perturbation variants across four suites:
+
+| Suite | Variants | Retained reference horizon |
+| --- | ---: | ---: |
+| `libero_spatial` | 2,402 | 220 controls |
+| `libero_object` | 2,518 | 280 controls |
+| `libero_goal` | 2,591 | 300 controls |
+| `libero_10` | 2,519 | 520 controls |
+
+The seven categories are background textures, camera viewpoints, language
+instructions, light conditions, object layouts, robot initial states and sensor
+noise. The [protocol](EVALUATION_PROTOCOL.md#task-universe-and-selection) gives
+per-category counts; [frozen catalogs](bench_server/protocol/catalogs/) define
+the native zero-based indices. Standard LIBERO's 90-task suite is excluded.
+
+## Select variants through this service
+
+Select an explicit increasing `task_ids` list within one suite. Every selected
+variant uses released state index 0 and a predeclared seed. A variant specifies
+a native perturbation such as viewpoint, language or
+object layout; a seed does not select that variant or guarantee a new layout.
+Report category, variant and attempt counts separately. The service's current
+configuration does not select additional released-state indices.
+
+The table's horizons are retained evaluator reference conditions, not a
+universal native engine limit. The separate `decisions` track declares
+`max_policy_calls × replan_interval` as its control cap and changes protocol
+identity. In horizon mode, grouping controls between decisions is agent-owned.
+
+## Observations, actions and scoring
+
+The public input is the BDDL language instruction and two 256 × 256 RGB images:
+`agentview` and `robot0_eye_in_hand`, each with the retained 180° transform.
+Native image perturbations are preserved. Joint/object poses, calibration,
+variation parameters and native scores are not public observations. The
+language comes from the BDDL rather than parameter-bearing variant filenames;
+this is an explicit track distinction from the upstream filename-derived prompt.
+
+One control is a seven-value `OSC_POSE` vector in `[-1,1]` at 20 Hz: world
+translation deltas (±0.05 m per axis), world axis-angle deltas (±0.5 rad per
+axis), and gripper `-1` open / `+1` close / `0` retain target. Ten fixed
+settling controls are initialization, recorded separately from agent controls.
+
+The native step's `done = _check_success()` is authoritative. First native
+success terminates the episode; reaching the declared cap without success is a
+completed failure. Rendering, asset-loading and runtime errors remain separate
+from task failures. Report call, decision,
+control and settling counts separately.
 
 ## Directory responsibilities
 
@@ -17,8 +69,10 @@ owns the public sensor/action interface and native score bridge;
 `bench_server/protocol/catalog.py` and `catalogs/` define the immutable task matrix.
 Native installation, source pins and catalog-generation tools belong in
 `environment/`; in particular `native_source_manifest.json` is a runtime pin,
-not a task catalog. There is no old root adapter/catalog shim. Relocation preserves catalog bytes and native behavior;
-operator paths and selected cases stay in the server configuration.
+not a task catalog. Operator paths and selected cases stay in the server
+configuration. Agent implementations and results belong under
+`AgentPolicies/<agent>/`; shared communication and report tools belong in
+`benchkit/`.
 
 ## Configure a native environment
 
@@ -104,17 +158,18 @@ never put its value into a policy prompt, tracked JSON or shell argument.
 python -B -m benchmarks.simBenchmarks.LIBERO-plus.server \
   --parameters /absolute/path/to/libero-plus-server.json \
   --seed 20260907 --episodes 1 --port 8765 \
-  --output-dir AgentPolicies/<profile>/results/libero_plus/raw/<task-description>/server
+  --output-dir /absolute/path/to/results/libero_plus/your-run/server
 ```
 
 The service binds only `127.0.0.1` and initializes no simulator until the trusted
-evaluator opens/resets the selected session. Use the neutral runner's
-`--benchmark libero_plus --sim-server http://127.0.0.1:8765` from a separate
-evaluator environment, following the shared service guide. Cross-node use needs
-an SSH tunnel, not a publicly exposed server. Every selected session is claimed
-once, including errors; do not retry a failed control acknowledgment.
+evaluator resets the selected session. Connect a compatible driver through the
+[wire protocol](../SERVER_PROTOCOL.md); see
+[agent integration](../../../docs/agent-methods.md) for participant-side code.
+Omit `--episodes` to select the complete configured task list, or use an explicit
+prefix length. Cross-node use needs an SSH tunnel. Every selected session is
+claimed once, including errors; uncertain control acknowledgments are not replayed.
 
-## Validate without interpreting it as a model score
+## Check rendering and control
 
 Before capability evaluation, explicitly select a separate fixed-action
 infrastructure diagnostic through the same SIM service. Retain reset/frame/action
@@ -124,3 +179,13 @@ previous capability attempt. Robosuite 1.4's native renderer lifecycle requires
 particular care after hard resets; a working EGL import is not proof that all
 post-reset images are valid. No image-repair or renderer monkeypatch is applied
 silently by this adapter.
+
+## Results
+
+Keep method implementations under `AgentPolicies/<agent>/` and generated reports
+and evidence under `AgentPolicies/<agent>/results/libero_plus/`. Report the selected suite/variant
+denominator, reset convention, protocol, native outcomes, counters and typed
+errors. Separate different perturbation categories, observation conditions and
+runtime backends where they affect comparability. See
+[recording](../../../docs/recording.md) for optional interactions and server-side
+videos, and [evaluation](../../../docs/evaluation.md) for closed-result tools.

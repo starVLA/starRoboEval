@@ -17,7 +17,7 @@ Matching existing assets can be verified and reused read-only. Otherwise pin
 the dataset revision, download the required archives, record their hashes and
 extract into a fresh asset root after checking archive paths and links. Never
 merge blindly over an existing deployment or assume a current dataset equals a
-historical local asset tree.
+pinned asset tree.
 
 Do not run the native installation script against an existing shared environment.
 It edits SAPIEN/MPLib package code and clones CuRobo without a fixed revision.
@@ -30,7 +30,8 @@ contract. The RoboTwin server's source pin is not a DOMINO source pin.
 The pinned native evaluator normally executes an expert to screen candidate
 seeds and recover dynamic-motion information. Its optional fixed-episode manifest
 avoids online screening but still contains expert-screened scene/trajectory
-data. Neither mode is an unscreened once-per-selected-seed fast protocol.
+data. In either procedure, the selected scenes are expert-screened; a seed alone
+does not replace the saved dynamic-motion payload.
 
 A direct-control service must freeze and document its scene distribution before
 evaluation, keep all dynamic-trajectory and metric-tracker data private, and never
@@ -39,22 +40,21 @@ a static lookalike merely because its assets load. Preserving native SR/MS also
 requires the native route-completion, contact-stop, lifting and out-of-bounds
 logic, not only the task's cached success flag.
 
-The implemented service now selects the bounded `click_bell` fixed-manifest
-SM120 compatibility track. Native preparation and service validation remain
-unfinished; this is not a passed native-run claim. See the
-[evaluation protocol](../EVALUATION_PROTOCOL.md).
+The service selects the bounded `click_bell` fixed-manifest SM120 runtime. Provision and verify its deployment and trusted manifest before native
+initialization; matching source/asset files alone do not establish readiness.
+See the [evaluation protocol](../EVALUATION_PROTOCOL.md).
 
 ## Prepare a fresh owned deployment
 
 `deployment.py` verifies the public Git blob identities of DOMINO and CuRobo,
 copies only those verified source paths, copies the selected aloha/bell assets,
 and derives only the two native CuRobo asset-root substitutions. It captures
-selected compatibility package versions and SAPIEN/MPLib/TOPPRA file hashes.
+selected runtime package versions and SAPIEN/MPLib/TOPPRA file hashes.
 It never invokes an installer, expert, simulator or model. Existing destinations
 are refused. Untracked compiled CuRobo extensions are not copied; new JIT builds
 belong to an episode-owned cache, never source or a colleague's environment.
 
-With the declared compatibility interpreter and verified owned SAPIEN/OIDN2.3.3
+With the declared SM120 interpreter and verified owned SAPIEN/OIDN2.3.3
 overlay already selected on `PYTHONPATH`:
 
 ```sh
@@ -96,7 +96,7 @@ the manifest while a policy runs. A manifest is private native reset data;
 pickle requires a trusted local origin and hash, not arbitrary policy input.
 
 The current native import path still initializes CuRobo planners even though
-policy controls use qpos/TOPP. The compatibility environment needs a compatible
+policy controls use qpos/TOPP. The SM120 environment needs a compatible
 CUDA compiler for fresh JIT builds. GPU names alone do not establish architecture;
 verify compute capability and actual renderer device on the assigned node.
 The inspected SM120 track requires Torch2.7.1+CUDA12.8; substituting native
@@ -116,9 +116,9 @@ export TORCH_CUDA_ARCH_LIST=12.0
 
 Use the actual selected GPU architecture, not `12.0` on a different device.
 Do not patch a shared environment or copy unverified compiled CuRobo extensions
-into the native source. Record compiler and Torch CUDA versions independently:
-the inspected compatibility preflight used nvcc12.9.86 with Torch CUDA12.8,
-not an exact toolkit-version match. Build/import readiness, synthetic rendering,
+into the native source. Record compiler and Torch CUDA versions independently;
+a reported Torch CUDA version does not identify the installed toolkit compiler.
+Build/import readiness, synthetic rendering,
 robot-only planner warmup and a task reset are separate checks. Native source
 and assets must remain unchanged; isolate JIT, Warp and driver caches in owned
 diagnostic storage. These setup checks are not policy trials or task scores.

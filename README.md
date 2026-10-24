@@ -17,11 +17,10 @@ agent reasons internally. No VLA-assisted hybrid controller or fallback task
 policy is inserted between a method and its benchmark. Fixed-prompt, single-model
 policies remain useful controlled baselines, not the only permitted methods.
 
-> Status: experimental. Development SIM services and protocol drafts coexist;
-> inspect the per-benchmark support matrix before use.
-> Native-aligned full evaluation presets, verified provider integrations and
-> unified real-robot adapters are not yet complete. Adapter availability does
-> not imply the simulator or licensed assets are installed.
+> Status: experimental. There are 13 simulation service entrypoints; supported
+> tasks and case selectors vary by benchmark. VLN-CE and unified real-robot
+> services are not implemented yet. Native simulators and licensed assets must
+> be installed separately.
 
 ## Quick start
 
@@ -33,6 +32,7 @@ rsi-bench list
 rsi-bench serve --benchmark robodojo --help
 ```
 
+First [choose a benchmark and its tasks/cases](benchmarks/simBenchmarks/README.md).
 The selector delegates to the benchmark's existing server; it does not install
 its simulator or change its sensors, actions or task schedule. Follow that
 benchmark's setup guide, then launch with a fixed configuration, seed and fresh
@@ -54,7 +54,6 @@ described by the selected benchmark before attempting a native task.
 - [Agent driver integration skill and template](docs/bench-server-protocol/SKILL.md)
 - [Optional interaction recording and basic results](docs/recording.md)
 - [Run an evaluation](docs/evaluation.md)
-- [跨 Benchmark 运行指南：每任务五案例、执行顺序与已有结果](docs/evaluation-campaign/README.md)
 - [Architecture and ownership](docs/architecture.md)
 - [Bench Server visual introduction](assets/bench_server/index.html)
 - [Add a benchmark server](docs/benchmark-server-guide.md)
@@ -65,9 +64,6 @@ described by the selected benchmark before attempting a native task.
 - [Real-robot integration status](benchmarks/realRobots/README.md)
 
 ## Repository structure
-
-Upgrading an existing checkout? See the [package migration notes](docs/package-migration.md)
-for the `examples` → `benchmarks` and `harness` → `benchkit` changes.
 
 ```text
 benchkit/                              shared communication and result/output tools
@@ -81,7 +77,7 @@ benchkit/                              shared communication and result/output to
 benchmarks/
   simBenchmarks/<benchmark>/           environment, tasks, adapter and native protocol
     server.py                          benchmark-owned independent SIM entrypoint
-    bench_server/protocol/             task definitions and sample plans, where migrated
+    bench_server/protocol/             task definitions and sample plans, where needed
   realRobots/                          hardware references; unified adapters pending
 AgentPolicies/
   <method-profile>/                    policy, model composition, prompts and dependencies
@@ -103,14 +99,9 @@ answers “what action should I take?” Its trusted driver communicates with th
 service through `benchkit/sim_server` and uses the other `benchkit` record/report tools. Planning and
 voluntary-stop preferences belong to the policy, not the native benchmark.
 The actor never receives the driver's administrative client or credentials.
-The model-owned client driver currently starts with
-[`AgentPolicies/gpt6_astra/run.py`](AgentPolicies/gpt6_astra/run.py). This validation client
-uses one `codex_native` method at the profile root; configuration, prompt and
-registration declarations live in `configs/`, with runtime/transport helpers in `tools/`. Fixed-plan tools use
-`python -m benchkit.campaigns`; no old `benchkit.runner` or `benchkit.campaign`
-forwarding modules are retained. Import the optional runner from
-`AgentPolicies.gpt6_astra.tools.runner`; the general CLI and anonymous mailbox
-workflow continue to reuse these agent-side utilities.
+Use your own trusted driver or the supplied
+[reference client](AgentPolicies/gpt6_astra/README.md). Agent-specific commands,
+prompts, configuration and runtime dependencies are documented with that agent.
 
 Central task scheduling remains in this version. Current campaign commands
 coordinate frozen local cases; they are not yet integrated with remote service
@@ -121,36 +112,25 @@ rankings are planned extensions, not claims of current support.
 
 ## Available integrations
 
-| Family | Current status | Entry point |
-| --- | --- | --- |
-| SimplerEnv | Development adapter | [Setup and protocol](benchmarks/simBenchmarks/SimplerEnv/README.md) |
-| LIBERO | Development adapter | [Setup and protocol](benchmarks/simBenchmarks/LIBERO/README.md) |
-| SIMPLE | Development adapter | [Setup and protocol](benchmarks/simBenchmarks/SIMPLE/README.md) |
-| RoboCasa365 | Development adapter | [Setup and protocol](benchmarks/simBenchmarks/Robocasa_365/README.md) |
-| RoboCasa Tabletop | Development adapter | [Setup and protocol](benchmarks/simBenchmarks/Robocasa_tabletop/README.md) |
-| RoboDojo | Qualified development adapter; portable setup incomplete | [Scope and limitations](benchmarks/simBenchmarks/RoboDojo/README.md) |
-| MetaWorld MT50 | Standalone development SIM server | [Setup and protocol](benchmarks/simBenchmarks/MetaWorld/README.md) |
-| LIBERO-Plus | Separate variation-aware development SIM server | [Setup and protocol](benchmarks/simBenchmarks/LIBERO-plus/README.md) |
-| RoboTwin | Two-task clean direct-joint development SIM server | [Setup and protocol](benchmarks/simBenchmarks/Robotwin/README.md) |
-| DOMINO | One-task fixed-manifest direct-joint development SIM server; native validation pending | [Setup and protocol](benchmarks/simBenchmarks/DOMINO/README.md) |
-| BEHAVIOR 2026 | One-task RGB/proprioception debug SIM server; one-case native smoke passed, full challenge parity pending | [Setup and protocol](benchmarks/simBenchmarks/Behavior/README.md) |
-| VLA-Arena | Level-0 direct-control development SIM server | [Setup and protocol](benchmarks/simBenchmarks/VLA-Arena/README.md) |
-| CALVIN | Debug-assets sequence development SIM server | [Setup and protocol](benchmarks/simBenchmarks/calvin/README.md) |
-| VLN-CE | Deferred pending authorized navigation assets | [Catalog](benchmarks/simBenchmarks/README.md) |
+The [simulation benchmark overview](benchmarks/simBenchmarks/README.md#choose-a-benchmark)
+introduces each benchmark's native tasks, layouts, initial states and variations,
+with setup and protocol links. LIBERO evaluates language-conditioned manipulation,
+SIMPLE evaluates humanoid loco-manipulation, and RoboDojo covers multiple
+manipulation capabilities. They retain different robot interfaces and sample
+distributions.
 
-The catalog contains the original 13 simulation families plus SIMPLE. The
-[service support matrix](benchmarks/simBenchmarks/SERVICE_SUPPORT.md) distinguishes
-entrypoint availability, setup requirements and native validation. No standalone
-development server implies native full parity. Environment assets and their
-licenses are separate from this repository; VLN-CE is deferred until authorized
-navigation datasets are available.
+See [deployment requirements](benchmarks/simBenchmarks/SERVICE_SUPPORT.md) for
+current service coverage, assets and runtime restrictions, and [real-robot status](benchmarks/realRobots/README.md)
+for hardware integrations. No task count or service entrypoint implies that its
+native environment is already installed.
 
 ## Evaluation guarantees and limits
 
 - Freeze tasks, initial states, seeds, action/observation contracts, budgets and
   model configuration before execution.
-- `fast` plans select tasks with one attempt each. A future `full` preset must
-  follow the verified native task/variant/episode schedule; it is not a retry loop.
+- State selected tasks, layouts/initial states, seeds and attempts per case
+  explicitly. A seed is not necessarily a different layout; planned repetitions
+  are not retries chosen after failure.
 - Keep failures and errors. Report attempted and completed denominators
   separately; never turn infrastructure errors into hidden missing samples.
 - Record policy calls, executed action decisions and control steps separately.
@@ -168,19 +148,10 @@ navigation datasets are available.
 - Preserve original events and results; never rewrite an outcome or silently
   rerun a task to improve its presentation.
 
-The current `anonymous_code_agent` profile uses an experimental file mailbox.
-It does not authenticate the actor's provider/model identity, meter hidden
-provider requests or enforce OS isolation. Unknown usage is recorded as
-`null`. [`gpt6_astra`](AgentPolicies/gpt6_astra/README.md) provides one Bench Server
-validation client, `codex_native` (`codex-native/v2`), with an explicitly selected
-benchmark. It preserves persistent Direct control, the optional completion and
-repeated-command settings, and the declared numeric action
-interface; there is no method-selection step. The old bounded CLI Native method
-and other retired methods remain in Git and frozen records. Historical results
-keep their original method names and do not become Native v2 scores.
-A passing offline check is not a new capability score.
-Declared model identity is distinct from provider receipts and
-from historical owner-reported attribution. `opus` remains unconfigured.
+Each [agent method](AgentPolicies/README.md) documents its own model connection,
+decision behavior, usage accounting and limitations. Reports identify the actual
+method and configuration used; a changed prompt or control strategy is not
+merely a model-name change. Unknown model attribution or usage remains unknown.
 
 ## Development
 

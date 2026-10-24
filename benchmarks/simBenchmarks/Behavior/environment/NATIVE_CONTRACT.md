@@ -1,20 +1,19 @@
-# BEHAVIOR 2026 native contract review
+# BEHAVIOR 2026 observation and action contract
 
-Status: source/asset review supporting the selected-case DefaultWrapper
-debug service. The historical radio public case passed a two-control HTTP native smoke
-check on 2026-09-23; see [verified scope](../README.md#verified-scope).
-This does not establish model capability or full-challenge parity.
+This document specifies native sensors, robot commands, timing and scoring for
+the supported task instances.
 Source pin:
 `b1979916ec1549b10a4e65e630bc6504a9af1b00` (`v3.9.2`). Paths below refer to
 `OmniGibson/omnigibson/` at that revision.
 
-## Implemented debugging service track
+## Sensor configuration
 
 Use native `DefaultWrapper`: three 224×224 RGB views plus robot proprioception.
-This is a separately named debugging track, not the official
-`RGBDFullResWrapper` (RGB and metric depth; head 720×720, wrists 480×480).
+The challenge uses `RGBDFullResWrapper` (RGB and metric depth; head 720×720,
+wrists 480×480).
 The shared RGB transport cannot currently represent metric depth. Do not
-silently drop depth, encode it as RGB, or claim official full-track parity.
+silently drop depth, encode it as RGB, or treat these sensor configurations as
+equivalent.
 
 ## Actions and native execution
 
@@ -43,14 +42,15 @@ Preserve the native evaluator, not just `r1pro.yaml`: its robot adjustments,
 rendering configuration and task-specific transition rules also affect execution.
 Constructing a generic environment from the robot YAML alone is not parity.
 
-Code declares action/rendering at 30 Hz and physics at 120 Hz. The initial
-service should accept one action per control (normally four physics ticks),
+Code declares action/rendering at 30 Hz and physics at 120 Hz. The
+service accepts one action per control (normally four physics ticks),
 with no autonomous stepping between requests. Validate actual clock deltas in
 the native diagnostic, separately from model decisions and initialization.
-In selected-task protocols v2/v3, the agent may issue multiple sequenced controls
-from one decision; the service imposes no prefix-one requirement. The historical
-radio v1 requirement remains unchanged. Policy chunks do not change native
-control timing or permit execution beyond native termination or the horizon.
+An agent may generally issue multiple controls from one decision. The current
+radio integration requires one control before another observation/decision;
+the other six tasks do not impose that restriction. This is a service
+constraint, not native task timing. Action grouping cannot extend the native
+control budget or delay native termination.
 
 ## Public sensors, not arbitrary native observation dictionaries
 
@@ -78,17 +78,16 @@ fingers are prismatic, in metres and metres/s. EEF positions are metres.
 These have encoder/kinematic real-robot counterparts; they are not object truth.
 
 The wrapper alone is **not** an information filter: native evaluator preprocessing
-also appends camera poses and a numeric task ID. The proposed service must select
+also appends camera poses and a numeric task ID. The service selects
 only the declared cameras, proprioception and explicit task instruction. Do not
 forward camera-pose extras, global robot pose, object poses, grasp predicates,
 task internals or metrics into actor observations.
 
 ## Schedule, initialization and scoring
 
-The selected challenge panel and available native split are different facts.
-Native code exposes public indices 0–19 mapping to instance IDs 301–320; a
-selected public panel 0–9 maps to 301–310. A one-instance diagnostic is neither
-the whole split nor the full challenge matrix.
+Native code exposes 20 public indices 0–19 mapping to instance IDs 301–320.
+The current service selects index 0, instance 301, for each supported task.
+One selected instance does not cover the other 19 available public instances.
 
 Preserve the evaluator's initialization order: construct lazily, reset, load
 the fixed instance, reset for rollout. Loading includes 25 explicit physics
@@ -107,17 +106,14 @@ controls at which the pinned implementation returns timeout:
 4. `eval/eval.py` runs until native flags terminate; it adds no independent H cap.
 
 Consequently, absent earlier termination, native timeout occurs after **H + 1
-executed controls**. Selected-task protocol v3 exposes H + 1 as its effective
-control cap while validating the loaded native timeout against H. Do not set
-the native timeout to H + 1, fabricate truncation at H, or replay the last action
-of an interrupted old run. Historical radio v1 and selected-task v2 caps/records
-remain unchanged; they must not be claimed to establish native-timeout parity.
-A two-control diagnostic limit is separate; it does not replace either quantity
-or create a completed task failure.
+executed controls**. The current radio service caps controls at H rather than
+H + 1; reaching that cap without success is an external truncation. The other
+six tasks use H + 1 as their control cap while leaving the native timeout
+parameter at H. A smaller external cap must be reported separately.
 The selected task names, language provenance, human lengths, horizons and exact
 instance hashes are pinned in `bench_server/protocol/__init__.py`; see the
-[task table](../EVALUATION_PROTOCOL.md). New-task deployment v2 captures bind
-one task and its selected instance; a radio v1 receipt cannot stand in for it.
+[task table](../EVALUATION_PROTOCOL.md). A deployment manifest must bind the
+selected task and its instance.
 
 Preserve native evaluator step and metric ordering. Binary success comes from
 `env.task.success`; native final `q_score` is partial goal progress, not success
@@ -128,17 +124,9 @@ predicates are not newly earned credit. Movement/global-pose metrics remain eval
 metrics can contain non-finite ratios for zero motion/time; define an explicit
 JSON representation without silently turning these into zero.
 
-## Per-deployment acceptance gates
+## Robot asset sources
 
-- Dedicated dependency-complete runtime and licensed, hash-verified assets.
-- Loaded controller order, joint names/limits, gripper polarity, camera shapes
-  and proprioception checked against this source-level contract.
-- Benchmark-owned adapter/server, public allowlist, lazy startup, counters,
-  native metric bridge and idempotent cleanup independently reviewed and tested.
-- A predeclared task/instance, one no-model service diagnostic, decoded RGB,
-  actual controls/physics counts, native outcome and closed artifact hashes.
-
-Robot asset identities used for this review: `omnigibson-robot-assets` 3.8.2,
+Required robot asset identities: `omnigibson-robot-assets` 3.8.2,
 `models/r1pro/r1pro.yaml` SHA-256
 `63f841cffd5c499102416a797a22fa5b4cbaf146539df7dde8a4a1053e2326f1`,
 `models/r1pro/urdf/r1pro.urdf` SHA-256

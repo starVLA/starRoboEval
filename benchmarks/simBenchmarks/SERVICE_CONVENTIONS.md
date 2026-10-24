@@ -10,9 +10,9 @@ services use this layout; draft integrations are listed in [SERVICE_SUPPORT.md](
 ```text
 benchmarks/simBenchmarks/<benchmark>/
 ├── README.md                  # preparation, service launch, supported scope
-├── EVALUATION_PROTOCOL.md     # native semantics, tracks, scores and limits
+├── EVALUATION_PROTOCOL.md     # tasks, cases, sensors/actions, budgets and scoring
 ├── server.py                  # import-safe factory + main(argv=None)
-├── server.example.json        # explicit operator paths and selected track
+├── server.example.json        # operator paths and task/interface selection
 ├── bench_server/
 │   ├── adapter.py             # declared observation/action and native bridge
 │   ├── protocol/              # dependency-light catalogs and interface rules
@@ -46,6 +46,52 @@ servers merely to make file lists identical. Migrated integrations use only
 Do not retain old root adapter shims or duplicate `evaluation/` packages solely
 for compatibility. Update current callers, packaging and source inventories
 together; frozen historical packages retain their own original sources.
+
+## Public documentation contract
+
+Write benchmark documentation for any compatible agent, not for a particular
+model or evaluation campaign. Use this division consistently:
+
+- `README.md`: introduce what the benchmark measures and its native task,
+  scene and variation organization first; then explain environment prerequisites
+  and service use. Keep current integration constraints in a separate section.
+- `EVALUATION_PROTOCOL.md`: pinned native sources, exact selection rules,
+  observations/actions, units, native budgets, termination and scoring. Mark
+  deviations from the native evaluator and unknowns explicitly.
+- `environment/README.md` and technical protocol notes: installation, asset
+  authorization, runtime pins, interface details and readiness checks.
+- `AgentPolicies/<agent>/`: client commands, prompts, planning/memory choices,
+  optional guards, inference settings, results and method-specific limitations.
+
+Introduce the native benchmark separately from this checkout's supported scope.
+Task counts, cases per task and evaluation repeats are different quantities.
+The public overview describes the benchmark's own task universe, not the number
+of cases that this project has evaluated or currently wired into an adapter.
+Use [SERVICE_SUPPORT.md](SERVICE_SUPPORT.md) for implementation availability.
+Evaluation progress, observed scores, run counts and engineering diaries belong
+in internal `project_readmes/` notes; they must not define a benchmark's scope.
+Do not link ignored internal notes as prerequisites for public users.
+Link implementation and source evidence for exact claims. Describe selection by
+task, layout/initial state, variation, seed and attempts, not evaluation-tier labels.
+Do not infer a reset distribution from a task-name list or a successful diagnostic.
+
+A new user's reading path should answer, in order: what can I evaluate; which
+tasks and cases can I select; what must I install; what observations and actions
+does my agent use; how do I start the service; how is the result scored? Keep
+action dimensions, component order, units, coordinate frames, relative/absolute
+semantics, gripper conventions and control timing explicit. A dimension alone
+does not define an action. Put engineering acceptance and migration notes in
+contributor documentation, not the benchmark introduction.
+
+Keep dated run diaries, personal paths, account details and local token ledgers
+out of benchmark guides. Native dependency versions and source references belong
+here even when a source repository also contains model code: provenance is not
+a requirement to use that model. Shared lifecycle rules may be linked rather
+than copied into every guide.
+
+If documentation review reveals a code/protocol mismatch, describe the actual
+implemented constraint and record the proposed engineering change separately.
+Editing prose must not silently redefine a runtime contract or historical result.
 
 ## Invariants shared with RoboDojo
 
@@ -82,13 +128,13 @@ identity attestation. Apply deployment isolation separately.
 | --- | --- | --- |
 | Observation/action | Declared, versioned, validated | EEF16, three cameras, robot ACK payload |
 | Native runtime | Service-owned and lazily initialized | Isaac Sim, worker topology, fixed IK |
-| Schedule | Frozen selected cases, each once | Five-layout fast / 50-layout full panels |
+| Schedule | Frozen selected cases, each once | Selections of 5 or 50 layouts |
 | Budget | Explicit units and resolved caps | 1100 controls, number of ticks per control |
 | Scoring | Native rule, never model self-report | Dojo's success conjunction or 0–100 score |
 | Rejection | Never execute invalid input | A track's feedback/fail-fast selection |
 
-Dojo requires its complete named panel. Other services currently allow an explicit
-fast subset fixed at startup; this is not native-full support. Do not enable
+Dojo requires its complete named panel. Other services allow an explicit
+selection fixed at startup. Do not enable
 `require_complete_schedule` without defining the benchmark's complete schedule.
 SimplerEnv retains final-step scoring and separately selected rejection feedback;
 LIBERO retains its selected task/init-state contract; SIMPLE retains its native
@@ -106,7 +152,7 @@ own timing, watchdog, safety, calibration and scoring validation. See
 | Source/contract review | Native evaluator pins, task inventory, sensor/action/scorer mapping | A working environment |
 | Offline regression | Import-safe entrypoint; no-reset startup; captured source; shared lifecycle/error tests plus native contract fixtures | Rendering or task success |
 | Native readiness | Separate authorized no-model check of reset, RGB, one valid control and cleanup through the service | Model capability |
-| Model sample | Preselected task/case once through the same server, with score, counts, errors and declared optional recording | Whole-suite SR or native-full parity |
+| Model sample | Preselected task/case once through the same server, with score, counts, errors and declared optional recording | Scores for tasks or cases not evaluated |
 | Expansion | Independent review, fixes, regression; then predeclare broader coverage | Permission to silently retry failures |
 
 Offline validation should cover benchmark entrypoints, observation boundaries,
@@ -117,4 +163,4 @@ failure is useful acceptance evidence, not a reason to rewrite the scorer.
 
 See [the wire protocol](SERVER_PROTOCOL.md) and [support matrix](SERVICE_SUPPORT.md)
 for current implementation limits. A passing conformance test is not a claim that
-all native, sensor, provider or full-schedule gates have passed.
+all native, sensor, provider or sampling checks have passed.

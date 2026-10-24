@@ -46,7 +46,7 @@ construction and before returning the first public observation; it records the
 identity in private native provenance. Native construction itself can initialize
 the scene, so this check does **not** replace the pre-claim renderer-only probe.
 Neither this deployment assertion nor its private diagnostics expands policy
-observations. Historical runs without the assertion remain unchanged.
+observations.
 
 Pinned Google drawer tasks use RT shaders with denoising enabled, 32 samples per
 pixel and path depth 8. Can-picking and move-near configurations use IBL; passing

@@ -1,78 +1,40 @@
 # SimplerEnv evaluation protocol
 
-Protocol: `simpler-prepackaged-development/rgb/v1`.
+SimplerEnv evaluates manipulation under real-to-sim visual conditions for
+Google Robot and WidowX. Task families, reset conditions and visual variations
+are separate benchmark dimensions. The server owns resets, robot controls and
+native scoring; agent methods use the declared sensor/action interface.
 
-`interaction_mode="single_response"` is the default and preserves historical
-protocol identities and interaction restrictions. Explicitly selecting
-`interaction_mode="agent_method"` adds `/agent-method` immediately before
-the final `/v1`, after any budget or action-feedback suffix. For example,
-`simpler-prepackaged-development/rgb/action-feedback/agent-method/v1` retains
-the native horizon and enables the separately declared agent-method interaction.
-This selection changes only the interaction declaration; observations, actions,
-reset selection, native control, scoring and execution budgets stay unchanged.
-See [interaction modes](#interaction-modes).
+See [installation](README.md) and [task/variation definitions](bench_server/protocol/TASKS.md).
+Select tasks, seeds, sensor settings and execution budgets before running, and
+record the protocol identity returned by the service with every result.
 
-An explicitly selected `action_rejection_feedback=true` adds
-`/action-feedback` before the optional `/agent-method` and final `/v1` suffixes.
-The default is `false`: historical fail-fast tracks and closed results are
-unchanged. This flag is a benchmark service parameter, captured with the launch
-configuration; it does not change native actions, sensors, horizons or scoring.
-See [rejected-action feedback](#optional-rejected-action-feedback).
-
-The native-horizon track has `horizon_multiplier=1`. An explicitly selected
-`horizon_multiplier=2` is an extended-horizon track with a separate protocol
-identity and score; it does not redefine the upstream task's native horizon.
-
-For new decision-primary runs, explicitly select `budget_mode="decisions"`,
-`max_policy_calls=D` and `replan_interval=K` in both adapter and runner. The
-protocol adds `/decision-D-prefix-K/v1`, and the predeclared environment safety
-cap is `D × K` (`evaluation_horizon` retains this resolved value). Upstream
-`native_horizon` stays unchanged as a reference; its TimeLimit does not end this
-track early. Horizon multipliers cannot be combined with decision-primary mode.
-Stop, failed calls and short chunks each consume a decision. Native task
-termination, policy stop and errors may still end an attempt earlier. Changes
-apply only to a newly declared configuration; existing results remain unchanged.
-The current fast campaign defaults to **200 decisions × at most 5 actions**
-(1000-step safety cap). This is a development configuration, not a uniform native
-reference budget. Always retain
-actual decisions, controlled steps, first-native-success step and decision, and
-termination reason so subsequent protocol design can use the evidence.
-
-This document defines the executable prepackaged track and distinguishes it from
-the native full reference. Report the selected tasks, reset conditions, controller,
-observation channels and interaction budget with every score. An executable
-adapter and native scoring do not by themselves establish upstream score parity.
-
-Build the environment using [README.md](README.md). The complete alias inventory,
-variation counts, and pinned primary sources are in [TASKS.md](bench_server/protocol/TASKS.md).
-
-## Fast and full evaluation
-
-| Mode | Schedule | Current implementation |
-| --- | --- | --- |
-| `fast` | One preselected reset and one attempt for each selected canonical task; retain failures and errors | Runnable prepackaged adapter; the campaign plan enumerates 15 task cells, each started explicitly |
-| `full` | The chosen native protocol's complete task/variant/seed/episode matrix, with native evaluation settings | Reference matrices documented; unified full VM/VA scheduling is not implemented yet |
+## Native reference matrices
 
 The pinned Visual Matching (VM) reference expands to 960 episodes per policy
 checkpoint: 864 Google Robot and 96 WidowX. Google Variant Aggregation (VA)
 expands to 1,992 episodes. These are separate protocols, not counts to combine.
 The [task matrix](bench_server/protocol/TASKS.md) lists each family's variants and source scripts.
-Running all 15 fast tasks, increasing a horizon, or repeating a failed attempt
-does not make a run `full`. Native full repetitions are predeclared evaluation
-cells, not success-seeking retries. Neither mode automatically retries failures.
+These reference matrices specify object/layout, robot-pose and appearance
+conditions explicitly; prepackaged seeded resets do not enumerate them. Report
+selected tasks, seeds and attempts separately from coverage of reference visual
+conditions.
 
 Policy-specific persistence settings, including a minimum number of action
 decisions before give-up, belong to the selected policy's configuration and
-source bundle. They must not become a benchmark condition or redefine fast/full.
+source bundle. They must not become benchmark task or sampling requirements.
 
-## Tasks and scope
+## Task families and service selection
 
 The pinned upstream exposes **25 prepackaged aliases**, representing **10 broad
 README task categories**. Its paper reproduction scripts cover **9 task families**.
 Expanding can orientations and drawer levels gives **15 canonical subtasks** in
 [bench_server/protocol/task_catalog.json](bench_server/protocol/task_catalog.json).
 
-| Development task group | Subtasks | Native horizon per episode |
+The current service exposes the following 15 canonical subtasks. This table
+describes its selector, not a separate definition of the benchmark's task count.
+
+| Service task group | Subtasks | Native horizon per episode |
 | --- | ---: | ---: |
 | Pick horizontal, vertical, or standing coke can | 3 | 80 |
 | Move near, baked-texture `v0` | 1 | 80 |
@@ -84,15 +46,14 @@ Expanding can orientations and drawer levels gives **15 canonical subtasks** in
 | Stack green cube on yellow cube | 1 | 60 |
 | Put eggplant in basket | 1 | 120 |
 
-Preselect the task list and reset seed before execution, and report both selected
-and attempted denominators. The campaign freezes a fixed seed with its task
-schedule; the standalone interface accepts an explicit seed. Failure is a valid
-outcome. Do not search for easier reset positions, replace errors, or add
-task-specific assistance until a success appears.
+The service selects one canonical task and a declared episode count. Episode
+index `i` uses reset seed `seed + i`. Native reset samples visual-matching conditions, including object episode
+IDs where applicable. A seed is not a layout index and does not guarantee a
+unique scene. This selector does not enumerate the VM/VA matrices above.
 
 Construction uses the pinned alias mapping with independently copied kwargs,
 `obs_mode="rgbd"`, and `prepackaged_config=True`. Native prepackaged reset samples
-visual-matching conditions from its seed. This does not enumerate the full VM
+visual-matching conditions from its seed. This does not enumerate the VM
 or VA matrices in TASKS.md. Do not mutate the global upstream alias dictionary
 or registered task definitions. Preserve each upstream `native_horizon` in the
 catalog even when an explicit extended track configures a longer evaluation
@@ -120,15 +81,20 @@ matrices, object poses, source/target IDs, contacts, reward, success flags,
 subtask IDs, reset info, or other simulator metadata. Optional joint-position
 input has the separate identity `simpler-prepackaged-development/rgb-qpos/v1`;
 its ordered robot sensor fields must be declared and its results kept separate.
+The [interface's joint table](bench_server/protocol/INTERFACE.md#joint-position-order)
+specifies the 11 Google Robot or 8 WidowX measured positions, their native order
+and radians/metres units; these are not controller targets.
 
 The policy receives only sanitized messages. Episode tokens must be opaque:
 no seed, native episode index, reset coordinates, layout, asset path, or filename
 encoding those values may reach `start_episode`, observations, or prompts.
-Evaluator artifacts may contain provenance but are not policy inputs. During a
-rollout the evaluated agent may read only its declared observation mailbox and
-its own permitted history/artifacts; it cannot read simulator source, task
-catalogs, reset manifests, scorer logs, or other processes' state. Source access
-used to build the adapter does not grant the evaluated policy those capabilities.
+Evaluator artifacts may contain provenance but are not policy inputs. Public
+benchmark descriptions and interface definitions may be read; they do not grant
+access to the evaluator's private reset manifests, scorer logs, native runtime
+or other processes' state. During a rollout, live environment information must
+come only from the declared observation channel and permitted interaction
+history. Public documentation access is not permission to inspect a private
+task/reset catalog or execute simulator source to obtain additional state.
 
 ## Interaction modes
 
@@ -140,9 +106,9 @@ current RGB + instruction -> one Policy.act -> action chunk or stop
                                    next scheduled RGB
 ```
 
-### Historical single-response mode
+### Single-response setting
 
-With the default `interaction_mode="single_response"`, one provider-backed
+With `interaction_mode="single_response"` (the default), one provider-backed
 `Policy.act` may issue at most one inference request. No follow-up questions,
 extra image requests, conversational tool loop, simulator
 inspection, or second model message to repair an invalid response is allowed.
@@ -150,7 +116,7 @@ A service can enforce scheduled observation/action exchange, but cannot meter
 hidden provider requests. Declare the method's enforcement and available
 accounting evidence; one CLI invocation alone does not verify one provider request.
 
-### Explicit agent-method mode
+### Agent-method setting
 
 With `interaction_mode="agent_method"`, a declared method may compose multiple
 general-purpose model calls, reasoning, memory and local tools over the already
@@ -180,8 +146,8 @@ A human correction during an episode changes the policy under evaluation and
 must not be presented as an autonomous model result.
 
 The shared [policy protocol](../POLICY_PROTOCOL.md) also applies. Declare whether
-the policy is a fixed program, scripted harness check, or general-purpose model
-method. The historical mode treats program generation or adaptation during
+the policy is a fixed program, scripted infrastructure diagnostic, or general-purpose model
+method. The single-response setting treats program generation or adaptation during
 evaluation as a separate track; the explicit agent-method mode permits declared
 local analysis/code tools within the unchanged observation and control boundary.
 
@@ -202,9 +168,9 @@ budget. Record rejected calls separately from accepted action decisions and
 executed controls. Infrastructure failures, uncertain execution and lost action
 acknowledgments remain errors, never permission to replay an action. Models and
 trusted drivers must declare support for this track before claiming an episode;
-`false` keeps the original terminate-on-invalid-response interaction. The
+`false` (the default) ends the attempt on invalid input. The
 selected `interaction_mode` still applies: feedback does not itself enable
-additional inference or local tools in the historical single-response mode.
+additional inference or local tools in the single-response setting.
 
 ### Native action contract
 
@@ -224,7 +190,12 @@ native configuration. RSI's strict bounds are an explicit track constraint.
 | Robot | Native arm behavior | Native gripper behavior |
 | --- | --- | --- |
 | Google Robot | `ee_align`: delta from measured EE pose, with base-aligned axes and native planner interpolation | Target joint-position delta: positive closes, negative opens, zero holds target |
-| WidowX | `ee_align2`, `use_target=True`: accumulated target delta; rotation pivots around current measured EE position | Absolute joint position: `+1` open, `-1` closed, zero intermediate |
+| WidowX | `ee_align2`, `use_target=True`: base-aligned accumulated target delta; rotation pivots around current measured EE position | Absolute joint position: `+1` open, `-1` closed, zero intermediate |
+
+Both translation and rotation-vector components are expressed along the robot
+articulation's base axes, not end-effector-local axes or necessarily world axes.
+See [target transforms](bench_server/protocol/INTERFACE.md#actions) for the
+measured-pose versus retained-target distinction.
 
 The exact controller names are:
 
@@ -245,6 +216,14 @@ and [pose controller](https://github.com/simpler-env/ManiSkill2_real2sim/blob/ef
 
 ## Budgets and instruction transitions
 
+The task catalog supplies the native horizon H. The default
+`budget_mode="horizon"`, `horizon_multiplier=1` preserves it; multiplier 2
+declares a longer execution condition. The alternative `budget_mode="decisions"`
+uses `max_policy_calls=D` and `replan_interval=K` in both adapter and driver,
+with a D × K cap. It cannot be combined with a horizon multiplier and may exceed
+the native H. These are configurable execution conditions, not a benchmark-wide
+inference or grouping requirement.
+
 The following quantities must be recorded separately:
 
 | Quantity | Meaning |
@@ -263,13 +242,11 @@ can be shorter when a policy returns shorter chunks, stops, or encounters an
 error. A larger simulator horizon does not automatically provide more model
 decisions.
 
-For example, 40 calls with five actions each permit at most **200 native actions**, enough
-to reach every listed native horizon. Full five-action chunks require 12 calls
-for a 60-step task, 16 for 80, 23 for 113, 24 for 120, and 40 for 200. Shorter
-chunks spend the same call budget on fewer actions; this observation/action
-tradeoff is part of the protocol. Record token limits, reasoning settings, and
-timeouts for each model-backed run. Native construction may itself invoke reset
-internally; this does not authorize a new evaluated attempt or seed selection.
+The method chooses its call allowance and action grouping; neither is a native
+task definition. Record selected method limits separately, including any cap
+that prevents reaching the declared control horizon. Native construction may
+itself invoke reset internally; this does not authorize a new evaluated attempt
+or seed selection.
 
 ### Native and overridden time limits
 
@@ -278,7 +255,7 @@ pinned official Bridge script also evaluates them for **60** steps. The
 explicitly selected 120-step setting is an override, not a correction to the
 native task definition. Keep the registered horizon and resolved evaluation
 time limit separate. See [TASKS.md](bench_server/protocol/TASKS.md#horizons-and-overrides) for native
-sources and the full horizon table. Matching one numerical limit alone does
+sources and the task horizon table. Matching one numerical limit alone does
 not establish parity with another evaluator's settings.
 
 ### Explicit extended-horizon evaluation
@@ -289,12 +266,9 @@ control frequency, and instruction-transition schedule unchanged. Preserve H
 as `native_horizon`; configure the episode time-limit wrapper for 2H rather
 than editing the registered task definition.
 
-Model-call and runner-step caps are still independent. With 40
-calls and prefix five, a 60-step task can reach its extended 120-step horizon;
-an apple task with H=200 cannot reach 2H=400. Reaching all doubled horizons
-requires a predeclared budget of at least 80 full-five-action decisions and a
-runner-step cap of at least 400. Such a budget is an explicit experimental
-setting, never extra compute silently granted after failure.
+Method call limits and runner-step caps are independent. If selected, they may
+end an attempt before its declared control horizon; report that reason rather
+than extending the attempt after a failure.
 
 A predeclared extended run may record native success at H and 2H **along one
 uninterrupted trajectory**, using the already-returned step `info` at those
@@ -313,9 +287,8 @@ scores; never merge the two horizons or report best-of-H-and-2H success.
 For apple-in-closed-drawer, native timed advancement changes instruction on
 **action 101**, after the pre-step elapsed count reaches 100. The adapter does
 not expose model-controlled `advance_to_next_subtask`. Return the native new
-instruction in the next scheduled observation. A policy returning one-action
-chunks with a 40-call budget will exhaust it before that transition; it must not receive
-extra calls or an oracle phase change. Do not pre-open the drawer, reposition
+instruction in the next scheduled observation. A method's own call limit may stop it before that transition; it must not
+receive an unrequested phase change or an extension after exhausting its limit. Do not pre-open the drawer, reposition
 objects, change transition timing, or consult success to advance a subtask.
 See the pinned [compound-task implementation](https://github.com/simpler-env/ManiSkill2_real2sim/blob/ef7a4d4fdf4b69f2c2154db5b15b9ac8dfe10682/mani_skill2_real2sim/envs/custom_scenes/place_in_closed_drawer_in_scene.py).
 
@@ -350,38 +323,22 @@ shaders or disabling native denoising is not an equivalent repair.
 
 Report coverage, successes, completed failures, typed errors, `success_rate`
 over protocol-completed episodes, and `attempt_success_rate` over all attempts.
-One episode per task is a development sample, not a reliable full-suite estimate.
+One episode per task samples only that task's selected reset conditions.
 Retain per-task outcomes and display the denominator of every aggregate.
 
-## Required artifacts
+## Reporting
 
-Keep evaluator artifacts separate from the policy mailbox:
+Report selected tasks and reset seeds, attempted/completed/unattempted counts,
+native successes, completed failures and typed errors. Give both completed-case
+and all-attempt denominators; a rendering or runtime interruption is distinct
+from an unsuccessful completed trajectory.
 
-- Immutable benchmark/model/protocol identity, both upstream revisions, assets,
-  task matrix, evaluator revision, reset seed, native controllers, and separate
-  `native_horizon`, `evaluation_horizon`, `horizon_multiplier`, policy-call,
-  action-prefix, and runner-step budgets.
-- Exact policy-visible RGB/instruction messages, public action contract, and
-  opaque episode token.
-- One structured response per call, accepted chunks and executed prefixes,
-  policy/provider call counts, tokens, latency, cost when known, and typed errors.
-- Native per-step success/termination/truncation and evaluator-only diagnostics,
-  final result, optional reached/unreached H and 2H checkpoints for the extended
-  track, video or frame references, and summary.
+Identify the native source/controller, sensor settings, actual control horizon,
+method configuration and separate call/decision/control counts. Keep final
+success distinct from intermediate success and any H/2H diagnostics. Compare
+results only when task sampling, native execution and observation conditions
+are aligned. The prepackaged seeded-reset selection is not the explicit VM/VA
+condition matrix described in [TASKS.md](bench_server/protocol/TASKS.md).
 
-Exclude credentials and hidden chain-of-thought. Persist failure evidence as
-well as success evidence. The policy cannot read scorer artifacts while acting.
-
-## Validation and comparability
-
-Adapter validation checks install/import/reset/render, the 15-task catalog,
-deterministic enumeration, action compatibility, sanitization, call limits,
-final-step scoring, and artifact decoding. Successful task completion is not a
-prerequisite for validating those paths; label a no-op policy as a harness check.
-
-A formal released score additionally requires a frozen representative matrix,
-provider/token/time settings, measured reset reproducibility, and appropriate
-released-policy baseline comparison. This track changes upstream sampling,
-interaction budgets, and subtask advancement. Native scoring alone does not
-establish upstream score parity. Record evidence and explain the differences
-before any formal release.
+Results belong under `AgentPolicies/<agent>/results/simpler_env/`. Optional
+interactions and media follow [recording](../../../docs/recording.md).

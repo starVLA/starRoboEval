@@ -1,101 +1,140 @@
 # SIMPLE evaluation protocol
 
-The `simple_humanoid` adapter evaluates high-level sensor-driven control through native SIMPLE environments and fixed low-level whole-body controllers. [bench_server/adapter.py](bench_server/adapter.py) and the private [native worker](environment/native_worker.py) own benchmark mechanics. Policies, prompts, voluntary-stop rules and results belong under [AgentPolicies](../../../AgentPolicies/README.md).
+SIMPLE evaluates sensor-driven whole-body humanoid control through native task
+environments and fixed AMO or SONIC low-level controllers. Source revision
+`5e3d6f84e85343e34e9bca8d157f0d7813231185` defines the native tasks and controllers.
 
-The stable service entrypoint is [server.py](server.py). Its `bench_server/`
-package contains the adapter, private worker client, service source inventory
-and `protocol/` task inventory; the private native runtime remains under
-`environment/`. The same frozen observations, actions,
-reset selection, budgets and native scoring apply through the remote service.
-Directory relocation does not change protocol identities or historical results.
+## Tasks and reset configurations
 
-The current executable interface is **v2**. Unlike v1, it does not reject a
-finite joint target solely because it exceeds a MuJoCo physical joint range.
-That check was an RSI worker addition, not the pinned native command interface.
-Frozen v1 source and results remain unchanged and must be reported separately.
+SIMPLE's [native benchmark](https://psi-lab.ai/SIMPLE/index.html) spans
+60 whole-body tasks, 50 indoor scenes and more than 1,000 object assets. Native
+task identity, scene configuration, domain-randomization level and released
+episode index must be distinguished when defining an evaluation panel.
 
-## Scope and reset
+The [native comparison protocol](https://github.com/physical-superintelligence-lab/SIMPLE/blob/5e3d6f84e85343e34e9bca8d157f0d7813231185/README.md#-simulation-benchmarking-results)
+reports ten trials per task at each of three progressively varied distributions:
 
-SIMPLE revision `5e3d6f84e85343e34e9bca8d157f0d7813231185` is pinned. The [inventory](bench_server/protocol/simple_released_tasks.json) binds 12 task registrations, AMO/SONIC backends, source metadata and exact released reset hashes. [RELEASED_TASK_SCOPE.md](bench_server/protocol/RELEASED_TASK_SCOPE.md) lists all tasks and reference horizons.
+| Distribution | Changed conditions |
+| --- | --- |
+| DR0 | Table materials and distractor types/initial positions |
+| DR1 | DR0 plus lighting |
+| DR2 | DR1 plus target-object initial positions |
 
-Fast mode selects each task once with seed 20260907, DR0 and released episode index 0. The default adapter opens BendPickMP only; the default campaign selects BendPickMP and OpenFaucetTeleop. Explicit `task_scope="released-12"` permits the 12-task inventory, one task per adapter, with RGB+qpos31 and the decision-200/prefix-5 track. Existing machine IDs containing `pilot` or `development` remain compatibility identities.
+For the 12 task packages referenced by this integration, the
+[released metadata](https://huggingface.co/datasets/USC-PSI-Lab/psi-data/tree/e78fb93cc28912a3031a10b8656d32d7f0a2b867/simple-eval)
+contains ten explicit episode indices 0–9 per level: **30 configurations per
+task, 360 across those 12 tasks**.
+Episode metadata fixes the reset configuration; a seed is not a replacement for
+its task/level/index identity. Report each level separately before aggregating.
 
-**Native-aligned full evaluation is not implemented.** It requires a declared released episode/DR schedule and task-specific timing/horizon alignment. Twelve tasks sampled once is not full evaluation. Preserve failures; do not retry or search easier resets.
+## Available service bindings
 
-Source, runtime inventory, compatibility patches, controller weights, robot assets, released metadata and scene-repair identities are checked and recorded. A mismatch or initial native success is an error before policy control, not a reason to resample.
+The [service task inventory](bench_server/protocol/simple_released_tasks.json)
+binds 12 registrations, each with only one selectable reset: seed 20260907,
+DR0, episode index 0. The [task table](bench_server/protocol/RELEASED_TASK_SCOPE.md)
+lists each task, backend, scene and native reference horizon. These bindings
+span seven scene entrypoints; other episode indices and DR levels are not exposed.
+
+Select one task/backend per server using `task_names=[task_id]`.
+`task_scope="released-12"` permits all 12 tasks; the default `task_scope="pilot"`
+permits BendPickMP and OpenFaucetTeleop. The adapter default is BendPickMP.
 
 ## Native timing
 
-A private worker hosts one episode/backend using the pinned source's `.venv/bin/python`. One public control is 20 ms at 50 Hz:
+One public action advances **20 ms at 50 Hz**:
 
-| Backend | Physics per public control |
+| Backend | Physics per control |
 | --- | --- |
 | AMO native `g1_wholebody` | 10 × 2 ms |
 | SONIC native decoupled WBC | 4 × 5 ms |
 
-AMO initialization uses 60 standing controls. SONIC preserves controller history and stabilizes for at most 300 controls; unstable initialization is an error. Initialization controls are outside policy budgets and recorded separately.
+AMO initialization uses 60 standing controls. SONIC stabilizes for at most 300
+controls while preserving its controller history. These initialization controls
+are outside agent execution budgets. Unstable initialization is an environment
+error, not a task failure after agent control.
 
-## Observation allowlist
+## Observations
 
-- Exact native released task language.
-- One uint8 RGB image, `head_stereo_left`, shape 360 × 640 × 3, without resize, crop or color changes.
-- By default, 31 ordinary measured joint encoders in radians, ordered as action slots 0–30.
+- Exact released task language, including its original whitespace.
+- One uint8 RGB image, `head_stereo_left`, shape 360×640×3, without resizing,
+  cropping or color changes.
+- By default, 31 measured joint encoders in radians, ordered as action slots 0–30.
 
-An explicit RGB-only track exists for the default task scope and must be reported separately. Do not expose depth/stereo extras, world/root or end-effector pose, object ground truth, maps, goal poses, reset metadata, reward/success, demonstration actions or training statistics. Public execution counters are accounting only.
-
-Episode metadata trims outer instruction whitespace; native/public observations preserve it. Audit observation transport against the exact released string.
+RGB-only input is selectable for the two default-scope tasks; the 12-task
+selection requires RGB and joint state. Depth, additional stereo channels,
+world/root/EEF pose, object truth, maps, goal poses, reset metadata, native
+rewards/success and demonstration actions are excluded from actor inputs.
 
 ## Physical 36-dimensional action
 
-| Slice | Meaning and order |
-| --- | --- |
-| `[0:7]` | Left hand: thumb 0/1/2, middle 0/1, index 0/1 |
-| `[7:14]` | Right hand: thumb 0/1/2, index 0/1, middle 0/1 |
-| `[14:21]` | Left arm: shoulder pitch/roll/yaw, elbow, wrist roll/pitch/yaw |
-| `[21:28]` | Right arm in the same order |
-| `[28:31]` | Waist roll/pitch/yaw |
-| `[31]` | Base height in meters |
-| `[32:34]` | Native forward/lateral velocity commands |
-| `[34]` | AMO turning flag or SONIC turning gate, not continuous yaw rate |
-| `[35]` | Target heading in radians |
+Each action contains exactly 36 finite real numbers:
 
-Joint targets are physical radians, not normalized outputs. Reject invalid
-dimensions, booleans and non-finite values. Version 2 passes valid finite targets
-unchanged to the pinned native controller: RSI adds neither joint-target range
-rejection nor clipping. Physical joint ranges and native torque/actuator behavior
-remain owned by the simulator and controller; a physical range is not an added
-command-validity limit. Optional target/motion guards belong to agent code.
-No IK or heuristic action substitution is allowed.
+| Slice | Meaning and order | Units |
+| --- | --- | --- |
+| `0:7` | Left hand: thumb 0/1/2, middle 0/1, index 0/1 | Absolute joint radians |
+| `7:14` | Right hand: thumb 0/1/2, index 0/1, middle 0/1 | Absolute joint radians |
+| `14:21` | Left arm: shoulder pitch/roll/yaw, elbow, wrist roll/pitch/yaw | Absolute joint radians |
+| `21:28` | Right arm in the same order | Absolute joint radians |
+| `28:31` | Waist roll/pitch/yaw | Absolute joint radians |
+| `31` | Base height | Meters |
+| `32:34` | Native forward/lateral velocity commands | Meters per second |
+| `34` | AMO turning flag or SONIC turning gate | Backend control flag, not yaw rate |
+| `35` | Target heading | Radians |
 
-For AMO, the pinned `src/simple/robots/g1_wholebody.py` evaluation branch accepts
-joint targets directly: hand targets enter its native PD calculation and torque
-limiting; arm targets go to native actuator controls, and waist targets follow
-the native waist path. This service does not remove or bypass any such native
-control. SONIC likewise receives the original finite upper-body targets through
-its unchanged native WBC goal conversion. This is SIM behavior, not permission
-to send arbitrary targets to hardware.
+Joint commands use native G1 joint coordinates. AMO heading is relative to the
+controller's initial orientation; SONIC heading uses native world-frame base
+yaw. Forward/lateral inputs pass unchanged to each native controller; their
+world/body-frame mapping is not established by the current interface.
+They are not normalized EEF deltas. Hands use individual joint targets rather
+than a single open/close scalar. The exact turn semantics and physical mechanism
+ranges are in [the action reference](bench_server/protocol/POLICY_GUIDE.md).
 
-The service's existing generic pre-execution rejection keeps malformed vectors
-from reaching the worker and reports bounded validation feedback without a
-control or sequence advance. Unexpected native/runtime failures remain terminal.
-The private evaluator-only `diagnostic_hold` helper retains its historical
-bounded hold construction; it is not a public RPC or a policy action filter and
-is not used by public raw-encoder service diagnostics.
+Invalid dimensions, booleans and non-finite values are rejected without
+execution. Finite joint targets reach native control without an additional
+service-side range gate or clipping. Native actuator limits, PD behavior and
+controller conversions remain unchanged. Optional motion guards belong to the
+agent; no task-solving controller is added.
 
-AMO receives `[vx,target_yaw,vy,height-0.75,torso_yaw,torso_pitch,torso_roll,turn]`. Preserve stabilized torso orientation from AMO's controller state; policy waist targets are separate commands. SONIC receives current WBC observations, upper-body targets, `[vx,vy,turn,target_yaw]` and height through native `ActionCmd("decoupled_wbc")`, preserving native waist/switch settings.
+AMO receives native navigation/height commands and stabilized torso orientation
+separately from the commanded waist targets. SONIC receives upper-body targets,
+navigation commands and height through native `ActionCmd("decoupled_wbc")`.
+These fixed controller conversions do not plan the task.
 
 ## Budget and native scoring
 
-The implemented decision track fixes 200 maximum policy calls, prefix cap 5 and a separate 1000-control cap. A shorter chunk executes fewer controls; a stop-only response uses one policy call but no action decision. No hidden 16/30-control repetition is permitted.
+For the 12 service-bound tasks, native reference horizons are **400, 800, 1,000
+or 1,200 controls**. Native scoring consumes the step's reward/`_success` result without an
+extra scorer query: some predicates, including faucet behavior, are stateful.
 
-Native reference horizons are 400, 800, 1000 or 1200. The 1000-control track extends some tasks and shortens the 1200-control task; record both values and the difference. The default task scope also offers `budget_mode="horizon"`. These tracks must not be pooled as identical native conditions.
+The current service has these integration limits:
 
-Consume success from the native step's reward/`_success` path without an extra scorer query: some predicates, including faucet behavior, are stateful. Native success/termination, evaluator caps and errors remain authoritative. Minimum actions before voluntary give-up is a policy preference, not a SIMPLE rule.
+| Selection | Actual control cap | Required configuration |
+| --- | ---: | --- |
+| All 12 tasks, `budget_mode="decisions"` | 1,000 | `max_policy_calls=200`, `replan_interval=5` |
+| The two default-scope tasks, `budget_mode="horizon"` | Task's native reference horizon | The same 200/5 settings are still required |
 
-Record policy calls, action decisions, actual controls, initialization controls, physics timing, reference horizon and first-success control/call index. Do not derive decisions by dividing controls by five. Distinguish native failure, policy stop, timeout and environment error.
+The 1,000-control cap extends 400/800-control tasks and shortens the 1,200-control
+task. It is not interchangeable with each task's native horizon. Call/prefix
+settings are current adapter restrictions, not native SIMPLE requirements on
+agent reasoning. Shorter action groups may execute fewer than five controls;
+actual decisions cannot be derived by dividing controls by five.
 
-## Evidence and limits
+## Scoring and result statistics
 
-Retain source/controller/asset/reset provenance, task/backend and sensor/action specifications, native logs, delivered observations, actions/executed prefixes, per-control metrics, errors and decodable video under the selected model's `results/simple_humanoid/` namespace.
+Report the selected task/reset, backend, sensors, native horizon and actual cap;
+native success; actual decisions and controls; and the stop reason.
+Across tasks, give trial counts and success counts per task and DR level before
+an aggregate.
 
-Inventory checks do not certify all transitive USD/texture/object dependencies, every task reset or GPU isolation. Runtime/asset portability is incomplete; see [setup](README.md). CPU checks and zero-policy diagnostics are infrastructure evidence, not capability scores or native-full parity.
+Keep native failure, voluntary stop, external truncation and infrastructure
+error distinct.
+Optional interaction/video recording uses
+[shared recording settings](../../../docs/recording.md).
+
+## Environment requirements
+
+Runtime, source patches, controller weights, robot assets, released reset
+metadata and scene dependencies must match the selected installation.
+See [preparation and launch](README.md#prepare-the-environment). Asset
+portability is incomplete, and native controller contexts may span multiple
+visible GPUs. An available task definition does not by itself install its scene.

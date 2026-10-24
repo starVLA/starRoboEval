@@ -1,105 +1,134 @@
-# SIMPLE humanoid evaluation
+# SIMPLE
 
-This integration follows the [RoboDojo-derived service conventions](../SERVICE_CONVENTIONS.md).
-Its native humanoid controllers, 36-value commands and task scoring remain distinct.
+[SIMPLE](https://github.com/physical-superintelligence-lab/SIMPLE) is a whole-body
+humanoid benchmark from Physical Superintelligence Lab. Its G1 robot tasks
+combine locomotion, reaching and dexterous manipulation. SIMPLE is distinct from
+SimplerEnv; the service ID here is `simple_humanoid`.
 
-The current **v2** interface removes RSI's additional joint-target range
-rejection. It forwards finite physical targets through the original controller
-without clipping; native physics and controller limits remain unchanged.
-Optional model target guards belong in `AgentPolicies/`, not the SIM service.
-Frozen v1 records retain their old protocol and outcomes; see the
-[action contract](EVALUATION_PROTOCOL.md#physical-36-dimensional-action).
+The [benchmark project](https://psi-lab.ai/SIMPLE/index.html) describes
+**60 whole-body tasks, 50 indoor scenes and more than 1,000 object assets**.
+Its task space includes manipulation while standing, bending, walking and
+carrying; task names, scene identities and randomized reset instances are
+different axes of evaluation.
 
-This benchmark can run as an independent SIM service via [server.py](server.py).
-Start from [server.example.json](server.example.json), adjust deployment paths/GPU
-before launch, and follow the [shared server workflow](../SERVER_PROTOCOL.md).
-The server owns native reset/control/scoring; the evaluator uses the client, and
-the model receives only permitted observations. Native service-mode validation
-is separate from adapter availability.
+The agent supplies **36 joint/controller values, not end-effector targets**.
+Fixed native AMO or SONIC controllers handle low-level whole-body execution.
+Their weights are environment dependencies, not the participant method being scored.
 
-The server excludes its episode-local `cache/` from artifact transfer. The
-adapter assigns this directory to native runtime caches (including Omniverse
-texture caches and Torch extension builds); it is not rollout evidence. The
-exclusion is recorded in session receipts and the captured launcher. Native originals are
-retained, while observations, videos, logs, metrics and provenance remain
-exported. This affects new launches only: existing frozen runs keep their
-original inventories and cached files, without retroactive pruning.
+## Native tasks and reset distributions
 
-[SIMPLE](https://github.com/physical-superintelligence-lab/SIMPLE) is the whole-body humanoid benchmark from Physical Superintelligence Lab, not SimplerEnv or HumanoidBench. The `simple_humanoid` adapter connects a sensor-driven policy to G1's native AMO/SONIC whole-body controllers.
+The [published evaluation protocol](https://github.com/physical-superintelligence-lab/SIMPLE/blob/5e3d6f84e85343e34e9bca8d157f0d7813231185/README.md#-simulation-benchmarking-results)
+uses three domain-randomization levels, with **10 evaluation trials per task
+per level** in its reference comparisons:
 
-The released inventory has 12 tasks. The default campaign selects BendPickMP and OpenFaucetTeleop; explicit `task_scope="released-12"` selects all 12 once each. These are fast task selections, not the native domain-randomization/episode schedule. See [task scope](bench_server/protocol/RELEASED_TASK_SCOPE.md) and [EVALUATION_PROTOCOL.md](EVALUATION_PROTOCOL.md).
+| Level | Variation |
+| --- | --- |
+| DR0 | Table appearance and distractor types/initial positions |
+| DR1 | DR0 plus lighting changes |
+| DR2 | DR1 plus initial target-object position changes |
 
-## Directory responsibilities
+Released evaluation packages store explicit episode configurations. A task,
+DR level and episode index select a case; a new runtime seed alone is not
+another released episode. The [official evaluation data](https://huggingface.co/datasets/USC-PSI-Lab/psi-data/tree/e78fb93cc28912a3031a10b8656d32d7f0a2b867/simple-eval)
+contains indices 0–9 at each level for the 12 tasks in the service task table:
+30 configurations per task.
 
-```text
-SIMPLE/
-├── server.py                         # stable public service entrypoint
-├── server.example.json               # operator paths and selected task
-├── bench_server/
-│   ├── adapter.py                    # public contract, reset mapping and scoring
-│   ├── native_worker_client.py       # private RPC and child-process lifecycle
-│   ├── source_inventory.py           # explicit service source capture inputs
-│   └── protocol/
-│       ├── plan.py                   # benchmark-owned task selection
-│       ├── POLICY_GUIDE.md            # declared public sensor/action interface
-│       ├── RELEASED_TASK_SCOPE.md     # released task/reset scope and timing
-│       └── simple_released_tasks.json # pinned task/backend/reset inventory
-└── environment/                      # native worker, runtime pins, diagnostics
-```
+## Available service bindings
 
-The catalog is protocol data consumed by the service; native assets stay outside
-the package at configured deployment paths. `bench_server/adapter.py` delivers
-only the declared RGB/joint observations and translates public actions into the
-private worker protocol. `native_worker_client.py` launches and closes the pinned
-worker without defining tasks or model behavior. `server.main(argv=None)` uses
-the service-owned source inventory independently of campaign task selection.
-Model decisions and results stay in `AgentPolicies/<profile>/`.
-The catalog bytes, task/reset identities and protocol IDs are preserved when
-changing this directory layout.
-The [public interface guide](bench_server/protocol/POLICY_GUIDE.md) is reusable
-benchmark context. Historical reports, checklists and evidence caveats remain in
-the local, Git-ignored `AgentPolicies/anonymous_code_agent/results/simple_humanoid/`
-directory.
-The canonical adapter lives in `bench_server/adapter.py`; task selection lives
-beside the protocol in `bench_server/protocol/plan.py`.
+The [service task table](bench_server/protocol/RELEASED_TASK_SCOPE.md) binds
+**12 tasks**, each at **DR0, released episode 0, seed 20260907**. The selected
+configurations span seven scene entrypoints.
+
+| Selection | Available tasks |
+| --- | --- |
+| `task_scope="released-12"` | All 12 tasks in the task table; one task/backend per server |
+| `task_scope="pilot"` (default) | `G1WholebodyBendPickMP-v0` or `G1WholebodyOpenFaucetTeleop-v0` |
+
+The adapter default is BendPickMP; [server.example.json](server.example.json)
+selects OpenFaucetTeleop. Set `task_names` to a one-element task list.
+Other DR levels and episode indices are not selectable through this service.
+
+## Observations and 36-dimensional actions
+
+| Interface | Current contract |
+| --- | --- |
+| Language | Exact released task instruction |
+| RGB | `head_stereo_left`, 640×360 native RGB |
+| Robot state | Normally 31 measured joint positions in radians; RGB-only is selectable for the two default-scope tasks |
+| Joint commands | 14 dexterous-hand joints + 14 arm joints + 3 waist joints, all absolute radians |
+| Other commands | Base height in meters, forward/lateral velocities in m/s, turn flag/gate, target heading in radians |
+| Coordinates | Native G1 joint coordinates and backend navigation frame; not Cartesian EEF deltas |
+| Control timing | One action is one 50 Hz control: ten 2 ms physics ticks for AMO, four 5 ms ticks for SONIC |
+| Success | Native step reward/`_success` path, without an extra scorer query |
+
+There is no binary gripper command: the 14 hand joints specify the two dexterous
+hands. The service checks dimension and finite values but adds no joint-target
+range rejection or clipping. Native motor/controller behavior remains in force.
+Exact ordering and backend navigation semantics are in
+[the action reference](bench_server/protocol/POLICY_GUIDE.md).
+
+## Execution budget and current limits
+
+For the 12 service-bound tasks, native horizons range from 400 to 1,200 controls;
+the task table lists each one. The current service configuration instead binds
+`max_policy_calls=200`, `replan_interval=5` and a 1,000-control cap. This is an
+integration constraint, **not a native requirement** on inference frequency or
+action grouping.
+
+For the two default-scope tasks, `budget_mode="horizon"` selects the native
+control horizon, but the adapter still requires the same 200/5 settings.
+Use [the evaluation protocol](EVALUATION_PROTOCOL.md) to distinguish the native
+horizon and the actual selected cap when comparing results.
 
 ## Prepare the environment
 
-The source pin is `5e3d6f84e85343e34e9bca8d157f0d7813231185`, with Python 3.10, Isaac Sim 4.5 and MuJoCo 3.3.6. Native AMO/SONIC controllers and fixed locomotion weights are environment dependencies, not the high-level policy being evaluated.
+Use native source revision `5e3d6f84e85343e34e9bca8d157f0d7813231185`,
+Python 3.10, Isaac Sim 4.5 and MuJoCo 3.3.6. Provision the native source,
+controller weights, robot assets, released evaluation metadata and HSSD scenes
+under their licenses. Installing RSI does not supply those dependencies.
 
-Provision the upstream runtime, controller weights, robot assets, released evaluation metadata and referenced HSSD scenes under their respective licenses. [environment/upstream.json](environment/upstream.json) records source, compatibility-patch, controller and asset-manifest requirements. [simple_released_tasks.json](bench_server/protocol/simple_released_tasks.json) binds task/backends and released resets.
+[environment/upstream.json](environment/upstream.json) records required runtime,
+source-patch, controller and asset identities. Set explicit `simple_root` and
+`eval_root` paths; the worker interpreter is `<simple_root>/.venv/bin/python`.
+The current runtime checks expect a compatible asset/source installation;
+a portable all-assets bootstrap is not available.
 
-A portable all-assets installer is not yet available. Installing RSI alone is insufficient. Adapter path defaults remain site-specific: explicitly pass `simple_root` and `eval_root` for a compatible local materialization. The worker uses `<simple_root>/.venv/bin/python`. Do not bypass source/asset checks to use a different release.
+SIMPLE can create controller contexts on multiple visible GPUs. Check actual
+GPU capacity and process visibility; renderer selection alone is not isolation.
+The separate [diagnostic tool](environment/diagnose.py) checks reset,
+stabilization and hold control. Its deployment defaults need explicit adjustment
+when used on a different installation.
 
-Run one task/backend per adapter. Check GPU capacity before initialization: controller contexts may appear on other visible GPUs, so choosing a renderer index is not complete isolation.
+## Launch and connect
 
-## Check the integration
-
-[environment/diagnose.py](environment/diagnose.py) performs reset, stabilization, rendering and one measured hold with zero policy calls. Its CLI currently uses site-specific adapter path defaults and the two default task identities; a relocated deployment must use explicit adapter paths in evaluator-owned diagnostic setup. Diagnostic measurements are not a policy feature or capability score.
-
-## Evaluate one selected task
-
-Configure the paths and one task in a local copy of `server.example.json`.
-Set the evaluator-only token following the [shared server workflow](../SERVER_PROTOCOL.md),
-then launch the stable entrypoint with a fresh result directory:
+Copy [server.example.json](server.example.json) to an operator-owned path. Set
+runtime/asset roots, GPU, `task_scope` and one `task_names` entry.
+Set the evaluator-only `RSI_SIM_SERVER_TOKEN` following the
+[shared service protocol](../SERVER_PROTOCOL.md), then start a new server:
 
 ```sh
 python -B -m benchmarks.simBenchmarks.SIMPLE.server \
   --parameters /absolute/simple-server.json \
   --seed 20260907 --episodes 1 --port 8765 \
-  --output-dir /absolute/model-results/simple_humanoid/new-run/server
+  --output-dir /absolute/new-run/server
 ```
 
-The server starts without resetting the simulator. A trusted model-owned driver
-connects to the declared schedule and performs the single reset/attempt. Its
-policy receives the permitted observation/action interface, without the service
-credential or private score/reset metadata. Keep client records beside server
-records in the selected model's results namespace. Native full-mode support is
-not implied by this service entrypoint.
+Startup fixes the selection without resetting the simulator. Connect a trusted
+driver through [the agent interface](../../../docs/agent-methods.md); the actor
+receives only declared language, sensors and execution feedback. Object truth,
+reset metadata and private scores remain on the evaluator side.
 
-For the model-owned native-vector driver, follow
-[client README](../../../AgentPolicies/gpt6_astra/README.md).
-See the [evaluation workflow](../../../docs/evaluation.md) for source capture
-and closed-record reporting.
+## Results
 
-The [selection plan](bench_server/protocol/plan.py) freezes preselected tasks; its launcher also requires deployment-compatible runtime paths. Retain each task's single outcome, including failures and environment errors. Full native episode/DR coverage and a portable asset bootstrap remain unsupported.
+Report the task, backend, DR level and episode index, selected sensors, native
+horizon, actual execution cap, native success and termination reason.
+Initialization controls are separate from agent-issued controls.
+Interaction histories and video retention use
+[shared recording settings](../../../docs/recording.md).
+
+## Directory responsibilities
+
+- `server.py`: public factory/launch entrypoint.
+- `bench_server/adapter.py`: sensor/action interface, reset selection and native scoring.
+- `bench_server/protocol/`: task/reset inventory and interface descriptions.
+- `environment/`: private native worker, runtime dependencies and setup diagnostics.

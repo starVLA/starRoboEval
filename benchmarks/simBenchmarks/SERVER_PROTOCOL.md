@@ -23,13 +23,11 @@ model <- allowed observation <- trusted driver -- HTTP --> server.py -> native S
   `environment/` contains native workers, assets and installation tools. The
   [RoboDojo directory guide](RoboDojo/README.md#directory-responsibilities) maps
   these packages without changing the common wire protocol.
-  Implemented services no longer provide top-level adapter bridges;
-  their current callers import `bench_server.adapter` directly. Benchmark-owned
-  task selection lives in `bench_server/protocol/plan.py`, not an extra
-  `evaluation/` package. These path changes do not alter native control semantics.
+  Benchmark-owned task selection lives in `bench_server/protocol/plan.py`
+  where a separate plan module is needed.
 - `benchkit/sim_server/` supplies transport, strict serialization,
-  session lifecycle and artifact transfer. `AgentPolicies/gpt6_astra/tools/runner.py`
-  supplies an optional reusable agent-side loop. `benchkit` supplies record,
+  session lifecycle and artifact transfer. An agent supplies its own decision
+  loop or uses optional reference utilities. `benchkit` supplies record,
   source-capture and reporting tools, not a separate required control service.
 - `AgentPolicies/<profile>/` contains the model policy/configuration and its results.
   A profile can represent a complete multi-model agent method. The wire protocol
@@ -44,9 +42,7 @@ model <- allowed observation <- trusted driver -- HTTP --> server.py -> native S
 An explicitly reviewed model-owned **trusted driver** may retain the
 administrative client for episode claims and results, but it must not pass that
 client to the model actor. This client is not an episode-scoped, actor-safe
-capability. `benchkit.sim_server` is the shared implementation, not a compatibility
-bridge. Benchmark entrypoints import it directly; no second transport package
-is retained under `benchmarks/simBenchmarks/service`.
+capability. Benchmark entrypoints share the `benchkit.sim_server` implementation.
 
 The service has no grasp, navigation, task-solving or hybrid-policy RPC. One
 `step` applies one native action vector, including only protocol-fixed native
@@ -127,8 +123,8 @@ route changes the existing benchmark contract or implies native parity.
 
 Schedule selection is benchmark-owned. RoboDojo requires a complete named
 `panel` from [its protocol catalog](RoboDojo/bench_server/protocol/task_catalog.json) and rejects
-server-side `--episodes` truncation: `classify_objects` has five layouts in
-`fast` and 50 in `full`, each attempted once. See its
+server-side `--episodes` truncation: `classify_objects` offers fixed selections
+of 5 or 50 layouts, each attempted once. See its
 [launch example](RoboDojo/README.md#start-the-benchmark-server).
 
 The server binds **only `127.0.0.1`**. For another node use an authenticated SSH
@@ -136,31 +132,22 @@ local forward, for example `ssh -N -L 8765:127.0.0.1:8765 YOUR_EVAL_NODE`.
 HTTP is not a public-network API; no unauthenticated LAN/WAN bind is supported.
 The client uses a direct connection without environment proxies or redirects.
 
-Run the evaluator in its own Python environment (RGB transport needs NumPy):
+Connect a trusted agent driver separately. A driver may implement this wire
+protocol directly or use the Python client (RGB decoding requires NumPy).
+Before claiming a case it must check the returned benchmark/protocol identity,
+observation/action specifications, selected schedule and budgets. Model settings,
+credentials, prompts and action-grouping choices belong to that method, not the
+server configuration. See [agent-method integration](../../docs/agent-methods.md)
+and the selected profile under [AgentPolicies](../../AgentPolicies/README.md)
+for client commands.
 
-The model-owned `AgentPolicies.gpt6_astra.run` driver uses the single active
-[`codex-native/v2`](../../AgentPolicies/gpt6_astra/README.md) method,
-consuming the selected service's numeric action contract rather than assuming EEF16.
-Historical method results retain their original identities. Interface compatibility
-does not prove native validation or equal capability. RoboDojo's Direct v2
-**server interface** is a different versioned contract from the model method. Neither name changes
-the shared `starvla-rsi.sim-server/v1` wire protocol. The following mailbox command
-is an optional registered-profile workflow, not a required loop for participants.
-
-```sh
-python -B -m benchkit run --benchmark simpler_env \
-  --sim-server http://127.0.0.1:8765 \
-  --model-profile anonymous_code_agent --policy-args '{"directory":"/absolute/opaque-mailbox"}' \
-  --seed 20260907 --episodes 1 \
-  --budget-mode decisions --max-policy-calls 200 --replan-interval 5 --max-steps 1000 \
-  --output-dir AgentPolicies/anonymous_code_agent/results/simpler_env/raw/my-run/evaluator
-```
-
-The benchmark parameter file must declare the matching decision budgets and
-selected task. Configure the model/mailbox using its own profile guide; the SIM
-server does not configure or call model APIs. `--benchmark` must match the
-server's `descriptor.name`, not a registry alias. Remote runs reject
-`--benchmark-args`: only the server controls native construction.
+Server-interface versions and method versions are independent. For example,
+RoboDojo's Direct v2 names a robot-interface contract, not a required model
+implementation. Neither changes the shared `starvla-rsi.sim-server/v1` wire
+protocol. Legacy decision-budget tracks still require matching adapter/client
+budget settings. For the optional reference CLI, `--benchmark` must match the
+server's `descriptor.name`, not a registry alias; remote runs reject
+`--benchmark-args` because only the server controls native construction.
 
 `python -B -m benchkit.sim_server` launches only the synthetic smoke world with
 the same flags. It needs no simulator and is not capability evaluation.
@@ -277,7 +264,7 @@ Neither source inventory proves loaded-memory,
 asset/dependency parity or provider identity. Old frozen campaigns remain on
 their original path: **server-mode `campaign prepare/run-case` is not integrated**.
 Use the standalone remote runner with a predeclared service schedule; do not
-describe it as an audited native-full campaign.
+describe it as an integrated remote campaign workflow.
 
 Run services from a stable, versioned source snapshot and do not edit it during
 operation. V1 records launch-time source bytes but does not recheck later worker
@@ -323,5 +310,5 @@ The local `sim_server_receipt.json` records server identity, source references a
 the closed artifact inventory without credentials. Legacy benchmark artifact
 auditors assume older directory layouts; they are not yet validators of this
 new server layout. Transport regression, native execution and model capability
-are separate evidence claims. Fast/full sampling and model persistence rules are
-unchanged by this service abstraction.
+are separate evidence claims. Task/case selection and model persistence rules
+are independent of this communication protocol.

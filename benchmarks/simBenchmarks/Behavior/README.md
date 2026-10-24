@@ -1,108 +1,115 @@
-# BEHAVIOR 2026 benchmark server
+# BEHAVIOR-1K and the 2026 challenge
 
-A bounded debugging service for BEHAVIOR-1K v3.9.2. The catalog supports the
-historical `turning_on_radio` case and six selected tasks: `picking_up_trash`,
-`clean_up_your_desk`, `store_honey`, `cook_a_brisket`, `putting_shoes_on_rack`, and
-`hanging_pictures`. Each task currently
-selects public index 0 (native instance 301), not a full challenge panel.
-**The historical radio smoke check does not validate the four-task extension;
-native readiness and model results must be reported separately. The Task 22 and
-Task 34 catalog entries likewise do not establish native or model validation.**
+[BEHAVIOR](https://behavior.stanford.edu/) evaluates household activities that
+combine navigation, manipulation and changes to object state. Native task
+definitions determine completion and partial goal progress. BEHAVIOR-1K contains
+**1,000 household activities**; the **2026 challenge selects 100 tasks** from
+that larger benchmark.
+[Benchmark overview](https://github.com/StanfordVL/BEHAVIOR-1K/blob/b1979916ec1549b10a4e65e630bc6504a9af1b00/README.md),
+[2026 challenge](https://github.com/StanfordVL/BEHAVIOR-1K/blob/b1979916ec1549b10a4e65e630bc6504a9af1b00/docs/challenge/index.md).
 
-- [Evaluation protocol](EVALUATION_PROTOCOL.md): schedule, sensors, actions and scoring.
-- [Native contract](environment/NATIVE_CONTRACT.md): source evidence and acceptance gates.
-- [Preparation](environment/README.md): licensed assets and runtime prerequisites.
+## Native tasks and evaluation instances
 
-`server.py` is the only public entrypoint. `bench_server/` owns adapter, fixed
-protocol and private worker communication; `environment/` owns native runtime
-and readiness. Shared HTTP transport remains in `benchkit/sim_server`. Agent
-policy and result reports belong in `AgentPolicies/<agent>/`. Historical
-`tasks.jsonl` is a **2025-only** inventory, not this service's schedule.
+The [100-task catalog](https://github.com/StanfordVL/BEHAVIOR-1K/blob/b1979916ec1549b10a4e65e630bc6504a9af1b00/docs/challenge/task_data.json)
+covers activities such as cleaning, cooking, organizing and object-state changes.
+A task specifies the household goal; an instance supplies initial object states
+and robot poses in a scene. A scene name, instance index and random seed are not
+interchangeable layout identifiers.
 
-## Prepare without starting a simulator
+The 2026 reporting schedule uses **public instance indices 0–9 once per task**:
+100 tasks × 10 instances = 1,000 trials. Public indices 10–19 are additional
+development instances, not part of that reporting panel. The challenge ranks
+mean final goal-predicate completion (Q); binary success is a separate outcome.
+See the [native evaluation rules](https://github.com/StanfordVL/BEHAVIOR-1K/blob/b1979916ec1549b10a4e65e630bc6504a9af1b00/docs/challenge/evaluation.md).
 
-Use a dedicated persistent Python 3.11 / Isaac Sim 5.1 environment and exact source
-`b1979916ec1549b10a4e65e630bc6504a9af1b00`. Obtain the separate dataset license
-before downloading restricted assets. Install the native evaluator dependencies;
-no model policy server or training weights are needed. Paths are operator inputs.
+## Available service bindings
 
-Run the file-only capture with the **native worker interpreter**, with this
-repository and the source's `OmniGibson`, `bddl3`, `joylo` on PYTHONPATH:
+This integration uses BEHAVIOR-1K v3.9.2 and R1Pro. It currently binds the
+following **seven tasks, each at one fixed scene instance**, rather than the
+entire challenge panel:
 
-```sh
-python -B -m benchmarks.simBenchmarks.Behavior.environment.deployment \
-  --source-root /absolute/behavior-v3.9.2 \
-  --data-root /absolute/behavior-assets \
-  --receipts /absolute/extraction-receipts.json \
-  --task picking_up_trash \
-  --output /absolute/new-behavior-deployment.json
-```
+| Task | Service task ID | Selected scene |
+| --- | --- | --- |
+| Task 0: Turning On Radio | `turning_on_radio` | `house_double_floor_lower` |
+| Task 1: Picking Up Trash | `picking_up_trash` | `house_double_floor_lower` |
+| Task 29: Clean Up Your Desk | `clean_up_your_desk` | `house_single_floor` |
+| Task 83: Store Honey | `store_honey` | `Rs_int` |
+| Task 51: Cook A Brisket | `cook_a_brisket` | `house_double_floor_lower` |
+| Task 22: Putting Shoes On Rack | `putting_shoes_on_rack` | `house_double_floor_lower` |
+| Task 34: Hanging Pictures | `hanging_pictures` | `house_double_floor_lower` |
 
-The receipts JSON maps `behavior-1k-assets`, `omnigibson-robot-assets`, and
-`2026-challenge-task-instances` to extraction receipt paths. Each receipt binds
-`archive_sha256`, `source_commit`, and absolute extraction `target`. This establishes
-recorded archive/extraction provenance, **not every live asset byte**. Selected
-robot/task files, tracked native package sources, runtime versions, interpreter
-and module origins are rechecked before initialization. Stale/untracked source
-bytecode is rejected. Capture never imports OmniGibson or resets a scene.
-Use a separate matching capture for each selected task: the six selected tasks use
-deployment v2 with an explicit task binding and that task's instance hash.
-This deployment schema identifies native source/runtime/assets, not the service
-protocol version or control cap; it remains v2 for the corrected v3 service.
-Omitting `--task` keeps the historical radio v1 capture; it cannot authorize
-another task.
+Each deployment selects one task at public index 0, native instance 301,
+rollout 0 and native evaluation seed 0. Changing the run seed does not change
+that layout. Other task IDs and public instance indices are not selectable
+through this service.
 
-## Launch
+See the [evaluation protocol](EVALUATION_PROTOCOL.md) for task-specific execution
+budgets, sample selection and native scoring.
 
-Copy [server.example.json](server.example.json); replace all paths and the
-all-zero manifest digest, and select a GPU. A lightweight environment runs the
-service; `worker_python` chooses the separate native runtime.
-For a new task, add `"task": "picking_up_trash"` (or another supported name) to
-the parameters and reference its matching deployment manifest and digest.
-Omitting `task` retains the radio default. The task is fixed before a case claim;
-the model cannot select or reset instances.
+## Observations and 23-dimensional actions
+
+| Interface | Current contract |
+| --- | --- |
+| Language | Selected task instruction; no live goal predicates or solving plan |
+| RGB | Head, left-wrist and right-wrist views, each 224×224; native alpha is removed |
+| Robot state | 61 measured proprioceptive values: base velocity, joints, finger state and robot-relative end-effector poses |
+| Action | 3 body-frame base velocity inputs + 4 absolute torso joints + 7 left-arm joints + left gripper + 7 right-arm joints + right gripper |
+| Units | Base inputs use native normalized scaling; torso/arm targets are radians; grippers use −1 closed / +1 open |
+| Control timing | One action is one 30 Hz control, normally four 120 Hz physics ticks |
+| Success | Native `env.task.success` |
+| Partial score | Native final `q_score`, separate from binary success |
+
+The service uses native `DefaultWrapper` RGB/proprioception. The challenge
+`RGBDFullResWrapper` instead exposes higher-resolution RGB and metric depth;
+results using these sensor configurations should not be treated as identical.
+
+Native controllers, `assisted` grasping, initialization and termination are
+preserved. No object-target action or task planner is added. Object truth, reset
+metadata and intermediate scores stay on the evaluator side. Exact action/state
+ordering, units and scaling are in the [native contract](environment/NATIVE_CONTRACT.md).
+
+Agents generally choose their action grouping and decision cadence. The current
+radio integration requires a new decision after each control; this is not a
+native task rule. Inference calls, controls and physics ticks remain separate
+counters. See [current execution constraints](EVALUATION_PROTOCOL.md#decisions-and-control-execution).
+
+## Prepare and launch
+
+Follow [environment preparation](environment/README.md) for the native source,
+Python/Isaac Sim runtime, licensed assets and deployment manifest. Installing
+this repository does not provide those dependencies or accept their licenses.
+
+Copy [server.example.json](server.example.json) to an operator-owned location.
+Set the native interpreter, task-bound deployment manifest and its digest, GPU
+and worker timeout. Add `"task": "picking_up_trash"`, or another supported task
+ID; omitting `task` selects radio. Set the evaluator-only
+`RSI_SIM_SERVER_TOKEN` as described in the [shared service protocol](../SERVER_PROTOCOL.md):
 
 ```sh
 python -B -m benchmarks.simBenchmarks.Behavior.server \
-  --parameters /absolute/behavior-server.json --seed 20260922 --episodes 1 \
-  --port 8765 --output-dir /absolute/new-run/server
+  --parameters /absolute/behavior-server.json \
+  --seed 20260922 --episodes 1 --port 8765 \
+  --output-dir /absolute/new-run/server
 ```
 
-Provide `RSI_SIM_SERVER_TOKEN` through the environment as described in the
-[shared protocol](../SERVER_PROTOCOL.md). Startup/describe do not start SIM.
-Resetting a claimed case starts one isolated native worker; native shutdown
-cannot terminate the HTTP process. Use a matching trusted service client.
+Startup fixes the schedule without initializing the simulator. Reset starts the
+private native worker. The service binds to loopback; use SSH forwarding for a
+remote driver. Keep credentials and administrative operations out of actor inputs.
+See [agent integration](../../../docs/agent-methods.md).
 
-The actor supplies 23-value direct actions. The six selected tasks use protocol v3:
-the policy chooses how many sequential controls to execute before reasoning
-again; one HTTP action still means one native control. Historical radio v1
-retains prefix 1. See the [cadence guidance](EVALUATION_PROTOCOL.md) for the
-distinction between decisions, controls and physics steps. Optional motion guards
-are policy-owned. There is no expert, planner, oracle or automatic retry. Preserve
-initialization errors and uncertain execution. Cache is excluded from transfer;
-logs, controls, private outcome, three videos and cleanup receipts are retained.
-A two-control diagnostic is not a failed full episode or an SR measurement.
-Use the service-declared effective control cap, not the native timeout parameter,
-in the trusted driver's `--max-steps`: for example, trash uses 7902 controls with
-the unchanged native timeout parameter 7901. See the
-[timeout ordering explanation](EVALUATION_PROTOCOL.md#fixed-selected-schedule-and-budgets).
-The correction is versioned separately from frozen v2 interrupted runs; offline
-tests alone do not establish a completed v3 native evaluation.
+## Scoring and results
 
-## Verified scope
+Report the selected task and instance, native success, final Q, actual controls
+and termination reason. Q measures partial goal progress, not success rate.
+Distinguish a native timeout from a smaller external limit or infrastructure
+error, and report the selected number of task/instance pairs when aggregating.
 
-On 2026-09-23, the fixed public instance 0 (native 301) completed initialization,
-two public-state-derived hold controls and clean shutdown through this HTTP
-service. Each control advanced four physics ticks (eight total). Three 224×224
-RGB cameras and the 61-value robot state were returned; three videos were
-retained. There were zero model calls. The diagnostic stopped deliberately after
-two controls, with `native_episode_complete: false`; its Q=0 is not a model
-failure or an SR estimate. No other task, full horizon or official RGB-D track
-was validated by this check.
+Optional interactions and video retention use the
+[shared recording settings](../../../docs/recording.md).
 
-Tested service revision: `bb3c7e99053e669f7ca83a07c94fa9ef337e12ef`.
-Closed diagnostic report SHA-256:
-`3aeb3ad472d8f3d124c600d295a2ebd2a43d934900eecf0393cece821c7ab36a`.
-Raw no-model evidence remains in operator artifact storage, not participant
-model results. Every deployment still needs its own readiness check; a passing
-record is not proof that another host has the same assets, drivers or runtime.
+## Directory responsibilities
+
+- `server.py`: public launch entrypoint and deployment settings.
+- `bench_server/`: public interface, task definitions and private worker communication.
+- `environment/`: native loading, source/runtime/asset configuration and setup.
+- `EVALUATION_PROTOCOL.md`: selection, execution and scoring rules.

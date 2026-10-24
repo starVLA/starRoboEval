@@ -1,24 +1,26 @@
-# SIMPLE public policy interface
+# SIMPLE observation and action reference
 
 This document contains general interface/robot mechanism information only. It
 does not contain an episode seed, reset configuration, demonstrated action,
 diagnostic hold vector, target/object coordinates, success feedback or a solution.
 
 Your input is current native head-left RGB (640×360) and native language. The
-declared `rgb-qpos31` track also supplies 31 measured robot joint encoders in
-radians; their order is exactly the first 31 `ActionSpec.names`. The `rgb`
-track supplies no joint state. Never infer that an undeclared state channel is
+declared RGB/joint-state interface also supplies 31 measured robot joint encoders in
+radians; their order is exactly the first 31 `ActionSpec.names`. RGB-only input
+supplies no joint state. Never infer that an undeclared state channel is
 available. The fixed WBC controller privately handles balance using its own
 robot sensors/history; you do not output leg torques or call that controller.
 
-Return one to five 36-number vectors per decision in the shared policy
-interface. Each vector advances one native 20 ms control tick. Five vectors
-advance 100 ms; there is no hidden repetition or interpolation chunk supplied
-by the evaluator. The episode has at most 200 policy calls. The selected track
-sets its total native-step cap independently. No task-specific macro or native
-planner is an allowed policy action.
+Each service action is a 36-number vector and advances one native 20 ms control
+tick. The service adds no hidden repetition or task-specific macro. Current
+configuration requires 200 maximum policy calls and an action-prefix setting
+of five. These are integration constraints, not native SIMPLE inference rules.
+See [budget and native scoring](../../EVALUATION_PROTOCOL.md#budget-and-native-scoring)
+for the selected total control cap and its difference from native horizons.
+Method-specific prompting, planning and voluntary-stop behavior remain separate.
 
-Action values are physical absolute targets, not normalized numbers:
+Joint values are absolute targets in physical units, not normalized numbers.
+The remaining slots are native height/navigation commands:
 
 | Slots | Meaning/order |
 | --- | --- |
@@ -43,8 +45,27 @@ The selected native upper-body group
 contains all 31 declared hand/arm/waist joints, including the waist targets.
 Base height/navigation are native controller commands, not world-pose setters.
 
+The **heading reference differs by backend**:
+
+| Backend | Slot 35 target heading |
+| --- | --- |
+| AMO | Yaw relative to the orientation captured when the AMO controller first initializes its evaluation observation; zero refers to that initial orientation |
+| SONIC | Yaw in the native world frame, compared with Euler-xyz yaw from the floating-base quaternion |
+
+The worker does not convert these two heading conventions into a common frame.
+Slots 32–33 are forwarded unchanged to the native forward/lateral command
+inputs. The current interface does not establish their learned controller's
+world/body-frame mapping; do not treat them as verified world-axis velocities.
+The SONIC keyboard interface uses positive forward and positive left inputs.
+
+These mappings follow the installed sources under `simple_root`:
+`src/simple/robots/policy/AMO_Policy.py:get_eval_observation`,
+`third_party/decoupled_wbc/control/policy/g1_gear_wbc_policy.py` and
+`src/simple/robots/g1_sonic.py:prepare_obs`. No global pose or heading sensor is
+added to the public observation by documenting the command convention.
+
 All 36 entries must be finite real numbers; booleans and strings are rejected.
-The v2 service forwards finite joint targets without additional range rejection
+The service forwards finite joint targets without additional range rejection
 or clipping. Optional model target guards belong to the agent implementation.
 The G1 physical joint ranges verified from both native robot descriptions
 (radians) are listed below as mechanism information, **not server input bounds**:
@@ -72,7 +93,8 @@ saturation above, native interpolation, fixed controller output/PD saturation
 and AMO's low-level network-output clipping remain unchanged. Do not confuse
 absence of a schema bound with a guarantee of safe arbitrary commands.
 
-The only policy channel is observation → action. Do not inspect private worker
-files, simulator state, scoring code during an episode, reset metadata, previous
-evaluation traces, demonstrations or developer diagnostic artifacts. Generic
-policy stop ends the rollout; it does not create native success.
+The runtime policy channel is observation → action. Public benchmark
+documentation and interface definitions may be consulted. Private worker data,
+live simulator/scorer state, reset metadata and evaluator-only diagnostic or
+episode evidence must not become additional runtime inputs. Generic policy
+stop ends the rollout; it does not create native success.

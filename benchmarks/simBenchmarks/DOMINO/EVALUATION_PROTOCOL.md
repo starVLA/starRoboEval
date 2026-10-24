@@ -1,38 +1,68 @@
-# DOMINO direct-control protocol
+# DOMINO evaluation protocol
 
-Identity: `domino-9c94f2d/click-bell-fixed-manifest/qpos14-rgb-commanded-state/sm120-v1`.
-This is an implemented **compatibility/debug track**, with native execution
-acceptance pending. Offline tests do not establish a SIM score or full parity.
+Native source: [`9c94f2d3a700fff3b65f041df4038d497139ed1f`](https://github.com/H-EmbodVis/DOMINO/tree/9c94f2d3a700fff3b65f041df4038d497139ed1f).
 
-Upstream has 35 dynamic manipulation tasks. This service implements **only
-`click_bell`**, pinned to
-[`9c94f2d3a700fff3b65f041df4038d497139ed1f`](https://github.com/H-EmbodVis/DOMINO/tree/9c94f2d3a700fff3b65f041df4038d497139ed1f).
-The horizon YAML contains historical names without matching task sources; it is
-not an executable task catalog.
+## Native tasks and variation
 
-## Frozen scene selection
+DOMINO defines **35 dynamic manipulation tasks**. The complete executable
+inventory is the task modules in
+[`envs/`](https://github.com/H-EmbodVis/DOMINO/tree/9c94f2d3a700fff3b65f041df4038d497139ed1f/envs),
+including pressing, tool use, handover, object placement and bottle manipulation.
+The horizon YAML also contains names without matching task modules and must not
+be used to enlarge this task count.
+
+Task names, scene randomization and object-motion settings are independent.
+Native `use_dynamic` enables motion; `dynamic_level` selects complexity 1, 2 or
+3; `dynamic_coefficient` scales speed (default 0.1). Clean and randomized scene
+configurations retain RoboTwin 2.0's background, clutter, lighting and geometry
+options. See the pinned
+[dynamic configuration definition](https://github.com/H-EmbodVis/DOMINO/blob/9c94f2d3a700fff3b65f041df4038d497139ed1f/README.md#12-data-collection).
+
+## Native episode selection and scoring
+
+The [native evaluator](https://github.com/H-EmbodVis/DOMINO/blob/9c94f2d3a700fff3b65f041df4038d497139ed1f/script/eval_policy.py)
+starts candidate seeds at `100000 * (1 + seed)` and expert-screens candidates
+until 100 solvable episodes are accepted per task. Its optional fixed-manifest
+mode uses previously accepted episodes. The manifest stores the seed and saved
+dynamic motion data, including start position, trajectory parameters and RNG
+state; `init_dynamic_motion_for_eval` uses that payload to initialize motion.
+Native episode descriptions can vary with the accepted scene.
+
+Binary native success determines success rate. `EvalMetricsTracker` also
+provides route completion (RC), penalties and manipulation score
+`MS = RC × penalty factors`. MS is a quality metric, not success percentage.
+Native evaluator checks include required lifting, success, contact-stop,
+workspace boundaries, other failure and task horizon. Their applicability is
+task-specific; for example, `click_bell` has `stop_on_contact=False`.
+
+## Current Bench Server selection
+
+The adapter exposes only `click_bell` with the following configuration; this
+is an integration restriction, not DOMINO's task definition. See
+[service support](../SERVICE_SUPPORT.md).
 
 - `demo_clean_dynamic`, aloha-agilex, dynamic level 1, coefficient 0.1;
   background/clutter randomization disabled.
-- `fast`: one predeclared native seed from a trusted private, hash-bound fixed
+- One predeclared native seed from a trusted private, hash-bound fixed
   episode manifest, one policy attempt. Default selected seed: 100000.
 - Missing entries or failed dynamic initialization are errors, never triggers
   for resampling or automatic retries.
-- `full` is not implemented. Upstream's default evaluator expert-screens
-  candidates until 100 solvable episodes are found. Its optional fixed-manifest
-  mode retains those accepted episodes and associated dynamic motion data.
 - Expert screening is separately authorized **private environment preparation**,
-  not policy assistance or a public RPC. Preparation attempts/resets have their
-  own evidence and counters. The service never invokes `play_once`.
+  not policy assistance or a public RPC. The service never invokes `play_once`.
 
 `init_dynamic_motion_for_eval` requires the saved native motion payload.
-Copying a seed alone, inventing a trajectory or turning dynamics off is not the
-reference evaluation. An exactly-one-candidate preparation diagnostic is not
-the upstream 100-accepted-episode matrix. All manifest data stays private.
+All manifest data stays private; the service does not generate replacement
+motion or turn dynamics off.
+
+The service's `native_seed` must identify an existing manifest entry. It is a
+uint32 identifier used by native initialization, not a layout selector; the
+launch seed is a separate recorded field. No dynamic-level, layout, variant or
+multi-seed overrides are exposed. Each deployment selects one task/manifest
+entry.
 
 Language uses the native task's fixed `full_description`, not randomized
 episode-specific seen/unseen wording. This language selection differs explicitly
-from the upstream model launcher; no full-parity claim is made.
+from the upstream model launcher's episode-specific instruction sampling.
 
 ## Public robot interface
 
@@ -52,7 +82,7 @@ movement guards belong to agents. Physics ticks, started native targets, ACKs
 and model decisions are recorded separately. Initialization/settling ticks are
 not currently instrumented; do not report them as zero or model controls.
 
-No object truth, depth, full camera-calibration mapping, expert plan, dynamic
+No object truth, depth, camera-calibration mapping, expert plan, dynamic
 motion parameters, hidden score, branch rollout or task-planning RPC is exposed.
 The EEF path is not selected: this track only uses qpos with native TOPP.
 
@@ -75,17 +105,19 @@ errors retain uncertain started controls without replay. Only error-free native
 terminal outcomes set that flag. Malformed actions are rejected before execution
 through shared service validation.
 
-## Runtime and evidence
+## Runtime conditions and reporting
 
-The **SM120 compatibility track** records Torch2.7.1+CUDA12.8, SAPIEN3.0.0b1
-and an owned OIDN2.3.3 overlay. It does not claim upstream Torch2.4.1 runtime
-parity. CuRobo is pinned to v0.7.8 revision
-`d64c4b005459db10c5dd867d8b30a87d5bda9bdb`.
-Native source, assets, path-only derived configs and selected runtime files are
-hash-bound; JIT output is isolated in an episode-owned cache.
+The SM120 runtime uses Torch2.7.1+CUDA12.8, SAPIEN3.0.0b1 and an owned
+OIDN2.3.3 overlay. Upstream uses Torch2.4.1. CuRobo is pinned to v0.7.8 revision
+`d64c4b005459db10c5dd867d8b30a87d5bda9bdb`. Keep these runtime conditions
+explicit; [environment setup](environment/README.md) describes preparation.
 
-Retain trusted manifest hash, configuration, all attempts/errors, control/ACK/
-physics counts, closed native outcome, cleanup and three-camera video.
-Video uses 10fps presentation, not physical control frequency. Model results
-belong under `AgentPolicies/<agent>/results/domino/`; no-model diagnostics have
-separate, explicit ignored diagnostic storage.
+Report task/manifest entry, native seed, native Boolean success, MS, RC,
+score completeness, termination/error reason and separate decision/target/
+physics counts. MS is a quality score, not a substitute for success rate.
+Declare the selected native task and manifest entries independently of the
+benchmark task count.
+
+Videos present control-boundary samples at 10 fps, not real-time physics.
+Optional interaction/media retention is described in
+[recording](../../../docs/recording.md).

@@ -1,17 +1,23 @@
-# RoboTwin clean direct-control protocol
+# RoboTwin evaluation protocol
 
-Protocol: `robotwin-local-content/clean-fixed-seed/qpos14-rgb320-state14/fast-v3`.
-Opt-in renderer compatibility protocol:
-`robotwin-local-content/clean-fixed-seed/qpos14-rgb320-state14-oidn233/fast-v4`.
-Status: development server adapter; native acceptance requires separate evidence.
 Benchmark registration name: `robotwin`.
+The service description records the selected robot interface and renderer
+identity; use those recorded values when comparing results.
 
-These versions add a declared robot-state channel to the former RGB-only
-`fast-v1` / `fast-v2` tracks. Old frozen results retain their original inputs and
-identities; this is not a silent reinterpretation or a claim of score parity.
-Native cameras, actions, control timing, task selection and scoring are unchanged.
+## Native tasks, variation and evaluation
 
-## Scope and denominator
+RoboTwin 2.0 has **50 bimanual manipulation tasks**. The official
+[task catalog](https://robotwin-platform.github.io/doc/tasks/index.html) supplies
+each task's description and scene examples, including coordinated lifting,
+handover, sorting/stacking, placement, tool use and articulated-object tasks.
+
+Task identity is independent of the native environment configuration. Clean
+and randomized configurations control scene appearance and geometry; the
+[configuration guide](https://robotwin-platform.github.io/doc/usage/configurations.html)
+describes background, clutter, lighting, table-height and head-camera
+randomization, as well as supported embodiments. Task code samples object
+variants and initial placements. A seed drives this sampling; it is not a
+universal layout index or a separate task.
 
 The retained launcher lists 50 tasks and clean/randomized settings. The inspected
 native `script/eval_policy.py` defaults to 100 accepted test episodes per task,
@@ -20,10 +26,19 @@ not the `episode_num: 50` collection field in demo_clean. It starts at
 unsuccessful seeds, then resets accepted seeds again for the participant.
 Language templates may use expert-generated episode information.
 
-This server does not execute that expert/filtering loop. Its explicit fast
-development track chooses one task and one unscreened native seed in advance,
-then calls `setup_demo` once. Failure, unstable-scene errors and runtime errors
-are retained; none trigger another seed or attempt. Native object-generation
+Native success is the task's Boolean predicate. The native task limit controls
+the number of target actions, not the number of physics ticks or agent
+decisions; limits can differ across tasks. The 400-target limit below applies
+to the two exposed tasks, not to the entire 50-task collection.
+
+## Current Bench Server selection
+
+The `robotwin` adapter exposes only `demo_clean` with native Aloha for
+`lift_pot` and `click_bell`. See [service support](../SERVICE_SUPPORT.md).
+
+This server does not execute that expert/filtering loop. It chooses one task
+and one unscreened native seed in advance,
+then calls `setup_demo` once. Native object-generation
 sampling within that one seeded scene setup is unchanged. Language is the
 task JSON's fixed `full_description`, without expert execution, hidden object
 identifiers or adaptive prompt selection.
@@ -35,12 +50,14 @@ identifiers or adaptive prompt selection.
 
 Only `demo_clean` with native Aloha is exposed. A service has one selected task,
 one declared `native_seed` and one attempt; a second open/reset is rejected even
-after failure. Full mode, EEF actions, other tasks and arbitrary native config
-overrides are unsupported. This denominator is not native-full coverage and is
-not directly comparable with expert-filtered scores. A future full track needs
-a reviewed native schedule, not success-seeking retries during evaluation.
+after failure. `native_seed` is a uint32 value that drives native object variant
+and placement sampling, not a layout identifier. The service has no independent
+layout/variant selector or multi-seed panel; select a task/seed pair before each
+deployment. EEF actions, the other 48 tasks and arbitrary native configuration
+overrides are unsupported. An unscreened task/seed pair is a different sampling
+condition from the upstream expert-filtered 100 accepted episodes per task.
 
-## Source, runtime and configuration identity
+## Service source and renderer requirements
 
 The native local archive has no own Git metadata. Its selected files are pinned
 in `environment/native_snapshot.json`, inventory SHA-256
@@ -49,36 +66,14 @@ in `environment/native_snapshot.json`, inventory SHA-256
 `content-inventory-sha256:<digest>`. A parent repository's revision or current
 upstream HEAD is not a substitute for this archive.
 
-The deployment helper copies matching source/assets to a new owned root. It
-permits exactly native Aloha left/right CuRobo template path expansion; original
-config/template hashes, derived bytes, root and manifest hash are recorded.
-Other bytes and the file set remain exact. Runtime metadata and the selected
-SAPIEN/MPLib/TOPPRA package file inventory are verified before native imports.
-Drivers, JIT outputs, all transitive dependencies and loaded memory are not
-attested by these checks.
-
-The default `renderer_runtime: bundled_oidn_2_0_1` preserves the original
-runtime snapshot and protocol. The explicit `oidn_2_3_3_cuda_v1` selection uses
-an owned SAPIEN 3.0.0b1 overlay with the official OIDN 2.3.3 CUDA libraries.
-Only the OIDN library directory and two literal paths in SAPIEN's OIDN loader
-change; native RoboTwin code/assets, SAPIEN physics/renderer binaries, shaders,
-32 samples per pixel, depth 8, camera definitions and scorer remain unchanged.
-It does not disable denoising, select OptiX/CPU, or install task-solving code.
-
-The compatibility inventory additionally checks all three `sapien.libs`
-binaries, preserved distribution metadata and regenerated `RECORD`, rejects
-unlisted overlay files and preloaded native libraries, and checks actual loaded
-library paths after import and the first observation. Other dependencies remain
-read-only references to the original selected environment; this is not a fully
-isolated or transitively pinned environment. Verification receipts are saved
-before native import so an initialization failure retains its runtime identity.
-See [renderer setup](environment/RENDERING.md) for preparation and acceptance.
-
-OIDN 2.3.3 supports newer CUDA architectures but has different denoiser
-implementation/default filter quality from 2.0.1. The compatibility protocol
-therefore has a distinct identity: no pixel parity or interchangeable scores
-between these tracks are claimed. A device/filter check is not native rendering
-validation; separately inspect the declared server diagnostic and all cameras.
+Prepare the content-matching deployment with its native Aloha CuRobo paths as
+described in [environment setup](environment/README.md). The default
+`renderer_runtime: bundled_oidn_2_0_1` uses the bundled denoiser;
+`oidn_2_3_3_cuda_v1` selects an owned SAPIEN 3.0.0b1 overlay with OIDN 2.3.3
+CUDA libraries. These rendering choices retain separate protocol identities
+because their denoisers can produce different pixels. Neither changes the
+native task, physics, camera definitions or success predicate. See
+[renderer setup](environment/RENDERING.md) for preparation and device mapping.
 
 ## Observation boundary
 
@@ -153,8 +148,8 @@ Physics uses native `1/250`-second ticks. A target consumes a variable number
 according to TOPP; `control_hz` is unspecified, not inferred from video FPS.
 Native `take_action_cnt` stops at 400 for both tasks, from the pinned
 `_eval_step_limit.yml`. Runner decision limits do not extend that horizon.
-The example uses 200 policy calls, an action prefix of at most 5 and a separate
-1,000-control ceiling.
+The participant method chooses its own decision frequency, action grouping and
+any additional call allowance. These choices do not change the native cap.
 
 Native `take_action` checks `check_success` during each physics tick and caches
 `eval_success`. The adapter consumes that result without adding a second
@@ -171,31 +166,17 @@ unknown, not falsely zero; setup includes settling and fixed controls. On a
 native exception, partially executed controls may have consumed physics without
 an acknowledgment. Preserve that uncertainty and never replay the action.
 
-## Media, audit and lifecycle
+## Results and supported samples
 
-Native events, resolved config/provenance, delivered-frame PNG/RGB hashes, three
-named-camera MP4s, counters and cleanup receipts remain evaluator-private under
-`AgentPolicies/<profile>/results/robotwin/`. The actor receives only public observations
-and execution feedback through its policy interface. Idle wall time does not
-advance simulation.
+Report task, native seed, renderer/protocol identity, native success and exact
+stop/error reason. Separate decisions, started target controls, acknowledged
+transitions and completed physics ticks. A native error can leave partial motion
+without an acknowledgement; do not count it as a proven zero-control failure or
+replay it.
 
-MP4s present one public frame per control at 10 FPS. They are neither real-time
-physics captures nor proof of motion between samples. `frames.jsonl` records
-completed physics ticks/simulated seconds beside each frame. Include camera
-identity and task descriptions in exported paths; distinguish reset-only
-diagnostics from model attempts.
-
-Close calls native `close_env` and releases references, retaining errors.
-Native gym close does not prove GPU resource reclamation. Use one episode per
-server process and stop it after result transfer; do not reuse it for a task.
-Logical policy/evaluator boundaries are not an OS sandbox.
-
-## Acceptance gates requiring native evidence
-
-CPU tests validate factory/lifecycle/projection/deployment and passive counters,
-not SAPIEN rendering, physics or model performance. Before scoring, independently
-review and run a separate one-reset/two-fixed-control infrastructure fixture;
-verify compiled limits and delivered cameras, decode videos and audit counts
-and cleanup. Keep the fixture out of model success rates. Randomized/full
-evaluation and serial/sharded native parity need further implementation and
-benchmark-specific evidence.
+Use one episode per service process. Native `close_env` does not guarantee
+GPU-memory reclamation; stop the process after collecting results. Setup and
+renderer instructions are in [environment/README.md](environment/README.md).
+Camera videos present control-boundary samples at 10 fps, not real-time physics.
+See [recording](../../../docs/recording.md) for optional interaction/media
+retention.

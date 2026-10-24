@@ -103,28 +103,20 @@ and Robosuite trees. Use a different directory for preflight and the actual
 server; do not share it across servers. Generated compiled cache files remain
 process-owned setup artifacts, not pinned source or model observations.
 
-## Launch and native acceptance
+## Launch and verify the service
 
-The pinned integration has passed one bounded no-model native service/client
-diagnostic for the declared L0 example. It confirmed one reset, ten setup
-controls plus two fixed diagnostic controls (native timestep 12), pixel-exact
-transport of both RGB streams, two finalized three-frame videos at 20 Hz, and
-clean shutdown. This is infrastructure validation only: no model was called,
-and the unfinished task/partial cost is neither a capability failure score nor
-evidence of full-task coverage. A new deployment still needs its own checks.
-
-Copy [server.example.json](../server.example.json) into an agent-owned config,
+Copy [server.example.json](../server.example.json) into an operator-owned config,
 set the pinned native path and predeclare L0 task keys. Set a private
 evaluator-only `RSI_SIM_SERVER_TOKEN`, then launch from the RSI checkout:
 
 ```sh
-mkdir /absolute/agent-owned/new-numba-cache
-export NUMBA_CACHE_DIR=/absolute/agent-owned/new-numba-cache
+mkdir /absolute/new-vla-arena-server-cache
+export NUMBA_CACHE_DIR=/absolute/new-vla-arena-server-cache
 /absolute/new-vla-arena-env/bin/python -B \
   -m benchmarks.simBenchmarks.VLA-Arena.server \
-  --parameters /absolute/agent-owned/vla-arena-server.json \
+  --parameters /absolute/vla-arena-server.json \
   --seed 7 --episodes 1 --port 8765 \
-  --output-dir /absolute/agent-owned/new-run/sim-server
+  --output-dir /absolute/new-vla-arena-run/server
 ```
 
 Use the trusted client in [SERVER_PROTOCOL.md](../../SERVER_PROTOCOL.md).
@@ -135,7 +127,8 @@ counter inspection, then clean shutdown. Retain failures; do not auto-retry
 or count fixed diagnostic controls as a model score. Model evaluation uses real
 model decisions through the same public interface.
 
-The [protocol](../EVALUATION_PROTOCOL.md) specifies one fail-fast reset, ten
+The [protocol](../EVALUATION_PROTOCOL.md) specifies one reset attempt, ten
 setup controls, the 300 policy-control cap, image orientation and separate
-success/cost/safe-success fields. Full schedules remain unsupported. Results,
+success/cost/safe-success fields. This service selects L0 tasks at initial-state
+index zero; other levels and state indices are not selectable. Results,
 credentials, host paths and case diaries do not belong in this directory.

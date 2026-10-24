@@ -3,8 +3,8 @@
 Verified against SimplerEnv `c701ea271b16b80616d6fed9713c4a50a0adea3b` and its
 ManiSkill2 submodule `ef7a4d4fdf4b69f2c2154db5b15b9ac8dfe10682`. Counts distinguish
 aliases, semantic tasks, reset layouts, and evaluation sweeps. Use
-[EVALUATION_PROTOCOL.md](../../EVALUATION_PROTOCOL.md) for the smaller RSI development
-sample and observation/action rules.
+[EVALUATION_PROTOCOL.md](../../EVALUATION_PROTOCOL.md) for the service's case
+selectors and observation/action rules.
 
 ## How many tasks?
 
@@ -13,7 +13,7 @@ sample and observation/action rules.
 | Prepackaged Python aliases | 25 | 21 Google Robot + 4 WidowX names |
 | Broad rows in upstream README | 10 | 6 Google categories + 4 WidowX tasks |
 | Families in paper reproduction scripts | 9 | 5 Google families + 4 WidowX tasks; random-object picking is an extension |
-| Canonical development subtasks | 15 | Expand can directions and drawer levels; avoid generic aliases and duplicate move-near versions |
+| Current service selectors | 15 | Expand can directions and drawer levels; avoid generic aliases and duplicate move-near versions |
 
 The [pinned README](https://github.com/allenai/SimplerEnv/blob/c701ea271b16b80616d6fed9713c4a50a0adea3b/README.md)
 groups tasks; the [Python registry](https://github.com/allenai/SimplerEnv/blob/c701ea271b16b80616d6fed9713c4a50a0adea3b/simpler_env/__init__.py)
@@ -21,11 +21,11 @@ defines the 25 aliases.
 
 ## Complete prepackaged alias inventory
 
-`Dev` marks the 15 canonical subtasks available to the prepackaged fast plan.
+`Service` marks the 15 canonical subtasks accepted by this integration.
 Generic aliases choose a native subcase at reset; they
 are not additional independent paper tasks.
 
-| Alias | Native environment | Selection / relation | Dev |
+| Alias | Native environment | Selection / relation | Service |
 | --- | --- | --- | --- |
 | `google_robot_pick_coke_can` | `GraspSingleOpenedCokeCanInScene-v0` | Samples one of three orientations | |
 | `google_robot_pick_horizontal_coke_can` | `GraspSingleOpenedCokeCanInScene-v0` | `lr_switch=True` | yes |
@@ -115,7 +115,7 @@ pose/overlay is one matched condition, not independently cross-multiplied axes.
 
 This reference expansion is **864 Google + 96 WidowX = 960 episodes** per policy.
 It does not mean every alias has 960 episodes or that the RSI adapter runs this
-full sweep.
+reference matrix.
 
 Sources: [pick VM](https://github.com/allenai/SimplerEnv/blob/c701ea271b16b80616d6fed9713c4a50a0adea3b/scripts/rt1_pick_coke_can_visual_matching.sh),
 [move VM](https://github.com/allenai/SimplerEnv/blob/c701ea271b16b80616d6fed9713c4a50a0adea3b/scripts/rt1_move_near_visual_matching.sh),
@@ -141,7 +141,7 @@ receive them or consult this layout table during a rollout.
 Prepackaged reset samples visual conditions and, where applicable, native
 object episode IDs. A reset seed is not an object episode ID. Covering all
 object IDs is not complete visual-condition coverage. Random resets do not
-guarantee full-sweep coverage.
+guarantee coverage of every reference condition.
 
 ## Variant Aggregation reference matrix
 
@@ -171,16 +171,18 @@ Sources: [pick VA](https://github.com/allenai/SimplerEnv/blob/c701ea271b16b80616
 [drawer VA](https://github.com/allenai/SimplerEnv/blob/c701ea271b16b80616d6fed9713c4a50a0adea3b/scripts/rt1_drawer_variant_agg.sh),
 and [apple VA](https://github.com/allenai/SimplerEnv/blob/c701ea271b16b80616d6fed9713c4a50a0adea3b/scripts/rt1_put_in_drawer_variant_agg.sh).
 
-## Fast coverage and full reference status
+## Service task and case selection
 
 [bench_server/protocol/task_catalog.json](task_catalog.json) is an ordered JSON
 array with `id`, `family`, `robot`, and `native_horizon` fields. It contains the
-15 marked aliases. The executable fast campaign freezes one seeded episode per
-canonical task; each case is started explicitly and cannot automatically retry.
-A selected subset must report its denominator. It does not run the 960-episode
-VM or 1,992-episode Google VA reference matrix. Unified native full scheduling
-is not implemented yet. See [EVALUATION_PROTOCOL.md](../../EVALUATION_PROTOCOL.md) for budgets,
-the final-step success rule, and separate default/extended-horizon reporting.
+15 marked aliases. A service selects one alias and an episode count; episode
+index `i` uses reset seed `seed + i`. The separate campaign plan selects one
+seeded episode for each canonical task. Neither automatically enumerates the
+960-episode VM or 1,992-episode Google VA matrix. State the chosen tasks, seeds,
+number of attempts and reference-condition coverage separately. A layout ID,
+an appearance variant and a reset seed are not interchangeable sample labels.
+See [EVALUATION_PROTOCOL.md](../../EVALUATION_PROTOCOL.md) for budgets, final-step
+success and configured horizon extensions.
 
 Changing aliases, texture versions, sensor inputs, seeds, sweeps, or evaluation
 horizons changes the evaluated conditions. Record those settings and keep their

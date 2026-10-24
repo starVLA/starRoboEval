@@ -43,36 +43,37 @@ instead of `rsi-bench`. The token is supplied privately through
 and remote forwarding. List and help do not start/reset a native environment.
 
 The selector forwards launch arguments to the existing benchmark-owned entrypoint.
-There is no universal EEF control space or `--full` switch. A named route means
-an implemented development service, not installed assets or a validated full
-benchmark. The original per-benchmark `python -m ...server` remains valid.
+There is no universal EEF control space. A named route identifies an implemented
+service; its setup guide specifies the required assets and supported tasks.
+The per-benchmark `python -m ...server` entrypoint is also supported.
 
-## Choose a plan, not a retry strategy
+## Select tasks and cases
 
-| Plan | Sample schedule | Status |
-| --- | --- | --- |
-| Fast | A preselected subset of cases, one attempt per selected case | Current campaign preparation records `evaluation_mode: fast`; service schedules are benchmark-specific |
-| Full | Verified native suite, variants, seeds, resets and episodes per task | Benchmark-specific presets only; no universal full-schedule selector |
+Describe the evaluation by tasks, layouts or initial states, variations, seeds
+and attempts per case. These quantities are different: five seeds do not
+necessarily generate five layouts. Read the selected benchmark's task table
+and sampling interface, then fix the case list before any outcomes are known.
+See [task selection](../benchmarks/simBenchmarks/TASK_COVERAGE.md).
 
 RoboDojo declares its schedules in
 [`bench_server/protocol/task_catalog.json`](../benchmarks/simBenchmarks/RoboDojo/bench_server/protocol/task_catalog.json).
-Its server configuration selects `panel: fast` (five layouts) or `panel: full`
-(50 layouts) for `classify_objects`, each once. This full panel covers that task,
-not the complete RoboDojo task suite. The catalog is protocol data; runtime
+Its server configuration selects a fixed set of five or 50 layouts for
+`classify_objects`, each once. These are two sample counts for the same task.
+The catalog is protocol data; runtime
 assets belong to `environment/`, and deployment paths/GPU selection belong to
 the operator's server configuration. Use `rsi-bench serve --benchmark robodojo`;
 the delegated benchmark-owned wrapper remains
 `benchmarks.simBenchmarks.RoboDojo.server`, with its adapter in `bench_server/`.
 
 The current campaign CLI has benchmark-specific default cases and selected
-`--task-scope` expansions. It does not accept an arbitrary `--mode full` switch.
+`--task-scope` selections.
 Inspect the benchmark's declared plan module and generated manifest for the exact
 denominator. SimplerEnv, LIBERO, SIMPLE, RoboCasa365 and RoboCasa Tabletop keep the plan at
 `bench_server/protocol/plan.py`; their old `evaluation` packages are removed.
 Native planned repetitions are samples, not retries triggered by failure.
 
 If development budgets differ from native conditions, label that track explicitly.
-Do not compare task-only coverage or a longer horizon with a native full score.
+Do not treat different sample distributions or execution budgets as identical conditions.
 Policy persistence preferences are a separate model configuration.
 
 ## Connect an agent method
@@ -83,35 +84,21 @@ all model components/roles and configuration using the
 [method contract](agent-methods.md). The reference driver accepts `--method-file`.
 Additional inference/planning does not expand the robot or environment interface.
 
-`anonymous_code_agent` is an external mailbox with unknown provider/model identity.
-[`gpt6_astra`](../AgentPolicies/gpt6_astra/README.md) supplies one Bench Server
-validation client, `codex_native` (`codex-native/v2`). It consolidates the persistent
-Direct implementation and its optional completion and repeated-command settings;
-use its driver with an explicitly selected benchmark, without a method
-selection step. Optional `--control-method` accepts only `codex-native/v2`.
-Numeric-interface compatibility is not native validation or universal robot capability. `opus` is an unconfigured placeholder.
-Profile dependencies and credentials are separate from benchmark installation.
-The client preserves optional model-declared completion, **disabled by default**;
-`--allow-task-completion` enables it before an attempt, and
-`--no-allow-task-completion` explicitly keeps it off. When enabled, the claim
-ends an attempt normally without additional controls. Native success and score are
-still reported independently of that claim. Its optional repeated-command
-review is off by default. Select these policy settings before the attempt;
-neither changes the benchmark budget nor authorizes a retry.
+Use your own compatible driver or the supplied
+[reference client](../AgentPolicies/gpt6_astra/README.md). Profile dependencies,
+credentials, inference settings and voluntary-stop behavior are documented with
+the selected agent, separately from benchmark installation. Select them before
+the attempt. A method's completion claim never substitutes for native success.
 
 For the mailbox profile, the actor receives only its opaque endpoint and permitted protocol context.
 Do not provide campaign directories, native workers, evaluator state or private
 scoring data. Mailbox-only instructions are not a substitute for enforced process
 isolation or a trusted provider-request meter.
 
-Start the server following the selected benchmark's guide, then use the current
-[current client command](../AgentPolicies/gpt6_astra/README.md#single-task-integration-example).
-Historical Native, Direct and Planned commands require their original frozen
-package or source from Git; the active factory does not select those methods. The existing RoboDojo **server protocol** still uses
-its original Direct-v2 interface identity; a model-method upgrade does not rename
-that server protocol. Use its matching seed and named panel; a separately selected
-one-case development sample is not a full-panel score. Never copy its EEF space or
-budget to another robot. Select method and recording options before execution.
+Start the server following the selected benchmark's guide, then connect the
+chosen driver using the declared sensors, action space, schedule and budgets.
+Changing the agent method does not change the benchmark interface. Never copy
+one robot's end-effector space or execution budget to another robot.
 
 An independent driver can implement the [wire protocol](../benchmarks/simBenchmarks/SERVER_PROTOCOL.md)
 without joining the reference factory registry or using Python `Policy`.
@@ -143,13 +130,9 @@ budget remain benchmark-owned. Existing decision-coupled tracks and any declared
 `required_replan_interval` still require matching configuration; do not silently
 override them when selecting a different method.
 
-The client's model-call recovery is separate from case scheduling. A definitively
-closed `serverOverloaded` turn can continue in the same thread after 30 seconds,
-up to nine continuations between valid action submissions. Error notification
-alone does not authorize recovery; existing network continuation is separate.
-No executed decision/control is added until an action actually executes. Preserve
-recovery attempts and available usage; exhaustion remains an infrastructure error,
-not native failure or permission to reset a case or replay uncertain robot action.
+Model-call recovery is separate from case scheduling and belongs to the method.
+Record such recovery and available usage without inventing executed controls.
+It cannot reset a case or replay a robot command whose execution is uncertain.
 
 ## Inspect and report
 
@@ -230,7 +213,6 @@ and allowlists the page and explicit MP4s; it does not serve raw directories or
 its private `.media-map.json`. Forward its port over SSH or VS Code. Videos remain
 in their original server directories; no duplicate video is produced. Ignore
 generated `data.js` and `.media-map.json` if retaining the page sources in Git.
-See the [four-task BEHAVIOR review](../AgentPolicies/gpt6_astra/results/behavior/interaction/2026-10-four-task-review/README.md).
 
 Report the selected denominator, attempted/completed/unattempted counts, successes,
 policy/protocol errors and infrastructure errors. Preserve every original failure.
@@ -260,7 +242,7 @@ service-based evaluation.
 
 ### Prepare and inspect
 
-From the repository root, the following prepares the SimplerEnv fast plan without
+From the repository root, the following prepares the SimplerEnv task plan without
 starting an environment or making a model request:
 
 ```sh
@@ -269,7 +251,7 @@ python -B -m benchkit.campaigns prepare \
   --model-profile anonymous_code_agent \
   --prompt-file AgentPolicies/anonymous_code_agent/prompts/control_guidance.txt \
   --mailbox-root /absolute/stable/policy-endpoints \
-  --output-dir AgentPolicies/anonymous_code_agent/results/simpler_env/raw/my-fast-run/campaign
+  --output-dir AgentPolicies/anonymous_code_agent/results/simpler_env/raw/my-selected-run/campaign
 ```
 
 Replace placeholder paths with writable locations. Use a new output directory.
@@ -320,7 +302,7 @@ Only after environment readiness and actor setup:
 
 ```sh
 python -B -m benchkit.campaigns run-case \
-  --output-dir AgentPolicies/anonymous_code_agent/results/simpler_env/raw/my-fast-run/campaign \
+  --output-dir AgentPolicies/anonymous_code_agent/results/simpler_env/raw/my-selected-run/campaign \
   --case-index 0 --device-index 0
 ```
 
@@ -339,7 +321,7 @@ For retained campaign summaries:
 
 ```sh
 python -B -m benchkit.campaigns summarize \
-  --output-dir AgentPolicies/anonymous_code_agent/results/simpler_env/raw/my-fast-run/campaign
+  --output-dir AgentPolicies/anonymous_code_agent/results/simpler_env/raw/my-selected-run/campaign
 ```
 
 ### Internal integrity tools

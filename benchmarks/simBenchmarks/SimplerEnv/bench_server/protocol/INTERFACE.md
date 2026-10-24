@@ -1,199 +1,152 @@
-# Policy interface
+# SimplerEnv public interface
 
-This is the participant-facing contract for the `mailbox` development transport.
-The benchmark service itself uses the [shared SIM wire protocol](../../../SERVER_PROTOCOL.md)
-through [server.py](../../server.py) and [bench_server/adapter.py](../adapter.py).
-The trusted agent driver holds that administrative client; a mailbox actor
-receives only the permitted observation/action contract below, never SIM credentials.
-Use [README.md](../../README.md) to install and launch it, and
-[EVALUATION_PROTOCOL.md](../../EVALUATION_PROTOCOL.md) to choose the evaluation track.
-The simulator is owned by `SimplerEnvBenchmarkAdapter`, never by the policy.
-The selected [interaction mode](../../EVALUATION_PROTOCOL.md#interaction-modes)
-also applies: `single_response` preserves the historical provider-request
-restriction; explicit `agent_method` permits declared internal inference/local
-tools on public data. Both submit one response per scheduled observation and
-retain the same sensor, control and no-replay boundaries.
+This document describes the benchmark's public sensor and action contract.
+[server.py](../../server.py) exposes it through the shared
+[SIM wire protocol](../../../SERVER_PROTOCOL.md). The trusted driver handles
+session selection, initialization and result collection; the evaluated actor
+receives only the declared observations and submits robot actions.
 
-## One observation, one response
+The wire contract does not require a particular model, SDK, mailbox transport,
+prompt or decision loop. See [agent integration](../../../../../docs/agent-methods.md)
+for participant-side implementations, [installation](../../README.md) for the
+service environment, and [the evaluation protocol](../../EVALUATION_PROTOCOL.md)
+for exact scoring and track identities.
 
-1. The evaluator supplies a fresh opaque mailbox root. Poll only its `ready.json`.
-2. When `status` is `pending`, read its `observation_path` and the PNG files
-   explicitly referenced by that observation. Copy its exact `request_id`.
-3. Produce one action chunk or one stop response. Write a temporary file beside
-   `response_path`, then atomically rename it to that path.
-4. Wait for a **new** pending request. Do not modify or resubmit an old response.
-5. `episode_closed` ends the episode. `failed` means the decision failed; do not
-   retry it. `idle`, `episode_started`, and `consumed` are not requests for action.
+## Public observations
 
-Current wire `starvla-rsi.mailbox/v3` uses paths **relative to the mailbox root**, including
-`ready.json`'s observation/response paths and every `images.*.path`. Resolve them
-against that root, not against the observation's parent directory. Request IDs
-are random, independent of the evaluator's path and reset seed. The operator
-must supply a stable seed/task-independent parent and an opaque endpoint; do not
-hand an actor a date-, seed-, or task-labeled evaluator directory. Use
-`python -m AgentPolicies.anonymous_code_agent.tools.new_mailbox --root <stable-root>`
-for standalone runs, or the frozen campaign CLI's `prepare --mailbox-root`.
-Wire v2 also uses relative paths; v3 adds policy-owned constraints and confirmed
-execution feedback. Old v1/v2 records remain under their original schema.
-
-Files from older requests are not extra observations. The actor may retain its
-own within-episode observation/action history, but must reset it between episodes.
-The `history: current_observation_only` field describes the current payload,
-not a claim that the transport erases the model's memory.
-
-## Observation fields
+Each acknowledged native control returns one observation; reset supplies the
+initial observation. A driver may group successive controls before requesting
+another model decision. Idle service time performs no control.
 
 | Field | Meaning |
 | --- | --- |
-| `request_id` | Opaque identifier to echo; do not infer scene configuration from it. |
-| `step` | Number of controlled environment steps already executed. |
-| `instruction` | Current native language instruction. |
-| `images` | Declared camera names mapped to PNG path, dimensions, RGB encoding and SHA-256. |
-| `state` | `null` in RGB-only; joint encoders only in the separately labeled RGB-qpos track. |
-| `observation_spec` | Declared cameras, modalities and state names. |
-| `action_spec` | Action dimensions, units, bounds, controller frame and gripper convention. |
-| `budgets` | Maximum environment steps, policy decisions, executed prefix, chunk size and response timeout. |
-| `policy_constraints` | This policy's optional persistence/stop preference, separate from benchmark rules. |
-| `control_feedback` | Confirmed executed action decisions and controls, not submitted chunks or native scoring. |
-| `prompt` | The selected model policy's frozen instructions, not task-specific simulator assistance. |
+| `step` | Number of executed native control steps |
+| `instruction` | Current native language instruction |
+| `images` | The declared camera's original RGB `uint8` pixels |
+| `state` | Absent in RGB-only; ordered robot joint encoders in the RGB+qpos track |
 
-Google Robot exports `overhead_camera` RGB, 512×640. WidowX exports
-`3rd_view_camera` RGB, 480×640. No extra camera requests are available.
-The optional qpos track exposes 11 Google or 8 WidowX joint encoders, not object
-poses, end-effector pose or camera calibration.
+The service description also declares the action/observation specification and
+selected execution budget. A trusted driver may expose their public content and
+acknowledged counters to the actor; service credentials, reset metadata and
+scoring methods remain private.
 
-Forbidden policy inputs include reset seeds and variant IDs, depth, segmentation,
-object poses, simulator `extra`/`info`, reward, native success, contacts, scorer
-code, evaluator artifacts, and arbitrary simulator queries. A policy must not
-import the simulator or control it through another channel.
+| Embodiment | Camera and image shape (H × W × C) | Optional joint positions |
+| --- | --- | ---: |
+| Google Robot | `overhead_camera`, 512 × 640 × 3 | 11 encoders |
+| WidowX | `3rd_view_camera`, 480 × 640 × 3 | 8 encoders |
 
-## Action response
+The RGB+qpos setting has its own protocol identity. Native RGB receives no
+additional crop or resize. The actor may retain previously delivered inputs and
+its own actions within an episode; that memory belongs to the method.
 
-Each action is `[dx_m, dy_m, dz_m, rx_rad, ry_rad, rz_rad, gripper]`.
-Translation is in meters; rotation is an axis-angle rotation vector in radians,
-not Euler angles. The supplied action spec is authoritative.
+### Joint-position order
 
-| Embodiment | Target convention | Gripper | Control frequency |
+`state` copies the native articulation's measured `qpos`, not controller drive
+targets. For the pinned robot definitions, its zero-based order is:
+
+| Robot | Indices | Joint names in order | Unit |
 | --- | --- | --- | --- |
-| Google Robot | `ee_align`, measured-pose delta | +1 close, −1 open, 0 hold target | 3 Hz |
-| WidowX | `ee_align2`, accumulated-target delta | +1 open, −1 close, 0 intermediate opening | 5 Hz |
+| Google Robot | 0–6 | `joint_torso`, `joint_shoulder`, `joint_bicep`, `joint_elbow`, `joint_forearm`, `joint_wrist`, `joint_gripper` | radians |
+| Google Robot | 7–8 | `joint_finger_right`, `joint_finger_left` | radians |
+| Google Robot | 9–10 | `joint_head_pan`, `joint_head_tilt` | radians |
+| WidowX | 0–5 | `waist`, `shoulder`, `elbow`, `forearm_roll`, `wrist_angle`, `wrist_rotate` | radians |
+| WidowX | 6–7 | `left_finger`, `right_finger` | metres |
 
-Schema illustration only; this vector is not a universal task-solving action:
+Google Robot uses the fixed-wheel embodiment; its fingers are rotary joints.
+WidowX finger values are individual prismatic-joint displacements, not a
+normalized gripper command or a single aperture value. The source-defined orders
+are in [Google Robot](https://github.com/simpler-env/ManiSkill2_real2sim/blob/ef7a4d4fdf4b69f2c2154db5b15b9ac8dfe10682/mani_skill2_real2sim/agents/robots/googlerobot.py#L21)
+and [WidowX](https://github.com/simpler-env/ManiSkill2_real2sim/blob/ef7a4d4fdf4b69f2c2154db5b15b9ac8dfe10682/mani_skill2_real2sim/agents/robots/widowx.py#L24);
+joint types are defined by their
+[Google URDF](https://github.com/simpler-env/ManiSkill2_real2sim/blob/ef7a4d4fdf4b69f2c2154db5b15b9ac8dfe10682/mani_skill2_real2sim/assets/descriptions/googlerobot_description/google_robot_meta_sim_fix_wheel_fix_fingertip.urdf#L519)
+and [WidowX URDF](https://github.com/simpler-env/ManiSkill2_real2sim/blob/ef7a4d4fdf4b69f2c2154db5b15b9ac8dfe10682/mani_skill2_real2sim/assets/descriptions/widowx_description/wx250s.urdf#L322).
 
-```json
-{
-  "request_id": "exact-current-request-id",
-  "actions": [[0, 0, 0.01, 0, 0, 0, 1]],
-  "usage": null,
-  "note": "Small upward motion."
-}
+### Unavailable observations
+
+No additional camera query, depth, segmentation, object/target pose, camera
+calibration, contacts, native `info`, reward, success or hypothetical rollout
+is provided. Reset seeds, variant identifiers, scorer records and native
+simulator handles are evaluator-private.
+
+## Actions
+
+Each `step` request supplies one seven-value vector:
+
+```text
+[dx_m, dy_m, dz_m, rx_rad, ry_rad, rz_rad, gripper]
 ```
 
-Or stop the episode, without claiming success:
+Translation uses metres. Rotation is an axis-angle vector in radians, not Euler
+angles. Accepted component bounds are `[-1,1]` for translation and gripper,
+and `[-pi/2,pi/2]` for rotation. These are the service's declared validation
+bounds; the native unnormalized arm controller's advertised limits are dummy
+limits, as explained in [the action contract](../../EVALUATION_PROTOCOL.md#native-action-contract).
 
-```json
-{
-  "request_id": "exact-current-request-id",
-  "stop": true,
-  "stop_reason": "Unable to make further visual progress within the contract.",
-  "usage": null
-}
-```
+| Embodiment | Arm target convention | Gripper convention | Control frequency |
+| --- | --- | --- | --- |
+| Google Robot | `ee_align`: measured-pose delta, base-aligned axes | Positive closes, negative opens, zero holds target | 3 Hz |
+| WidowX | `ee_align2`: accumulated target delta, base-aligned axes | +1 open, −1 closed, zero intermediate | 5 Hz |
 
-Use numbers, not numeric strings or booleans. Every action in a chunk is checked
-for dimension, finite values and bounds, including actions beyond the executed
-prefix. Unknown/duplicate JSON keys, excessive chunks, replayed request IDs,
-symlinks, oversized files and malformed output fail the decision. No automatic
-repair request or retry is made. `note` is optional and describes the final
-action briefly; private reasoning is not required.
+For both robots, translation and rotation-vector components use the robot
+articulation's base axes, not the rotating end-effector axes. These are not
+necessarily world axes when the base is rotated. Google Robot adds translation
+to the measured end-effector position and left-multiplies its orientation by
+the delta rotation. WidowX retains the previous target and rotates it about the
+**current measured** end-effector position before adding translation. Thus a
+rotation can also change the retained target position when target and measured
+positions differ. This follows the pinned
+[pose-controller transforms](https://github.com/simpler-env/ManiSkill2_real2sim/blob/ef7a4d4fdf4b69f2c2154db5b15b9ac8dfe10682/mani_skill2_real2sim/agents/controllers/pd_ee_pose.py#L192),
+with [WidowX target accumulation](https://github.com/simpler-env/ManiSkill2_real2sim/blob/ef7a4d4fdf4b69f2c2154db5b15b9ac8dfe10682/mani_skill2_real2sim/agents/configs/widowx/defaults.py#L131).
 
-Before the atomic submission, a client can locally check its proposed vector
-lengths and numeric bounds against the already supplied `action_spec`; this
-does not request a new observation or evaluator feedback. Include the gripper
-component: a six-value pose vector is not a valid seven-value robot action.
-Do not silently pad, truncate or reinterpret malformed actions. In the default
-historical fail-fast track, a submitted rejected response consumes the failed
-decision and ends that attempt; it cannot be repaired and resubmitted. Local
-validation is not permission for an extra provider request in a
-one-request-per-decision track.
+Native robot-only IK and controller interpolation execute the submitted target.
+The service provides no object-localization, grasp, navigation or task-solving
+operation. It neither chooses actions nor silently pads, clips or repairs them.
 
-The service's explicitly selected `action_rejection_feedback=true` track has
-a distinct `/action-feedback` protocol component before any `/agent-method`
-component and the final `/v1`. A compatible trusted driver
-may give the next normal counted call the bounded public validation error and
-the same last acknowledged observation. No invalid action executes, no new
-image is acquired and no within-call service follow-up is allowed. Rejections still
-consume the finite call budget; transport uncertainty is fatal, not replayable.
-This optional track is not automatically enabled for the legacy mailbox route.
-See [the benchmark protocol](../../EVALUATION_PROTOCOL.md#optional-rejected-action-feedback).
+An action advances one native control, not one physics tick. A method can submit
+several successive actions from one decision, subject to sequencing, validity,
+native execution and the selected total cap. Repeated targets are new sequenced
+controls, never replays of an uncertain acknowledgment.
 
-## Budgets, execution counts and policy preferences
+## Track selection and validation
 
-- `max_steps` counts native control actions, not physics substeps or model calls.
-- `max_policy_calls` counts calls to `Policy.act`, including failed calls and stop
-  responses. A stop consumes a decision but executes no control action.
-- `action_decisions` counts non-stop decisions with at least one actually
-  executed control. It is not inferred from submitted chunks or request numbers.
-- Provider request/token usage is separate. The historical `single_response`
-  track requires one provider request at most per decision; its method must
-  declare enforcement evidence. The `agent_method` track permits declared
-  internal inference and tools without that request limit. This file transport
-  and the benchmark service cannot verify hidden provider activity in either mode.
+The service configuration explicitly selects compatible conditions before any
+case is claimed:
 
-Only the declared prefix of a returned chunk is executed before the next
-observation. Shorter chunks use fewer steps but still consume one decision.
-In the `horizon` track, the first exhausted step/decision limit ends
-the attempt. In the `decisions` track, decisions are the primary budget and
-the declared safety cap is `max_policy_calls × replan_interval`. For example,
-the fast campaign's 200 decisions with an executed prefix of at most 5 permit up to 1000 controlled
-steps. Short chunks do not buy extra decisions. Task termination, explicit stop
-or an error may still end the attempt earlier. A response timeout is
-a policy error, not an invitation to request another observation.
+| Parameter | Meaning |
+| --- | --- |
+| `proprioception` | RGB-only or separately identified RGB+qpos observation |
+| `budget_mode: "horizon"` | Task horizon × predeclared multiplier (1 or 2) |
+| `budget_mode: "decisions"` | Distinct development cap `max_policy_calls × replan_interval` |
+| `interaction_mode: "single_response"` | Default: at most one provider request per decision call |
+| `interaction_mode: "agent_method"` | Declared internal inference and tools over permitted inputs |
+| `action_rejection_feedback` | Explicit rejected-action feedback track; false retains fail-fast behavior |
 
-Use `usage: null` when provider accounting is unavailable, as with an external
-actor without trusted provider telemetry. If measured, use an object such as
-`{"calls":1,"input_tokens":123,"output_tokens":45}`. Never invent zero usage.
-Client-reported totals are not trusted-provider enforcement. Missing provider
-telemetry remains an explicit limitation, not evidence of zero inference or a
-new participation restriction in the agent-method track.
+These selections affect protocol identity. The benchmark cannot verify hidden
+provider activity; report available call/token usage and leave unavailable
+accounting unknown. Agent-method mode adds no sensors, reset permission or
+execution budget. Decision-budget tracks retain their configured coupling;
+horizon-mode action grouping and inference allowance belong to the method.
 
-`native_horizon` retains the upstream reference. `evaluation_horizon` is the
-predeclared actual TimeLimit. A multiplier of 2 selects a distinct extended track,
-not a hidden continuation after a failed native-budget trial. See the evaluation
-protocol for H/2H checkpoint interpretation.
+With rejection feedback selected, an invalid action executes no control and
+returns a bounded validation issue. A compatible driver can deliver it with the
+last acknowledged observation at its next counted decision call. The rejection
+does not acquire a fresh image. Uncertain transport/native execution is an
+infrastructure error, not a recoverable invalid-input receipt and not permission
+to replay an action. See [rejection semantics](../../EVALUATION_PROTOCOL.md#optional-rejected-action-feedback).
 
-The 200-decision ceiling is a fast evaluation setting, not a native full
-benchmark budget. Record actual decisions, steps and first-success timing.
-Do not change budgets within an attempt. Decision-limited and horizon-limited
-results have distinct protocol IDs and must not be pooled as the same score.
+## Outcome and records
 
-An optional minimum-action count before give-up is a model policy preference,
-published under `policy_constraints`. It is not imposed by the benchmark.
-`control_feedback` reports confirmed counters only: policy calls, executed action
-decisions, environment steps and the last executed prefix length. It contains
-no native scores, rewards, contacts or simulator metadata. Policy-side rules
-must not delay native end, hard limits, errors or justified safety stops.
+The primary score is success at the last executed native control. Intermediate
+success is diagnostic and does not end this benchmark; native score remains
+private while the actor is acting. Stop preferences and self-reported completion
+belong to the agent method and do not award native success.
 
-## Process lifecycle
+Record model calls, accepted action decisions, executed controls and any native
+physics accounting separately. Optional
+interaction/media recording follows the shared
+[recording policy](../../../../../docs/recording.md); result records identify
+the selected denominator and native outcome.
 
-The benchmark-owned HTTP service retains each claimed native environment while
-the trusted agent driver waits for a policy decision. No control/physics step
-advances while waiting. Only the service executes acknowledged action prefixes;
-completion closes the environment and saves artifacts. The service owns native
-reset, task selection and scoring, not model prompts or task-solving behavior.
-
-The older in-process mailbox/campaign route remains available: its task-scoped
-evaluator owns the same adapter and the frozen campaign coordinator starts each
-selected case in a separate child process. This compatibility path is distinct
-from the server deployment. Neither route requires a model-training server.
-Keep evaluator logs and scores private while a policy is acting.
-
-## Isolation and audit
-
-The mailbox is an auditable transport, **not an OS security sandbox**. Formal
-submissions need a process/container permission boundary exposing only the
-mailbox to the policy. Evaluator logs, videos and native scores are private while
-the episode is active; an independent reviewer may inspect closed artifacts
-afterward through the shared closed-record and mailbox-artifact audits listed
-in [README.md](../../README.md#results-and-offline-review). Audit acceptance is bounded
-record consistency, not proof of trusted provider activity or native parity.
+Service process separation defines responsibilities, not an OS sandbox.
+Deployment must keep administrative credentials, native processes/files and
+private result channels outside an untrusted actor's permissions.

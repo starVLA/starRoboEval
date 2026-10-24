@@ -27,11 +27,11 @@ with those conditions instead of receiving an invisible task-solving wrapper.
 | Benchmark adapter (`bench_server/adapter.py` in RoboDojo) | `BenchmarkAdapter` | Expose the pinned descriptor, observation/action specifications, selected episodes and an episode-session factory. |
 | `<benchmark>/server.py` | Independently launched SIM server | Host the native factory, declare runtime supplements and keep native control/scoring private. Shared transport mechanics live in `benchkit/sim_server/`. |
 | Benchmark adapter or native worker | `EpisodeSession` | Reset, execute one native control target, return the transition, collect native metrics/artifacts and close resources. |
-| Benchmark selection definition (`bench_server/protocol/task_catalog.json` in RoboDojo; `evaluation/plan.py` where implemented) | Selection plan | Declare the task/variant/state schedule and required runtime resources. Selection is independent of model identity and observed success. |
+| Benchmark selection definition (`bench_server/protocol/task_catalog.json` in RoboDojo; `bench_server/protocol/plan.py` where implemented) | Selection plan | Declare the task/variant/state schedule and required runtime resources. Selection is independent of model identity and observed success. |
 | `<benchmark>/EVALUATION_PROTOCOL.md` | Native track specification | Explain sensors, actions, horizons, task variants, native scoring, sampling and verified limitations. |
-| `AgentPolicies/<profile>/` | `Policy` | Check compatibility, initialize episode memory, produce an action chunk or stop from each scheduled observation, and clear episode state. |
-| `AgentPolicies/<profile>/` and `AgentPolicies/gpt6_astra/tools/runner.py` | Trusted driver and reusable decision loop | Connect to the service, execute bounded action prefixes and count calls/controls. |
-| `benchkit/` | Record, source and report tools | Supply shared formats, frozen-source capture, audits and reports; retained campaign helpers support older workflows. |
+| `AgentPolicies/<profile>/` | Agent method; optional Python `Policy` | Check compatibility, initialize episode memory, produce actions or a permitted stop from declared observations, and clear episode state. |
+| Agent-owned trusted driver | Decision loop | Connect to the service, execute the method's chosen action grouping and count calls/controls; Python reference utilities are optional. |
+| `benchkit/` | Communication, scheduling and result tools | Supply shared transport, fixed-case scheduling, records, source capture, audits and reports without selecting robot actions. |
 
 RoboDojo's `bench_server/` groups its service adaptation, private worker client
 and `protocol/` definitions. `environment/` contains the native runtime. See its
@@ -61,8 +61,9 @@ Frozen plan -> adapter.open_episode(EpisodeSpec) -> session.reset()
 `EpisodeSpec` is evaluator-private. The runner builds the public
 `EpisodeContext` for `Policy.start_episode`; never forward reset seeds or layout
 metadata wholesale. `Policy.end_episode` clears method state. Optional
-`ExecutionAwarePolicy.observe_execution` receives counter-only execution
-feedback, not rewards or private simulator state. Optional
+`ExecutionAwarePolicy.observe_execution` receives execution counters and any
+protocol-declared robot-control receipts, not rewards or private simulator
+state. Optional
 `ArtifactBoundEpisodeSession.bind_artifact_dir` gives the session a runner-owned
 artifact directory before reset.
 
@@ -78,9 +79,11 @@ policy.
 
 `ActionSpec` declares action dimension/order, bounds, frequency, frame, rotation
 and gripper convention. An `ActionChunk` contains those native-contract vectors;
-the agent-side runner executes at most the configured prefix before requesting another
-decision. Invalid vectors are recorded as errors, not silently clipped or
-repaired through another model request.
+the agent-side driver chooses how many controls to execute before another
+decision, subject to the selected track's constraints. Invalid vectors never
+execute or undergo silent repair. A declared rejection-feedback track can return
+a bounded public issue for a later, counted agent decision; a fail-fast track
+ends instead. Neither path replays a control after uncertain execution.
 
 Protocol-fixed units, joint ordering, interpolation and the native low-level
 controller belong to the adapter. Visual localization, grasp selection, motion
@@ -92,12 +95,12 @@ See [POLICY_PROTOCOL.md](POLICY_PROTOCOL.md).
 
 ## Sampling, scoring and reports
 
-Fast is a frozen subset with one attempt per selected case. Full is the verified
-native task/variant/seed/episode schedule, including planned repetitions, not
-retries selected after seeing a failure. RoboDojo declares a five-layout `fast`
-panel and a 50-layout `full` panel for `classify_objects`, each once; neither
-covers every RoboDojo task. Other full execution presets remain benchmark-specific;
-document the actual supported schedule rather than adding an unsupported mode label.
+Predeclare tasks, variants, layouts or initial states, seeds and attempts per
+case. These are separate quantities, not evaluation-mode labels. RoboDojo offers
+5-layout and 50-layout selections for `classify_objects`; both cover one task.
+Document which selectors the service supports and what randomization they
+control. Planned repetitions are not retries selected after a failure.
+See [task and case selection](TASK_COVERAGE.md).
 
 The native evaluator decides success. Keep native partial score distinct from
 boolean success, and keep unavailable scores null. Record the selected sample
@@ -127,3 +130,5 @@ package import do not prove native parity. Any authorized native validation is
 a separately recorded run through the same interface, with failures retained.
 See the repository [workflow](../../docs/evaluation.md) for current entrypoints
 and the individual benchmark's protocol for native readiness.
+See [agent-method integration](../../docs/agent-methods.md) for client-side
+implementation; this benchmark interface does not require a particular profile.

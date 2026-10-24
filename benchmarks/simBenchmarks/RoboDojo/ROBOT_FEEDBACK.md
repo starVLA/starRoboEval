@@ -2,8 +2,7 @@
 
 The public RoboDojo service always exposes the declared, robot-only
 `robodojo.robot-control-feedback/v1` channel. It is part of the fixed protocol,
-not a runtime option. Earlier no-ACK and alternate-track services are not public
-entrypoints; their historical results are not rewritten.
+not a runtime option or a requirement to use a particular agent.
 
 The benchmark descriptor gains `-robot-feedback-v1` before any
 `-infrastructure-only` diagnostic suffix. `ObservationSpec.control_feedback_schema`
@@ -74,6 +73,6 @@ Static robot calibration is not part of this extension. The server continues
 to own native execution; model actors have no reset, metrics or administrative
 client access. No IK math, native physics, asset, horizon or scoring rule changes.
 
-CPU checks exercise projection, causal binding, opt-in compatibility and mocked
+CPU checks exercise projection, causal binding, schema compatibility and mocked
 ACK accounting. They do not establish native trajectory/pixel parity, provider
 identity, actual-model capability, or permission to repeat a selected case.

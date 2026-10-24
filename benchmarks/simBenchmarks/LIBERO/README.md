@@ -1,50 +1,101 @@
 # LIBERO
 
-This integration follows the [RoboDojo-derived service conventions](../SERVICE_CONVENTIONS.md).
-LIBERO's task/init-state selection, native OSC actions and success rule remain distinct.
+LIBERO is a language-conditioned robot-manipulation benchmark with task suites
+covering spatial relationships, object identity, goals and task combinations.
+This directory exposes its native tasks, released initial states, observations,
+actions and success checks through an independent benchmark service.
 
-The `libero` adapter evaluates sensor-driven robot policies across five LIBERO suites (130 suite-task entries). This directory owns native environment integration, task selection and [the evaluation protocol](EVALUATION_PROTOCOL.md); model implementations and results belong under [AgentPolicies](../../../AgentPolicies/README.md).
+- [Evaluation protocol](EVALUATION_PROTOCOL.md): selection, initialization, budgets and scoring.
+- [Task catalog](bench_server/protocol/libero_catalog.json): native ordering, instructions and reset counts.
+- [Source inventory](bench_server/protocol/phase2_task_inventory.json): pinned task and evaluator references.
+- [Service configuration](server.example.json) and [shared interface](../SERVER_PROTOCOL.md).
 
-## Directory responsibilities
+## Benchmark tasks and initial states
 
-```text
-LIBERO/
-├── server.py                      # stable public service launcher
-├── server.example.json            # operator configuration template
-├── bench_server/
-│   ├── adapter.py                 # public contract, private native session/scoring
-│   └── protocol/                  # task catalog, selection plan and source inventory
-└── environment/                   # installation pins and readiness tools
+The [official benchmark](https://libero-project.github.io/datasets.html) defines
+LIBERO-Spatial, LIBERO-Object and LIBERO-Goal with 10 tasks each, plus
+LIBERO-100 with 100 tasks split into LIBERO-90 and LIBERO-10. These test spatial,
+object and goal generalization and the transfer/composition of manipulation
+skills. The split produces the five named inventories below; it is not five
+unrelated benchmark definitions. Each task has 50 released initial states.
+
+| Suite | Task entries | Released states per task | Retained reference horizon |
+| --- | ---: | ---: | ---: |
+| `libero_spatial` | 10 | 50 | 220 controls |
+| `libero_object` | 10 | 50 | 280 controls |
+| `libero_goal` | 10 | 50 | 300 controls |
+| `libero_90` | 90 | 50 | 400 controls |
+| `libero_10` (LIBERO-Long) | 10 | 50 | 520 controls |
+
+The catalog contains 130 suite-task entries; these are not necessarily 130
+disjoint task semantics. The horizons above are retained evaluator reference
+conditions, **not universal official LIBERO limits**. For example, the native
+lifelong-evaluation configuration uses 600 for LIBERO-10. Report the selected
+budget and its source rather than assuming equivalent conditions.
+
+## Select cases through this service
+
+Select a suite and increasing `task_ids` with `scope: "task_coverage"`.
+`initial_state_indices` selects released `.pruned_init` entries; it does not
+select arbitrary random layouts. The adapter checks each index against every
+selected task. Omitting this list selects state 0; an explicit list defines a
+separately versioned panel in task-major, state-minor order. The service requires
+seed `20260907` and task-order index 0.
+
+For example, this operator configuration fixes 25 task/state cells:
+
+```json
+{
+  "suite": "libero_spatial",
+  "scope": "task_coverage",
+  "task_ids": [0, 1, 2, 3, 4],
+  "initial_state_indices": [0, 1, 2, 3, 4],
+  "proprioception": false,
+  "render_gpu_device_id": 0,
+  "budget_mode": "horizon"
+}
 ```
 
-The catalog is benchmark protocol data, not an environment deployment file or
-model configuration. Copy the server configuration outside the source tree to
-select a fixed suite/task subset, observation track, budget and GPU; configure
-source and asset locations through `LIBERO_SOURCE` and `LIBERO_CONFIG_PATH`.
-The canonical adapter lives in `bench_server/adapter.py`.
-The active service reads `bench_server/protocol/libero_catalog.json` and fixes
-its schedule at launch. The independent pinned native source inventory lives
-beside it in [phase2_task_inventory.json](bench_server/protocol/phase2_task_inventory.json).
-It records task identities and evaluator references, not an execution schedule
-or capability results. Historical first-two and first-five selection manifests
-remain recoverable from Git history.
-Historical anonymous attempt evidence remains in the local, Git-ignored
-`AgentPolicies/anonymous_code_agent/results/libero/` directory; its model/provider
-identity remains unverified.
+Distinct released state indices do not guarantee visibly different layouts.
+The catalog contains 6,500 suite-task/state cells (130 × 50); report the selected
+suite, tasks and states explicitly. The example is a selection example, not
+the benchmark's prescribed number of tasks or trials.
 
-This structure does not convert LIBERO into RoboDojo's EEF16 protocol. LIBERO
-still accepts normalized seven-dimensional OSC delta actions, with its own RGB
-or explicit RGB+joint-position track. A model must declare compatibility with
-that contract; renaming a directory cannot make a Dojo-only policy compatible.
+## Observations, actions and scoring
 
-## Install the environment
+The RGB track provides the native task instruction and two 256 × 256 images:
+`agentview` and `robot0_eye_in_hand`. Both use the fixed 180° camera transform,
+with no additional crop or resize. An explicitly selected RGB+qpos track adds
+seven arm and two gripper encoders; [the protocol](EVALUATION_PROTOCOL.md#observation-and-action)
+lists their order and radians/metres units. Object truth, reset identity, BDDL predicates,
+reward and success remain private to the evaluator.
 
-Use a dedicated Python 3.10 environment. The pinned source includes BDDL tasks, meshes and released initial states; no VLA checkpoint or demonstration-action dataset is needed. Run from the RSI repository root, replacing the source path:
+One control is a seven-value `OSC_POSE` command in `[-1, 1]` at 20 Hz:
+world translation deltas (±0.05 m per axis), world axis-angle deltas
+(±0.5 rad per axis), and gripper `-1` open / `+1` close / `0` retain target.
+Ten fixed settling controls precede the first observation and are recorded
+separately from agent-selected controls.
+
+Native `BDDLBaseDomain.step` returns success from `_check_success()`. The service
+stops at the first native success, or at the selected cap without success.
+A model's completion claim or a video's appearance does not change that result.
+Record inference calls, action decisions, controls and settling separately.
+
+The `horizon` track uses the table above. The explicit `decisions` track uses
+`max_policy_calls × replan_interval` as an alternative control cap and changes
+protocol identity. In horizon mode, action grouping and inference frequency
+belong to the agent; they do not extend the execution cap.
+
+## Install and check the environment
+
+Use a dedicated Python 3.10 environment. The pinned checkout contains BDDL tasks,
+meshes and released initial states; model weights and demonstration-action
+datasets are not needed. From the RSI repository root:
 
 ```sh
 conda create -n starvla-rsi-libero python=3.10 pip
 conda activate starvla-rsi-libero
-export LIBERO_SOURCE=/path/to/LIBERO
+export LIBERO_SOURCE=/absolute/path/to/native/LIBERO
 git clone https://github.com/Lifelong-Robot-Learning/LIBERO "$LIBERO_SOURCE"
 git -C "$LIBERO_SOURCE" checkout 8f1084e3132a39270c3a13ebe37270a43ece2a01
 python -m pip install --no-compile -r benchmarks/simBenchmarks/LIBERO/environment/runtime-requirements.txt
@@ -60,98 +111,55 @@ export PYOPENGL_PLATFORM=egl
 export MUJOCO_EGL_DEVICE_ID=0
 ```
 
-The explicit upstream `PYTHONPATH` accommodates LIBERO's namespace-package metadata. CPU Torch deserializes released initial states; it does not run a robot policy. Runtime pins include Robosuite 1.4.0, MuJoCo 3.2.3 and NumPy 1.24.4. Select an available EGL GPU and use the same index in the adapter.
+The explicit upstream `PYTHONPATH` accommodates LIBERO's namespace-package
+metadata. CPU Torch deserializes initial states. Runtime pins include Robosuite
+1.4.0, MuJoCo 3.2.3 and NumPy 1.24.4. Select an allocated EGL GPU and use the same
+index in the server configuration.
 
-## Verify and evaluate
-
-This diagnostic performs reset, ten settling controls, rendering and one neutral control, with zero policy calls. Use a new output directory and verify source/controller metadata and complete image/video decoding.
+The separate readiness diagnostic performs reset, settling, rendering and one
+neutral control, with no model calls:
 
 ```sh
 python benchmarks/simBenchmarks/LIBERO/environment/verify_environment.py \
-  --render-gpu-device-id 0 --output-dir /path/to/new-libero-diagnostic
+  --render-gpu-device-id 0 --output-dir /absolute/path/to/new-libero-diagnostic
 ```
 
-## Run as an independent SIM server
+Inspect images/video and source/controller metadata before capability evaluation.
+Import success and a service description alone do not validate rendering.
 
-The server owns native reset, controls and scoring. The evaluator owns the SIM
-client; the policy receives only allowed observations and never its endpoint,
-token or private artifacts. Follow the [shared service protocol](../SERVER_PROTOCOL.md)
-for evaluator-only token setup and SSH forwarding between nodes. The service
-listens only on loopback. Native-free launcher checks do not certify a working
-renderer or a native service-mode evaluation.
+## Start the benchmark service
 
-Copy [server.example.json](server.example.json) to an operator-owned configuration
-and select the tasks, observation track and GPU before launch. The example fixes
-LIBERO-10 task 0, released reset state 0 and a decision track of 200 calls,
-prefix 5, control cap 1000. It does not use the retained 520-control reference
-budget and is not a full native evaluation. Use the dedicated native Python and
-the `LIBERO_CONFIG_PATH`, `PYTHONPATH` and EGL settings from installation:
+Copy [server.example.json](server.example.json) to an operator-owned file, or use
+the panel example above. The checked-in example selects LIBERO-10 task 0 at
+state 0 with a **200 × 5 = 1000-control decision track**; it does not use the
+520-control reference horizon. Set `budget_mode: "horizon"` and omit decision
+parameters to use that reference track.
+
+Set a strong `RSI_SIM_SERVER_TOKEN` privately for the server and trusted driver.
+Launch with the native environment and installation variables above:
 
 ```sh
 python -B -m benchmarks.simBenchmarks.LIBERO.server \
   --parameters /absolute/path/to/libero-server.json \
   --seed 20260907 --episodes 1 --port 8766 \
-  --output-dir AgentPolicies/anonymous_code_agent/results/libero/raw/libero_10-task-0-basket-groceries/server
+  --output-dir /absolute/path/to/results/libero/your-run/server
 ```
 
-In a separate evaluator process/environment with NumPy installed and the same
-evaluator-only `RSI_SIM_SERVER_TOKEN`, connect an unused opaque
-[mailbox actor endpoint](../../../AgentPolicies/anonymous_code_agent/README.md):
+For the 25-cell panel, omit `--episodes` or set it to 25, and select all 25 cells
+in the trusted driver. The flag limits a schedule prefix, not tasks per suite.
+The loopback service fixes its schedule at launch and constructs the native
+environment only on reset. Connect through the [wire protocol](../SERVER_PROTOCOL.md);
+see [agent integration](../../../docs/agent-methods.md) for participant drivers.
 
-```sh
-python -B -m benchkit run \
-  --benchmark libero --sim-server http://127.0.0.1:8766 \
-  --model-profile anonymous_code_agent \
-  --policy-args '{"directory":"/absolute/opaque-mailbox","timeout_s":900,"max_chunk_length":5}' \
-  --seed 20260907 --episodes 1 --budget-mode decisions \
-  --max-policy-calls 200 --replan-interval 5 --max-steps 1000 \
-  --output-dir AgentPolicies/anonymous_code_agent/results/libero/raw/libero_10-task-0-basket-groceries/evaluator
-```
+## Directory responsibilities and results
 
-Use new result directories and a stable source snapshot, verified before and
-after execution. Do not pass `--benchmark-args` to the remote runner. The server
-freezes the schedule at launch but does not check native packages/assets until
-the one permitted reset; startup and `describe` are not readiness results.
-Native source, controller and reset-file checks remain in the adapter, and a
-failed reset retains its attempt. No automatic reset/action retry is enabled.
-`campaign prepare/run-case` still uses its existing execution path, not this
-remote service workflow. Keep server/client evidence and media under the model
-result namespace; legacy artifact auditors do not yet validate this layout.
+`server.py` is the public launcher. `bench_server/adapter.py` implements the
+contract and native score bridge; `bench_server/protocol/` holds the catalog and
+selection plan. `environment/` holds installation and readiness tools. Deployment
+paths, GPU selection and credentials belong to operator configuration.
 
-### Select five released states per task
-
-To evaluate multiple predeclared resets, use an operator-owned configuration
-such as this (select the available GPU explicitly):
-
-```json
-{
-  "suite": "libero_spatial",
-  "scope": "task_coverage",
-  "task_ids": [0, 1, 2, 3, 4],
-  "initial_state_indices": [0, 1, 2, 3, 4],
-  "proprioception": false,
-  "render_gpu_device_id": 0,
-  "budget_mode": "horizon"
-}
-```
-
-This schedules 25 distinct task/state cells in task-major/state-minor order.
-Omit `--episodes` or set it to 25 on the server, and explicitly select all 25
-on the trusted client. Unlike the decision-budget example above, this uses the
-retained per-suite reference horizon (spatial 220, object 280, goal 300,
-LIBERO-10/Long 520 controls). The method chooses its own action chunks and
-inference allowance; these do not change the declared execution cap.
-Select the same five tasks and five state indices for `libero_object`,
-`libero_goal` and `libero_10` in separate fixed suite services for a 100-cell
-panel. Use separate service/output identities and explicit resource allocation;
-this example does not itself start or schedule parallel services.
-
-The state indices refer to released `.pruned_init` entries, not arbitrary seeds.
-They are checked against every selected task's catalog before claims. Each cell
-gets one attempt; a normal failure is retained and does not request a retry.
-An explicit panel has its own versioned protocol, including when it contains
-only state 0. Omitting `initial_state_indices` preserves the original index-0
-schedule and descriptor. Reset metadata and hashes remain private from the
-actor. See [panel semantics](EVALUATION_PROTOCOL.md#explicit-released-state-panel).
-
-Fast mode means one attempt per preselected case, preserving failures and errors without automatic retry. The direct adapter defaults to LIBERO-10 tasks 0 and 1; the [selection plan](bench_server/protocol/plan.py) selects all 130 suite-task entries once at state 0. Neither that plan nor a selected five-state panel is full native reset-state coverage. See [the evaluation workflow](../../../docs/evaluation.md), [the catalog](bench_server/protocol/libero_catalog.json) and [protocol limitations](EVALUATION_PROTOCOL.md).
+Keep method implementations under `AgentPolicies/<agent>/` and generated reports
+and evidence under `AgentPolicies/<agent>/results/libero/`. Report the selected suite/task/state
+denominator, protocol, outcomes, counters and errors, retaining every attempt.
+See [recording](../../../docs/recording.md) for optional histories and server-side
+videos, and [evaluation](../../../docs/evaluation.md) for closed-result tools.

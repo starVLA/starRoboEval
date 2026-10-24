@@ -20,11 +20,13 @@ from benchmarks.simBenchmarks.MetaWorld.environment.runtime import (
 CAMERA = "corner2"
 IMAGE_SHAPE = (480, 480, 3)
 NATIVE_HORIZON = 500
-CONTROL_CAP = 400
 SETTLE_STEPS = 1
+# The retained stabilization action consumes one step of the native horizon.
+# Advertise only the remaining model-selected controls, never 500 plus setup.
+CONTROL_CAP = NATIVE_HORIZON - SETTLE_STEPS
 CONTROL_HZ = 80.0  # Five native physics ticks, each 0.0025 seconds.
-NATIVE_PROTOCOL = "metaworld-mt50-3.1.1/rgb480-corner2/control400/fast-v1"
-PROTOCOL = "metaworld-mt50-3.1.1/rgb480-corner2-rot180/control400/fast-v2"
+NATIVE_PROTOCOL = "metaworld-mt50-3.1.1/rgb480-corner2/native500/fast-v3"
+PROTOCOL = "metaworld-mt50-3.1.1/rgb480-corner2-rot180/native500/fast-v3"
 IMAGE_TRANSFORMS = {"native": "none; RGB copy", "rot180": "180-degree full-frame rotation; RGB copy"}
 
 

@@ -64,7 +64,7 @@ Keep download hashes and rerun the same native content verifier. Do not replace
 missing distributions with a different version while keeping this protocol ID.
 
 After read-only checks and source review, perform a separately labelled bounded
-infrastructure diagnostic using the independent SIM server and trusted harness
+infrastructure diagnostic using the independent SIM server and trusted evaluator
 client, not direct environment manipulation. Preserve the declared orientation,
 original returned frames and protocol identity in that evidence. The native MT50 constructor internally
 generates goal pools for all 50 classes; startup can take longer than a single

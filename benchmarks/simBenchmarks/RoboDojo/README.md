@@ -1,146 +1,141 @@
 # RoboDojo
 
-This directory defines one public RoboDojo benchmark service. It owns the
-simulator schedule, public observations and actions, fixed robot-only execution,
-native scoring and evidence. Models never import or drive the native simulator.
+[RoboDojo](https://robodojo-benchmark.com/) evaluates generalist robot
+manipulation in simulation and on real robots. Its core benchmark comprises
+**42 simulation tasks and 18 real-world tasks**. Simulation uses Isaac Sim and
+includes rigid, articulated and deformable objects; task-specific native rules
+determine completion and partial progress. See the
+[official repository](https://github.com/RoboDojo-Benchmark/RoboDojo).
 
-- [Evaluation protocol](EVALUATION_PROTOCOL.md)
-- [Environment preparation](environment/README.md)
-- [Action rejection](ACTION_VALIDATION.md)
-- [Robot-control acknowledgements](ROBOT_FEEDBACK.md)
-- [Shared SIM wire protocol](../SERVER_PROTOCOL.md)
+This directory documents the simulation benchmark and its Bench Server
+integration. The native benchmark's scope is larger than the tasks currently
+exposed by this repository's service.
 
-## Directory responsibilities
+## Native tasks and evaluation cases
 
-```text
-RoboDojo/
-├── server.py                       # public launch entrypoint
-├── server.example.json             # deployment configuration example
-├── bench_server/                   # benchmark service package
-│   ├── adapter.py                  # public contract to native environment bridge
-│   ├── native_worker_client.py     # private worker communication
-│   └── protocol/                  # service-owned evaluation definitions
-│       ├── task_catalog.json       # task definitions and fixed panels
-│       ├── task_catalog.py         # catalog loading and validation
-│       └── robot_feedback.py       # public robot-control receipt schema
-└── environment/                    # native worker, kinematics and runtime pins
-```
+The [official simulation catalog](https://robodojo-benchmark.com/doc/sim-tasks/)
+organizes the 42 core tasks into five capability groups:
 
-`bench_server/` owns both the service implementation and its evaluation protocol.
-Its `protocol/` subpackage remains dependency-light so catalog and reporting
-tools can read definitions without starting the server or simulator.
+| Capability | Tasks | Examples |
+| --- | ---: | --- |
+| Generalization | 12 | Stack Bowls, Fold Clothes, Hang Mugs |
+| Memory | 6 | Cover Blocks, Imitate Sorting Sequence |
+| Precision | 8 | Insert Key, Fasten Screws, Build Tower |
+| Long-Horizon | 8 | Classify Objects, Organize Table, Make Kong |
+| Open | 8 | Solve Equation, Classify Objects By Language |
 
-This is an abbreviated responsibility view; protocol guides and package marker
-files are omitted. [The task catalog](bench_server/protocol/task_catalog.json) is benchmark
-protocol data: it defines instructions, seeds, horizons and fixed evaluation
-panels. The server reads it to freeze the schedule. Native assets and runtime
-bindings belong in `environment/`; operator paths, GPU selection and the chosen
-named panel belong in `server.example.json` or an operator-owned copy.
+The catalog also has a separate DLC page, making 43 pages; its
+[DLC entry](https://robodojo-benchmark.com/doc/sim-tasks/dlc/) is labelled for
+training, not an additional core evaluation task. Standard and random-layout
+versions of a Generalization task share its task objective and catalog page.
 
-`bench_server/native_worker_client.py` connects the adapter to the private
-native worker. Model runners use the shared SIM service client instead. Moving
-these modules into packages does not change the wire protocol, action semantics,
-native scorer or historical result identities. The public launch command remains
-`python -m benchmarks.simBenchmarks.RoboDojo.server`.
+A native evaluation case identifies a task/configuration, robot embodiment,
+evaluation-seed directory and stored layout. A task name is not a layout, and a
+seed does not mean “generate any new scene.” In the pinned native evaluator,
+the seed selects an asset directory and layout IDs enumerate its stored JSON
+reset descriptions. The configured sample counts are:
 
-A private worker timeout or malformed acknowledgement faults that transport:
-the service does not replay the operation or enqueue finalization behind an
-unknown result. Cleanup uses bounded child termination and retains the error
-and cleanup receipt. A complete, correlated native error can still permit
-read-only finalization. Neither outcome authorizes an automatic case retry.
+| Native task configuration | Configured episodes |
+| --- | ---: |
+| Each Generalization task's standard configuration | 25 |
+| The corresponding `_random` configuration | 25 |
+| Other core task configurations, including `classify_objects` | 50 |
 
-## Supported service
+These counts come from the native
+[`_task.yml`](https://github.com/RoboDojo-Benchmark/RoboDojo/blob/ee67a1468510da7624a089164402359f2afc72c8/task/RoboDojo/config/_task.yml),
+not from a particular model's evaluation. Available asset files, requested
+episodes and completed attempts are different counts. Control horizons and
+scoring conditions are task-specific; do not apply one task's budget to all
+42 tasks. See [evaluation rules](EVALUATION_PROTOCOL.md#native-benchmark-and-case-selection).
 
-The only supported server interface is Direct v2:
-`robodojo-direct-v2-rgb-proprio28-eef16-robot-feedback-v1`.
-This identifies robot observations/actions and native execution, not the agent
-method. The current GPT driver defaults to generic `codex-native/v2`; using it
-does not change this server interface or reproduce the historical v2 method's scores.
-The task catalog currently
-enables `classify_objects` with two immutable schedules:
+## Evaluation rules
 
-- `fast`: fixed standard layouts 0–4, each attempted once;
-- `full`: layouts 0–49, matching the upstream configured 50 episodes, each
-  attempted once;
-- native horizon 1100 controls per layout;
-- three RGB cameras plus measured robot joints/end-effector poses;
-- absolute dual-arm end-effector targets;
-- fixed numerical DLS conversion followed by one native control;
-- one public robot-control acknowledgement after each executed control;
-- native task success and score remain evaluator-private until reporting.
+Declare the tasks, variants, embodiment, asset/runtime versions and selected
+cases before evaluation. Use native task scoring, keep partial score separate
+from binary success, and report the selected and completed denominators plus
+infrastructure errors. An agent's reasoning, memory and action grouping do not
+change native robot timing or task budgets.
 
-There is no runtime selector for earlier joint-control, v1, no-ACK, or
-experimental arrange-number services. Their source remains recoverable from Git
-history and local ignored `barks/`; it is not part of this public entrypoint.
+The Bench Server exposes declared sensors, robot state and action feedback.
+Object truth, private layout/reset data, reward internals and simulator handles
+are not agent inputs. The agent selects robot actions; the service does not
+provide task-solving plans or grasp actions.
 
-## Ownership boundary
+## Current Bench Server integration
 
-`benchmarks/simBenchmarks/RoboDojo` owns benchmark behavior. Model prompts,
-conversation state, voluntary-stop rules and action-generation logic belong in
-`AgentPolicies/<model-profile>/`. Public results belong in
-`AgentPolicies/<model-profile>/results/robodojo/`. The shared `benchkit/` may validate
-and publish closed evidence, but it does not choose robot actions.
+The current service exposes **`classify_objects` with two fixed-base ARX X5
+arms**. This is one implemented integration, not the size of RoboDojo. The task
+requires category sorting into three baskets and both arms returning to their
+starting end-effector poses. Other native tasks are not selectable yet.
 
-The service may expose declared robot state. It never exposes object truth,
-layout metadata, reward internals, success predicates, hidden scorer state or a
-task-solving RPC. Invalid public actions are not executed; the service returns a
-structured rejection so the client can make its next decision. An uncertain
-native or transport failure remains terminal.
+Its asset binding contains 55 stored layouts. The service selects either of
+the following fixed sets, once per layout:
 
-## Start the benchmark server
+| Selected layouts | Cases | Server configuration |
+| --- | ---: | --- |
+| 0–4 | 5 | `panel: "fast"` |
+| 0–49 | 50 | `panel: "full"` |
 
-Copy [server.example.json](server.example.json) to an operator-owned path and
-replace the runtime manifest path, digest and GPU. Protocol fields are not
-configurable. Select only a named catalog `panel`; arbitrary layout lists are
-rejected. Use a fresh server output directory and a strong evaluator-only token:
+The supplied configuration chooses five cases. The 50-case selection matches
+this task's configured native episode count; neither selection uses layouts
+50–54. Arbitrary subsets and `--episodes` truncation are not supported.
+The launch seed is fixed at 20260907 and native evaluation uses seed 0;
+changing the launch seed is not a way to choose layouts. See the
+[service task definition](bench_server/protocol/task_catalog.json) and
+[integration limits](../SERVICE_SUPPORT.md).
+
+### Robot interface
+
+| Channel | Current service contract |
+| --- | --- |
+| Images | Head, left-wrist and right-wrist RGB, each 640 × 480 |
+| Robot state | 28 values: measured arm joints and end-effector poses, plus last commanded gripper openings |
+| Action | 16 values: a 3D position, quaternion and gripper opening for each arm |
+| Position / rotation | Absolute link6 targets in the world frame, metres and unit `wxyz` quaternions |
+| Gripper | Continuous opening in [0,1], 0 closed / 1 open |
+| Control timing | 25 Hz; one action executes 10 physics ticks of 0.004 s |
+| Task budget | 1100 native controls per case; action grouping is chosen by the agent |
+
+This interface uses fixed robot-only numerical IK to convert end-effector
+targets into native joint commands. It is not a universal action definition for
+every RoboDojo embodiment. See the [action specification](EVALUATION_PROTOCOL.md#public-action),
+[action rejection contract](ACTION_VALIDATION.md) and
+[robot-control acknowledgements](ROBOT_FEEDBACK.md).
+
+### Start the benchmark server
+
+Follow [environment preparation](environment/README.md) for the pinned native
+runtime, authorized assets and deployment manifest. Copy
+[server.example.json](server.example.json) to an operator-owned path and set its
+runtime manifest, digest, GPU and chosen `panel`. The sensor/action protocol is
+fixed; it is not a runtime selector.
+
+Use a fresh output directory and an evaluator-only token:
 
 ```sh
 export RSI_SIM_SERVER_TOKEN='replace-with-a-url-safe-secret-of-at-least-32-characters'
 python -B -m benchmarks.simBenchmarks.RoboDojo.server \
-  --parameters /absolute/robodojo-direct-v2.json \
+  --parameters /absolute/robodojo-server.json \
   --seed 20260907 --port 8765 \
-  --output-dir /absolute/results-staging/robodojo/server
+  --output-dir /absolute/new-run/server
 ```
 
-The service binds to loopback. Use authenticated SSH forwarding when the model
-runner is on another node. Startup freezes the schedule but does not reset the
-simulator. A case is claimed once; failed reset/action evidence is retained and
-the case is not automatically retried.
+Startup fixes the schedule without resetting the simulator. The service binds
+to loopback; use SSH forwarding for a remote trusted driver. Connect through
+the [agent integration contract](../../../docs/agent-methods.md) and
+[shared wire protocol](../SERVER_PROTOCOL.md), using the same seed and complete
+selected schedule. Invalid actions do not execute; uncertain controls are not
+replayed. Failed cases and infrastructure errors remain in the result record.
 
-Run the model-owned client separately, for example:
+Report [native score and success](EVALUATION_PROTOCOL.md#scoring) separately.
+Interaction/media retention is optional; see
+[recording settings](../../../docs/recording.md). Results and method-specific
+configuration belong under `AgentPolicies/<profile>/`, not this directory.
 
-```sh
-python -B -m AgentPolicies.gpt6_astra.run \
-  --sim-server http://127.0.0.1:8765 --benchmark robodojo \
-  --control-method codex-native/v2 \
-  --seed 20260907 --episodes 5 --max-steps 1100 \
-  --max-policy-calls 240 --replan-interval 5 --budget-mode horizon \
-  --output-dir /absolute/results-staging/robodojo/client \
-  --run-id classify_objects-category-sorting-codex-native-v2-panel5
-```
+## Directory responsibilities
 
-The client command and credentials are model-owned. The benchmark server does
-not import `AgentPolicies/gpt6_astra`.
-The five-control prefix is a method configuration, not a server-side repeat rule;
-controls are submitted and acknowledged individually within the 1100-control horizon.
-By default, native videos remain in the server output and the client retains
-references. Use client `--copy-server-media` only when another local media copy
-is wanted; see [recording options](../../../docs/recording.md).
-
-## Evidence and status
-
-Every case retains its outcome, counts, configuration and separate errors.
-Detailed interactions and videos are optional, enabled by default where
-supported; see [recording options](../../../docs/recording.md). The current
-server still generates native evidence; client retention switches do not disable
-that capture. New services keep the three server-side camera videos by default,
-with client references instead of duplicate downloads. Temporary frame images are
-not kept after successful close when video evidence is available; use server
-`--retain-frame-images` to retain them explicitly. Paired receipts, native events and all three videos support the
-existing full-evidence audit/publication path, not general participation or basic
-result eligibility. `fast` is the five-layout reference comparison
-panel; `full` is this task's 50-layout native evaluation schedule, not the whole
-multi-task RoboDojo matrix. CPU tests and artifact audits
-do not prove native rendering or task success. The latest recorded native panel
-and public report live under the model result namespace; generated media and raw
-evidence are intentionally outside Git and require durable artifact storage.
+- `server.py`: public service entrypoint.
+- `bench_server/`: interface, native-worker communication and service task definitions.
+- `bench_server/protocol/`: selected task/layout catalog and feedback schema; not simulator assets.
+- `environment/`: native worker, robot-only conversion, runtime/asset pins and setup.
+- `EVALUATION_PROTOCOL.md`: native evaluation concepts and the implemented service contract.

@@ -3,30 +3,42 @@
 Task selection is benchmark-owned; attempt accounting is shared. See the
 [execution guide](../../docs/evaluation.md) for prepare, run-case and summarize.
 
-## Fast and full
+## Tasks, layouts and attempts
 
-A fast plan preselects a task/state subset with one attempt per selected task.
-Failure does not trigger a retry or replacement sample. The current campaign
-implementation explicitly records `evaluation_mode: fast`.
+Describe an evaluation by its selected cases, not a mode label:
 
-Full means the declared native suite's tasks, variations, initial states, seeds
-and episodes per task, with matching execution and aggregation rules. Native
-scheduled repetitions are not success-seeking retries. Full presets and a
-unified mode selector remain unimplemented; never infer full coverage from a
-task-only list or fabricate an episode count.
+| Quantity | Meaning | Example |
+| --- | --- | --- |
+| Task / suite | The requested behavior and its benchmark grouping | A LIBERO suite and task index |
+| Layout / initial state | A scene arrangement or released reset state | A RoboDojo layout ID; a LIBERO initial-state index |
+| Variation | A benchmark-defined change in conditions | LIBERO-Plus viewpoint, instruction or object-layout variation |
+| Seed | An input to native random generation | RoboTwin scene generation; it is not an explicit layout ID |
+| Attempt | One execution of a selected case | One task/initial-state pair evaluated once |
+
+Predeclare the selected tasks, applicable case identifiers, seeds and repetitions.
+Five tasks with five initial states each gives 25 cases. Running one task five
+times from the same state gives five attempts, not five different layouts.
+Changing a seed can repeat a layout or have no layout effect at all; each
+benchmark's protocol documents what its selector actually controls.
+
+Only use selectors supported by the current service; the
+[support matrix](SERVICE_SUPPORT.md) distinguishes interface availability from
+the benchmark's native task universe. Do not invent an unimplemented sampler
+by increasing `--episodes`. Planned repetitions are distinct from additional
+attempts selected after seeing a failure.
 
 ## Where the schedule lives
 
-Each integrated benchmark owns `evaluation/plan.py` beside its protocol.
-Plans enumerate cases, declare task scopes and bind required runtime resources.
-The common `benchkit.campaigns` prepares an immutable manifest and source package.
+Benchmark-owned plans live in `bench_server/protocol/plan.py` where implemented;
+other services select cases through a catalog or adapter. Plans enumerate cases,
+declare task scopes and bind required runtime resources. For its registered
+local execution paths, `benchkit.campaigns` prepares an immutable manifest and
+source package; it is not a remote-server orchestration layer.
 
-Current plans differ deliberately: SimplerEnv enumerates its 15 canonical
-development subtasks; LIBERO enumerates 130 suite-task entries, which are not
-130 distinct task definitions. Other adapters expose fixed subsets and, where
-implemented, explicit expansions such as RoboCasa365 `target50` or SIMPLE
-`released-12`. Inspect the selected benchmark's protocol and generated cases.
-Do not confuse an adapter's standalone default selection with its campaign plan.
+Inspect the selected benchmark's protocol and generated cases. A plan's task
+list, an adapter's default selection and the native benchmark inventory are
+different things. Neither a preselected sample nor a record of completed runs
+defines the benchmark's task count.
 
 ## Immutable attempts
 
@@ -47,7 +59,7 @@ Always state:
 - attempted, completed, unattempted and running counts;
 - native successes and failures among protocol-completed episodes;
 - policy, protocol and infrastructure errors separately;
-- missing artifacts, source-verification failures and accounting limitations.
+- unavailable scores and inference accounting, without replacing unknowns by zero.
 
 Frozen manifests, environment diagnostics and unclaimed cases are not completed
 capability evaluations. Keep both completed-episode and all-attempt success
@@ -61,7 +73,8 @@ old frozen evidence is not rewritten to satisfy a newer reporter.
 
 Maintain each model's task ledger, reports and indices in
 `AgentPolicies/<profile>/results/<benchmark>/`. Raw runs and generated media are
-Git-ignored. Internal scheduling diaries are not benchmark specifications.
+Git-ignored. Internal progress, run counts and scheduling diaries belong in
+`project_readmes/`, not benchmark specifications or public introduction tables.
 
 ## Protocol changes
 

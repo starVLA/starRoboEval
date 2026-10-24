@@ -1,134 +1,134 @@
 # BEHAVIOR 2026 evaluation protocol
 
-- Tracks: historical radio `behavior-2026-default-rgb-proprio-debug/v1`;
-  corrected selected-task extension `behavior-2026-default-rgb-proprio-debug/v3`.
-  Frozen selected-task v2 runs retain their original identity and cap.
-- Native source: v3.9.2, `b1979916ec1549b10a4e65e630bc6504a9af1b00`.
-- Evidence: the historical radio HTTP smoke check is documented in
-  [verified scope](README.md#verified-scope). Adding a task to the catalog does
-  not establish native readiness or a model score for that task.
-- Public entrypoint: `benchmarks.simBenchmarks.Behavior.server`.
+## Native benchmark and challenge schedule
 
-## Fixed selected schedule and budgets
+BEHAVIOR-1K defines **1,000 activities**. The 2026 challenge evaluates a
+**100-task selection**, whose IDs, instructions and scenes are listed in the
+[native task catalog](https://github.com/StanfordVL/BEHAVIOR-1K/blob/b1979916ec1549b10a4e65e630bc6504a9af1b00/docs/challenge/task_data.json).
+A task defines goals; a scene is the household environment; an instance fixes
+initial object states and robot poses for that task. Sharing a scene does not
+make two task instances the same evaluation case.
 
-Select one task per server deployment. Each supported task currently has one
-fixed fast case: public index 0 → native instance 301, rollout 0. Attempt it
-once, preserving failure or infrastructure error. Native evaluation seed is 0;
-the run seed records identity and does not silently replace the native seed.
-The four-task validation order is trash → desk → honey → brisket.
-Tasks 22 and 34 are separately selected single-case extensions; they do not rerun that
-four-task panel or change its recorded results.
+The [2026 rules](https://github.com/StanfordVL/BEHAVIOR-1K/blob/b1979916ec1549b10a4e65e630bc6504a9af1b00/docs/challenge/evaluation.md)
+specify one rollout for each of the first ten public instances, indices 0–9,
+per task: **1,000 task/instance trials** across the 100 tasks. Indices 10–19
+are additional public development instances. Hidden instance indices are reserved
+for organizers; their available index range does not determine the final panel.
 
-| Task | Catalog name | Mean human length | Native timeout parameter | Service control cap | Track |
-| --- | --- | ---: | ---: | ---: | --- |
-| Turning On Radio (historical) | `turning_on_radio` | 2149.64 | 3224 | 3224 (legacy) | v1 |
-| Task 1: Picking Up Trash | `picking_up_trash` | 5267.75 | 7901 | 7902 | v3 |
-| Task 29: Clean Up Your Desk | `clean_up_your_desk` | 21417.875 | 32126 | 32127 | v3 |
-| Task 83: Store Honey | `store_honey` | 6766.84 | 10150 | 10151 | v3 |
-| Task 51: Cook A Brisket | `cook_a_brisket` | 7334.995 | 11002 | 11003 | v3 |
-| Task 22: Putting Shoes On Rack | `putting_shoes_on_rack` | 7726.145 | 11589 | 11590 | v3 |
-| Task 34: Hanging Pictures | `hanging_pictures` | 2387.415 | 3581 | 3582 | v3 |
+The primary challenge ranking metric is final goal-predicate completion Q,
+averaged across tasks; binary task success must be reported separately.
+The native timeout is task-specific, based on 1.5 times mean human length.
+
+## Available service bindings
+
+The current integration uses BEHAVIOR-1K v3.9.2, source revision
+`b1979916ec1549b10a4e65e630bc6504a9af1b00`. One deployment selects one of the
+seven task bindings below and **one fixed instance**: public index 0 → native
+instance 301, rollout 0. Native evaluation seed is 0; changing the run seed does
+not select another layout. Other tasks and instance indices are not exposed.
+
+| Task | Catalog name | Selected scene | Service control cap |
+| --- | --- | --- | ---: |
+| Task 0: Turning On Radio | `turning_on_radio` | `house_double_floor_lower` | 3224 |
+| Task 1: Picking Up Trash | `picking_up_trash` | `house_double_floor_lower` | 7902 |
+| Task 29: Clean Up Your Desk | `clean_up_your_desk` | `house_single_floor` | 32127 |
+| Task 83: Store Honey | `store_honey` | `Rs_int` | 10151 |
+| Task 51: Cook A Brisket | `cook_a_brisket` | `house_double_floor_lower` | 11003 |
+| Task 22: Putting Shoes On Rack | `putting_shoes_on_rack` | `house_double_floor_lower` | 11590 |
+| Task 34: Hanging Pictures | `hanging_pictures` | `house_double_floor_lower` | 3582 |
 
 Task labels follow the [2026 task gallery](https://behavior.stanford.edu/challenge/tasks/index.html).
-The native timeout parameter is `H = int(mean_human_length * 1.5)`, not a
-model-decision limit. In the pinned implementation, `Timeout._step` checks
-`env.episode_steps >= H` **before** `Environment._post_step` increments the
-counter, which starts at zero. Without earlier termination, native timeout is
-therefore returned on executed control **H + 1**. Selected-task v3 declares that
-effective control cap; it does not change the native timeout parameter, inject a
-terminal flag, or grant an arbitrary extra budget. The trusted driver must use
-the service-declared control cap for `--max-steps`.
+The [service task definitions](bench_server/protocol/__init__.py) bind each
+selection's scene, instruction and instance.
 
-Historical radio v1 and selected-task v2 incorrectly equated H with the native
-terminal control count. Their frozen records are not rewritten. Radio retains
-its legacy cap and must not be described as validated native-timeout parity.
-The v2 trash run exposed the mismatch after executing control 7901: the worker
-rejected its nonterminal result, leaving 7900 client acknowledgements. That is
-an engineering interruption, not a completed native failure. A corrected run
-requires a new identity; no uncertain action or closed episode is replayed.
+## Observations
 
-Native metadata `task.jsonl` SHA256:
-`7dbb5f7f00a2e06c693dfbb3045e5c28e627b6179e775f1ad93ca4b61f08e6dc`.
-One action means one native 30 Hz control, normally four 120 Hz physics ticks.
-Measured clock mismatches are infrastructure errors, not repaired controls.
-Decisions, controls, physics and initialization are separate. Diagnostic limits
-do not alter the native cap. No benchmark model-call cap or give-up preference.
+The service exposes language, three 224×224 RGB images (head, left wrist and
+right wrist), and 61 measured robot-state values. Native camera alpha is removed;
+images are not resized or annotated. Robot state includes body-frame base
+velocity, joint/finger positions and velocities, and robot-relative end-effector
+poses. See the exact order and units in [the native contract](environment/NATIVE_CONTRACT.md).
 
-The 2026 challenge reports 100 tasks with public indices 0–9 once each. Pinned
-native source exposes 20 public indices 0–19 and 20 hidden indices. One selected
-case per supported task is neither the complete public split nor challenge matrix. Full evaluation
-is not implemented. Historical `tasks.jsonl` and `behavior-2025-starvla-draft`
-retain their old meaning.
+Language gives the selected goal, not current predicates or a solution.
+Trash, desk, shoe-rack and hanging-pictures instructions come from native
+`docs/challenge/task_data.json`; honey and brisket use goal-only text based on
+their pinned BDDL definitions. The radio instruction is “Turn on the radio.”
 
-## Sensors and direct controls
+This uses native `DefaultWrapper`, not the challenge's
+`RGBDFullResWrapper` (head 720×720, wrists 480×480, plus metric depth).
+Camera poses, global robot pose, object truth, numeric task IDs, reset metadata,
+goal predicates and intermediate scores are excluded from actor observations.
 
-Native `DefaultWrapper` supplies three 224×224 uint8 RGBA cameras. Strip alpha
-explicitly and expose head, left_wrist, right_wrist RGB without resizing or
-annotations, measured 61-value robot proprioception, and the selected task's
-language instruction. Trash, desk, shoe-rack and hanging-pictures instructions come from pinned native
-`docs/challenge/task_data.json`. Honey and brisket use benchmark-authored,
-goal-only language based on the pinned BDDL problem; their provenance is recorded
-in the catalog. These instructions do not expose current goal predicates,
-object coordinates or a task-solving plan.
-Exact state order/units and action slices are in
-[NATIVE_CONTRACT.md](environment/NATIVE_CONTRACT.md) and
-[`bench_server/protocol`](bench_server/protocol/__init__.py).
+## 23-dimensional action
 
-Accept exactly 23 finite values: 3 base body-frame velocity inputs; 4 absolute
-torso targets; 7 left joints + 1 gripper; 7 right joints + 1 gripper. Torso/arms are
-radians, not normalized/delta commands. Gripper -1 closes/+1 opens. Retain native
-input scaling, motor limits, smooth grippers and `assisted` grasping. No extra
-server motion guards, clipping, task controller or EEF planner. Invalid format
-does not execute; shared pre-execution rejection feedback applies. Uncertain
-execution is terminal, never replayed. Each sequenced action RPC executes one
-native control; this does not require one model inference per RPC.
+Each request contains exactly 23 finite real values:
 
-This debugging wrapper is **not official RGBDFullResWrapper** (head 720²,
-wrists 480² plus metric depth). No full RGBD parity claim. Camera poses, numeric
-task IDs, global robot pose, object truth, reset metadata, goal predicates and
-intermediate scoring never enter actor observations. Measured joint/FK state has
-real-robot counterparts; native reset/paused-time semantics need not.
+| Slice | Command | Units and semantics |
+| --- | --- | --- |
+| `0:3` | Base `vx, vy, wz` | Body-frame normalized velocity inputs; native scaling maps translation to ±0.75 m/s and yaw to ±1 rad/s |
+| `3:7` | Four torso joints | Absolute joint positions in radians |
+| `7:14` | Seven left-arm joints | Absolute joint positions in radians |
+| `14` | Left gripper | Smooth normalized input: −1 close, +1 open |
+| `15:22` | Seven right-arm joints | Absolute joint positions in radians |
+| `22` | Right gripper | Smooth normalized input: −1 close, +1 open |
 
-## 推理次数与执行步数：节奏由策略决定
+These are joint/base commands, not end-effector targets. Native input scaling,
+motor constraints, smooth grippers and `assisted` grasping remain unchanged.
+There are no additional service motion guards, clipping or task-solving actions.
 
-当前 v3（以及历史 v2）不规定“一次推理只能执行一步”。Agent 可以一次生成多个动作，或重复
-同一动作，再由策略客户端按顺序逐步提交；也可以只执行一小段就重新观察、
-推理。动作段长度、何时重新观察以及方法自身的长度上限，都归策略配置，
-不是 benchmark server 的要求。
+One accepted action advances one **30 Hz control**, normally four **120 Hz
+physics ticks**. Initialization is counted separately. The simulator does not
+autonomously advance while the agent reasons.
 
-例如，在视野清楚的移动或搜索阶段，策略可以选择较长的动作段；接近物体、
-抓取、放置或需要纠偏时，可以缩短动作段、增加观察频率。这只是通用的方法
-建议，不是强制规则或保证成功的控制器。长动作段会减少重新观察的机会；
-策略应根据已公开的 RGB 和机器人状态自行判断。
+## Decisions and control execution
 
-Server 仍按原生 30 Hz 控制语义执行，每个控制步通常对应四个物理步；没有
-后台自主行动、自动导航或抓取规划。每步仍检查原生终止条件和剩余执行预算，
-不能为了完成一个动作段而越过 horizon。拒绝的动作不执行；执行结果不确定
-时不得重放动作。
+An agent may choose several controls in one decision and submit them as
+successive sequenced requests. Reasoning frequency and action grouping belong
+to the method; native timing, termination and the total control budget do not.
 
-报告应分别记录模型调用次数、实际执行的决策数、原生控制步数与物理步数，
-并披露策略的动作段配置。它们不必是 1:1；推理耗时也不等于仿真时间。
-历史 radio v1 的 prefix=1 保持不变，不回写旧协议或旧结果。选定的扩展任务
-不继承这一限制；v3 修正了原生 timeout 参数与实际执行上限的对应关系，
-原生结束条件、timeout 配置与评分规则均未改变。
+**Current integration constraint:** radio requires a new observation/decision
+after each control. The other six tasks do not impose that prefix-one setting.
+It is a service constraint, not a native BEHAVIOR rule. Report model calls,
+executed decisions and native controls separately; they need not be 1:1.
 
-## Native execution and scoring
+Invalid input does not execute a control. Native success or termination ends execution even when a submitted
+action group has unused controls.
 
-An isolated worker constructs the exact native Evaluator lazily. Only
-`load_policy` is replaced by a strict one-slot external-action bridge: each
-`Evaluator.step` consumes one externally selected action, with no inference or
-fallback. Preserve native robot/render/transition rules and
-`reset → load_task_instance(301) → reset`. The 25 explicit settling ticks are
-only part of initialization; clock samples are recorded without guessing total
-startup ticks.
+## Execution budgets
 
-Binary success is native `env.task.success`. Native metric aggregates,
-including partial final `q_score`, remain evaluator-private. Q is not SR.
-Early diagnostic exit reports `native_episode_complete: false`, not a native
-horizon failure. Nonfinite native metric values use explicit tagged JSON:
-`{"native_nonfinite":"+inf"}`, `"-inf"`, or `"nan"`, never zero/null or invalid
-JSON. Retain controls, errors, deployment identity, loaded contract, private
-outcome, all three videos and cleanup receipts.
+The native timeout parameter is
+`H = int(mean_human_length × 1.5)`, based on native task metadata. The pinned
+implementation checks its zero-based counter before incrementing it, so the
+native timeout occurs on executed control **H + 1**, unless the task ends earlier.
 
-No automatic retry, hidden-state action generation, training bridge, full-suite
-claim or model capability result follows from offline conformance.
+| Task | Mean human length | Native timeout parameter H | Controls until native timeout |
+| --- | ---: | ---: | ---: |
+| Turning On Radio | 2149.64 | 3224 | 3225 |
+| Picking Up Trash | 5267.75 | 7901 | 7902 |
+| Clean Up Your Desk | 21417.875 | 32126 | 32127 |
+| Store Honey | 6766.84 | 10150 | 10151 |
+| Cook A Brisket | 7334.995 | 11002 | 11003 |
+| Putting Shoes On Rack | 7726.145 | 11589 | 11590 |
+| Hanging Pictures | 2387.415 | 3581 | 3582 |
+
+The current radio service cap is 3224, one control before its native timeout;
+that cap must be reported as an external truncation if native success has not
+occurred. The other six service caps match the native timeout control count.
+These are execution budgets, not limits on reasoning calls.
+
+## Native scoring and result statistics
+
+The worker preserves native evaluator reset, instance loading, control and
+scoring. Binary success is native `env.task.success`; final `q_score` is partial
+goal progress. Q is not success rate, and a model's own completion declaration
+does not replace native success.
+
+Report task/instance, binary success, final Q, actual controls and stop reason.
+For several selected cases, report successes and the selected/attempted case
+counts alongside Q statistics. Native failure, external truncation and
+infrastructure error are separate result categories.
+
+Optional interactions and video recording use
+[shared recording settings](../../../docs/recording.md). Environment/controller
+details and source/asset requirements are in
+[environment preparation](environment/README.md).

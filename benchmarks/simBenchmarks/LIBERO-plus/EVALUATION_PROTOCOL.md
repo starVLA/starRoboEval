@@ -1,7 +1,5 @@
 # LIBERO-Plus direct-control protocol
 
-Status: implemented lazy adapter and standalone SIM server; native full parity
-and model capability scores are not established by installation or CPU tests.
 Benchmark ID: `libero_plus`. Native source pin:
 [`4976dc30028e805ff8094b55501d532c48fec182`](https://github.com/sylvestf/LIBERO-plus/tree/4976dc30028e805ff8094b55501d532c48fec182).
 
@@ -28,16 +26,22 @@ initial-state file SHA-256. `environment/freeze_catalog.py` reproduces this data
 read-only from the pinned upstream checkout without importing a simulator.
 No licensed training dataset or model weights are needed for evaluation.
 
-`evaluation_mode: fast` selects an explicit increasing, unique `task_ids` list,
-one predeclared seed, released state index **0**, and **one attempt per selected
-variant**. Failures and environment errors remain in the selected denominator;
-neither the client nor the adapter retries a failed task/reset. Upstream's own
+### Service selection
+
+Select an explicit increasing, unique `task_ids` list,
+one predeclared seed and released state index **0**. Upstream's own
 reset wrapper may retry internal placement randomization before returning one
 reset; that is retained native initialization, not a success-seeking model retry.
-The upstream README instructs changing original LIBERO's 50 trials to **one
-trial per LIBERO-Plus variant**. A `full` preset is deliberately rejected until
-the complete native matrix, seed/aggregation convention and runtime are verified.
-Selecting many task IDs is not proof of full benchmark parity.
+The upstream README specifies **one trial per LIBERO-Plus variant**. Report
+the selected suite, variant IDs, categories and attempts, including unattempted
+cases and errors. This service exposes released state 0 for each variant; it
+does not expose a selectable list of additional initial states.
+
+A variant is a native perturbation definition, not a reset seed. For example,
+the camera-view and robot-initialization components encoded in its virtual
+filename are interpreted by the native wrapper. The seed initializes native
+randomization but does not select the variant or guarantee a visibly distinct
+layout. Several variants may share the same backing initial-state file.
 
 ## Native variation and reset semantics
 
@@ -46,7 +50,7 @@ The service passes the exact **virtual** native BDDL filename to
 the environment: `_view_..._initstate_...` names cause the native wrapper to
 change camera orientation/distance, endpoint angles, Panda initialization and,
 when present, sensor-noise parameters. The wrapper resolves the actual BDDL by
-removing the view suffix. No variation is recreated by a model or harness helper.
+removing the view suffix. No variation is recreated by a model or evaluator helper.
 
 The native reset loader resolves filenames in this precedence order:
 
@@ -81,7 +85,7 @@ generated from the full variant filename and includes numeric view/init-state
 suffixes. Passing it through would disclose evaluator-private parameters. RSI
 uses the actual BDDL instruction instead; the original native string remains in
 private catalog/provenance for identity checks. This explicit direct-control
-track must not be reported as byte-identical legacy model-prompt parity.
+track must be distinguished from evaluations using filename-derived language.
 
 Each native control is a normalized 7D OSC_POSE vector in `[-1,1]` at **20 Hz**:
 world-frame translation deltas (component 1 → 0.05 m), world axis-angle rotation
@@ -95,12 +99,13 @@ step, scorer or artifact-read endpoint. Idle service time causes no controls.
 
 ## Budgets, scoring and reporting
 
-The retained StarVLA evaluator references 220/280/300/520 policy controls for
+The pinned evaluator references 220/280/300/520 policy controls for
 spatial/object/goal/LIBERO-10, excluding the 10 settle controls. These are named
 reference horizons, not an inferred universal engine limit. Optional
 `budget_mode: decisions` declares `max_policy_calls × replan_interval` as an
-explicit alternative control cap and changes protocol identity. The neutral
-runner separately enforces call/chunk limits. Calls, executed action decisions,
+alternative control cap and changes protocol identity; those settings are not
+native task definitions. The trusted driver separately enforces its own selected
+call/chunk limits. Calls, executed action decisions,
 native controls and settle controls are distinct counters. Ordinary give-up
 preferences belong to the policy profile, never this benchmark.
 
@@ -110,22 +115,18 @@ model text. Native success terminates; exhausting the predeclared control cap
 without success truncates. A renderer/load/protocol error is an infrastructure
 error, not evidence that the policy cannot perform the task.
 
-The server and evaluator retain source captures, schedule, original failures,
-native versions, reset/BDDL hashes, action records, PNG frame hashes and separate
-camera-named videos. Selected mesh/texture references from constructed native
-XML have bounded hash receipts; unresolved relative references are explicit.
-These receipts do **not** attest the complete asset archive or loaded GPU memory.
-The 60 declared native source files are hash-checked before reset. Dependency
-versions and the controller configuration are recorded/checked, not a byte-level
-attestation of all third-party package source or loaded memory. Use a stable
-native checkout and inspect renderer diagnostics before capability work.
-The native import inventory rejects extra Python/extension/bytecode files and
-source-directory symlinks before import. Asset, BDDL and reset trees are data
-scopes verified separately, not a recursive import inventory of unused code.
+Record the selected suite/variant schedule, protocol and method configuration,
+original outcomes/errors, budgets, counters and available inference usage.
+Give separate category counts and the denominator of every aggregate. Native
+versions and reset/BDDL identities identify the environment used. Optional
+interactions and media follow [recording](../../../docs/recording.md).
+
+The service verifies its 60 declared native source files and resolved task/reset
+files before evaluation. Installation checks are described in [README.md](README.md).
 The actual ImageMagick library version, quantum depth and HDRI/features are
 recorded separately from Python Wand. Do not aggregate sensor-noise results
-across different backends; this initial integration does not claim a universal
-ImageMagick binary pin or complete full-suite parity.
+across different backends; this integration does not impose a universal
+ImageMagick binary pin.
 
 `native_events.jsonl` records evaluator-private initialization and control
 start/end receipts. Metrics distinguish declared settling, actually completed
@@ -136,6 +137,6 @@ further controls and close failures remain visible on repeated cleanup calls.
 
 Results, indices and video exports belong under
 `AgentPolicies/<profile>/results/libero_plus/`, not in this benchmark directory.
-Historical anonymous attempts cannot be relabeled as verified named-model scores.
-The standalone server is supported; remote frozen campaign/full scheduling is
-not yet integrated. See the [shared service protocol](../SERVER_PROTOCOL.md).
+Unknown method/provider identity remains explicit in reports.
+Use the standalone server for the declared variant list. The separate campaign
+commands do not schedule this remote service. See the [shared service protocol](../SERVER_PROTOCOL.md).

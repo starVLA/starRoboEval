@@ -1,4 +1,4 @@
-# Public GR1 tabletop policy interface
+# Public GR1 Tabletop robot interface
 
 Use only the current declared RGB image, task language and 29 measured joint
 encoders. The native language may begin with `unlocked_waist:`. The image is the
@@ -6,10 +6,17 @@ native 256x256 egocentric crop. No other view, object/EEF/world pose, reward,
 success signal, reset metadata or simulator API is available to the policy.
 
 Each action contains 29 physical absolute joint-position targets in radians,
-not normalized values, velocities or Cartesian deltas. Execute one to five
-vectors per decision; each vector advances 50 ms, with no hidden extra repeats.
-The provisional budget is at most 200 policy decisions. The public action
-specification gives the exact ordered joint names and command bounds.
+not normalized values, velocities or Cartesian deltas. Each service step
+executes one vector and advances 50 ms, with no hidden extra repeats. The
+public action specification gives the ordered joint names and command bounds.
+
+In `budget_mode="horizon"`, the selected `control_step_cap` is at most 1000;
+decision frequency, action grouping and additional call limits belong to the
+participant method. The separately retained `budget_mode="decisions"` track
+couples D=1–200 calls and K=1–5 controls per response to a D × K control cap.
+These are different protocol tracks, not a universal decision limit. The
+24-task seeded scope supports only the horizon track. See the
+[evaluation protocol](../../EVALUATION_PROTOCOL.md#budgets-and-scoring).
 
 | Slots | Joint/command order |
 | --- | --- |

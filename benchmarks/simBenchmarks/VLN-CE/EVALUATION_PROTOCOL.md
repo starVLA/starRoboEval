@@ -1,12 +1,13 @@
 # VLN-CE evaluation protocol
 
-RSI status: **`protocol_draft`**. The specification below is a proposed
-adapter contract, not evidence of an installed runtime or completed attempt.
+VLN-CE measures instruction following and navigation in continuous indoor
+scenes, using native route-success and path-efficiency metrics. The specification
+below proposes a service interface for the R2R unseen-scene validation split;
+the service is not implemented yet.
 Pinned upstream sources and environment/asset requirements are in [PREFLIGHT.md](PREFLIGHT.md).
 
 ## Identity and episode selection
 
-- Draft protocol family: `vlnce-r2r-v1-3/rgb/native-horizon500/draft-v1`.
 - Evaluator: [StarVLA-VLN-CE-Evaluation at
   `2e56d1c026b2945b90b4ff339bdec2cb1e42b800`](https://github.com/LiuRicky/StarVLA-VLN-CE-Evaluation/tree/2e56d1c026b2945b90b4ff339bdec2cb1e42b800).
 - Native task: `VLN-v0`; dataset registration: `VLN-CE-v1`; released data:
@@ -23,19 +24,10 @@ goal. `trajectory_id` identifies a route and `scene_id` identifies a building;
 neither should be counted as a distinct manipulation task. Different instructions
 can describe the same route. Native reset/scoring fields remain evaluator-private.
 
-Neither fast nor full is currently executable through a unified adapter.
-
-| Mode | Required selection |
-| --- | --- |
-| `fast` | A preselected episode subset, one attempt per selected episode, with an explicit denominator |
-| `full` | Every episode in the selected native dataset/split/role/language configuration, with its native evaluation settings |
-
-Full R2R `val_unseen` coverage means all 1,839 released episodes, not one episode
-per each of its 11 scenes. R2R, RxR, language, guide/follower roles and challenge
-configurations are separate variants. Neither mode permits success-based retries,
-easy-route selection or replacement of failed attempts. A subset result cannot
-establish a full VLN-CE score. Repeated native evaluation cells must be declared
-before execution rather than added after failure.
+R2R `val_unseen` contains 1,839 released episodes across 11 scenes. R2R, RxR,
+language, guide/follower roles and challenge configurations are separate
+selection dimensions. Specify episode IDs and repetitions in the evaluation
+configuration.
 
 ## Policy observation boundary
 
@@ -54,9 +46,9 @@ pose, goal coordinates, shortest paths, navigation graph, maps, oracle progress,
 distance, reward, success or other scoring metadata reaches the policy. The
 runner supplies an opaque episode label rather than the native episode ID.
 
-The legacy QwenVL trainer samples up to eight RGB frames from native-step
-history. That wrapper is not the current-image contract above; preserving it
-requires a separately frozen history variant, including sampling and timing.
+The draft specifies current-image delivery, not a model-specific history sampler.
+Methods may retain previously delivered inputs within the declared episode
+scope; adding server-provided history requires explicit sampling/timing rules.
 Video or metric overlays are evaluator artifacts, never policy images.
 
 ## Native navigation actions
@@ -78,8 +70,8 @@ Do not use a seven-dimensional arm action, velocity command, waypoint planner,
 teleport or shortest-path follower. Do not invent a control frequency for these
 native task actions.
 
-One `Policy.act` call produces one decision containing one to five explicit
-native actions. One `EpisodeSession.step` executes exactly one of them. Do not
+One service `step` would execute exactly one explicit native action. The method
+chooses whether to group several actions before another decision. Do not
 silently repeat short chunks, round malformed output, default invalid text to
 forward, or carry queued actions into another episode. The runner records the
 executed prefix and stops playing it when the native episode ends.
@@ -91,28 +83,23 @@ scorer. Report generic stop separately as a policy abort.
 
 ## Budgets and native termination
 
-A proposed fast R2R configuration uses these matching adapter/runner settings;
-this table is a draft, not an implemented runner preset:
+A proposed R2R configuration uses the following native execution budget;
+this table is a draft, not an implemented service preset:
 
 | Setting | Value |
 | --- | ---: |
 | `budget_mode` | `horizon` |
 | Native `ENVIRONMENT.MAX_EPISODE_STEPS` | 500 |
-| Runner `max_steps` | 500 |
-| `max_policy_calls` | 200 |
-| `replan_interval` | 5 |
+| Service control cap | 500 native actions |
 
-The first exhausted limit ends the attempt. Thus 500 native actions can end an
-attempt before 200 decisions; 200 short-chunk decisions can end it before 500
-actions. Count STOP and failed/scheduled policy calls, and record actual calls,
-native actions, executed chunk lengths and the exact termination reason. These
-are fast evaluation limits, not a validated native full scoring configuration.
+An optional method-call cap and action-grouping policy belong to the agent and
+must be disclosed separately; no universal 200-call/five-action setting is part
+of this draft. Count STOP as a native action, and record decision calls, controls,
+executed chunk lengths and the exact termination reason separately.
 
-Do not relabel this track as decision-primary. A future 200-decision,
-five-action-prefix track with a 1000-action native cap changes the native
-500-action horizon; it needs its own protocol/configuration and must be reported
-as an extended development variant. It is not an official VLN-CE score, and
-existing attempts must not be retroactively relabeled.
+An extended control cap would need a separate development protocol; it cannot
+be presented as the native 500-action condition or applied retroactively to
+existing attempts. An agent's choice of action grouping does not extend the cap.
 
 Native success is authoritative: Habitat requires an executed STOP and a final
 geodesic distance strictly below 3 metres. Merely entering that radius does not
@@ -128,25 +115,12 @@ Normalize native success to the required boolean without recomputing it. GT
 paths needed by nDTW belong exclusively to the evaluator. Non-finite metrics
 or missing scoring assets are visible errors, not silently discarded failures.
 
-## Required artifacts and adapter acceptance
+## Result statistics
 
-Retain the manifest, exact selected episodes, seed, split, role/language where
-applicable, runtime/build revisions, configuration and asset checksums. Log each
-policy call, action chunk, executed action, termination reason, native metrics,
-provider transcript and available token/cost/latency usage. Unavailable usage
-is unknown, not zero. Preserve the original result of every attempt and keep
-infrastructure errors distinct from completed policy failures.
+Report the selected split, scene/episode counts, native metrics and termination
+reason. Keep infrastructure errors distinct from completed unsuccessful routes.
+Do not equate oracle success with success after a native STOP.
 
-Record reset and native-step RGB frames into a decodable video under the
-runner-owned episode artifact directory. Native poses, paths and scoring records
-may be retained for evaluator auditing but must be isolated from policy access;
-a file mailbox by itself is not a sandbox.
-
-Before model evaluation, verify reset/render/action semantics,
-integer/observation boundaries, STOP versus timeout handling and video output.
-For a fixed episode and recorded action sequence, compare native direct
-execution with the unified session: every executed action, final trajectory,
-termination and native metric must agree. This is evaluator validation, not a
-policy success-seeking retry. Review retained evaluation artifacts independently
-before declaring the adapter ready. Neither a reachable model server nor documentation
-alone passes this gate.
+Interaction history and video retention are optional; see
+[recording settings](../../../docs/recording.md). The implementation work and
+environment checks needed before deployment are listed in [PREFLIGHT.md](PREFLIGHT.md).

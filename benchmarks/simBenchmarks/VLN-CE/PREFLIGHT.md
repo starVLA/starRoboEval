@@ -107,8 +107,8 @@ Missing assets or an unavailable runtime are setup prerequisites, not model fail
    and RGB video in runner-owned artifacts. Keep provider/model code outside
    the evaluator, with no simulator or GT access from the policy process.
 5. Add dependency-light contract/boundary checks and native direct-versus-session
-   trajectory/metric verification. Define a fast subset or a native full split
-   explicitly; retain every scheduled attempt, failure and typed error without
+   trajectory/metric verification. Select explicit episode IDs from the native split;
+   retain every scheduled attempt, failure and typed error without
    automatic retries. Do not register or advertise a runnable adapter before one
    exists and passes its relevant checks. A successful task completion is not
    required to validate correct environment stepping and scoring.

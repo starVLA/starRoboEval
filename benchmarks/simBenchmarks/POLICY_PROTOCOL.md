@@ -1,8 +1,6 @@
 # Agent-method interaction contract
 
-Current method declaration: `starvla-rsi.method/v1`. Historical frozen packages
-retain their original `starvla-rsi.policy/v1-draft` definitions; this guide does
-not upgrade their evidence or change any benchmark's native interface version.
+Method declaration: `starvla-rsi.method/v1`.
 
 StarVLA-RSI evaluates complete agent methods through declared robot capabilities.
 Participants own model composition, prompts, memory, tools and planning. The
@@ -43,21 +41,12 @@ The model response may contain private reasoning if the provider supports it,
 but only the final structured decision crosses the policy boundary. Hidden
 chain-of-thought is neither required nor stored.
 
-The currently implemented file mailbox is an **experimental development
-transport**, not a trusted provider-request meter.
-It enforces scheduled observation/action exchange, but cannot count hidden
-provider activity or sandbox an actor's filesystem. Orchestrated code-agent
-trials report unavailable provider usage as `null`, retain observable decision
-counts, without claiming provider identity, complete usage measurement or
-enforced filesystem isolation. Missing usage is not a participation ban.
-
-In the current development campaigns the frozen public prompt explicitly
-permits remembering earlier observations/actions from the same episode. The
-mailbox's `history: current_observation_only` describes payload delivery, not a
-claim that the external actor is stateless. Its conversation memory and provider
-context length are not metered; no cross-episode memory is allowed in that
-mailbox track. Disclose method-specific history/context settings; enforce any
-limits required by the selected track, not a new universal inference budget.
+Declare how the method retains delivered observations/actions and measures
+provider usage. Current-observation delivery does not imply a stateless method:
+it may remember previously delivered inputs within the allowed episode scope.
+Unmeasured usage remains unknown, not zero. A transport connection alone proves
+neither provider identity nor filesystem isolation. Client-specific transport,
+memory and recovery behavior belongs in the method's own documentation.
 
 ## Direct policies and diagnostics
 
@@ -87,8 +76,10 @@ Private simulator state, object poses, segmentation, reward, success predicates,
 oracle plans and scorer internals are forbidden. A proposed privileged track is
 not an enabled exception in this framework. Permitted robot proprioception must
 already be declared by the selected benchmark protocol; a method cannot add it
-because an external example has access to it. The evaluator, model and provider
-may not retain cross-episode state unless the released protocol says so.
+because an external example has access to it. The evaluated method must not
+carry task-dependent memory across episodes unless the selected protocol permits
+it. This does not forbid evaluator bookkeeping or claim control over provider
+storage; disclose the method's effective context and any isolation limitations.
 
 ## Action contract
 
@@ -97,9 +88,12 @@ benchmark's declared `ActionSpec`. The specification freezes component order,
 bounds, units, coordinate frame, rotation representation, gripper convention,
 and control frequency.
 
-The runner validates every vector and rejects invalid actions; it does not
-silently clip them. A fixed `replan_interval` determines how much of a chunk is
-executed before the next observation. Protocol-fixed image conversion, units,
+Invalid actions are rejected without execution or silent clipping. The method
+chooses chunk length and when to replan; the trusted driver submits controls
+individually and stops on native termination or the declared budget. Some
+existing tracks additionally require a fixed replan interval or couple it to
+their execution cap; those versioned constraints remain binding until explicitly
+migrated. Protocol-fixed image conversion, units,
 joint order, interpolation and native low-level control belong to the benchmark
 adapter. They must remain identical within a comparable track. Model-specific
 planning, grasp heuristics, motion generation or auxiliary IK belong to the
@@ -117,8 +111,6 @@ configuration; another model is not required to adopt it. The neutral
 optional agent-side runner records actual executed decisions/control steps and enforces
 public resource limits, but does not select a model's persistence preference.
 No persistence setting overrides native termination, hard limits or safety.
-Historical floor50 trials retain their frozen records without becoming a new
-benchmark-wide rule.
 
 ## Budgets
 
@@ -143,11 +135,10 @@ ACKed valid prefix remains executed. Native/transport uncertainty and forbidden
 tools remain terminal, not recoverable input errors. Old frozen attempts keep
 their original outcome and handling. See the [service extension](SERVER_PROTOCOL.md#pre-execution-action-rejection-extension).
 
-`fast` and `full` are evaluation plans, not policy behavior: fast selects tasks
-and one fixed state/attempt each; full follows the native task/variant/seed and
-per-task episode schedule. Planned native repetition is not failure-triggered
-retrying. Both retain failures/errors. Unified full presets remain unimplemented
-until their exact native schedules and execution conditions are verified.
+Task, layout/initial-state and seed selection belong to the benchmark's sample
+schedule, not the policy's reasoning strategy. Declare selected cases and
+attempts before execution, retain failures/errors and report the denominator.
+Planned repetitions are not failure-triggered retries.
 
 ## Essential results and optional history
 
@@ -171,29 +162,22 @@ excluded. User-visible records still require review before sharing.
 
 ## Roles and isolation
 
-For the anonymous code-agent profile, coordinators should send its exact
-[actor instructions](../../AgentPolicies/anonymous_code_agent/prompts/actor_instructions.txt)
-with only host/opaque mailbox substitution, never hand-retype alternative JSON
-keys. Its minimal examples are regression-tested against the frozen mailbox
-parser. Operator-written examples must use that exact schema: an incorrect field
-can invalidate an otherwise useful response. The tests are schema checks, not
-actor-access or provider-call attestation.
+The trusted driver owns administrative claims, credentials and result access.
+The model actor receives only the selected protocol's declared observations and
+execution feedback. Use the method's documented input/output schema; validating
+that schema is not proof of actor isolation or provider identity.
 
 A code agent helping implement an adapter is a developer, not the policy under
 test. During scored episodes the evaluated model can write only its declared
 response or policy scratch artifact; it cannot modify the benchmark, protocol,
 adapter, episode matrix, scorer, or prior results.
 
-Isolation covers operator-provided context as well as mailbox JSON. Use a fresh
-actor context and an independently random, opaque orchestration task name; do
-not encode benchmark, suite, task ordinal, seed, date or outcome in an actor
-name, display label, launch message or scratch-directory label. Give the actor
-only its transport host, opaque endpoint and shared interaction instructions.
-Evaluator/reviewer context must not be inherited. An opaque endpoint alone does
-not blind identifying text elsewhere in the actor's conversation.
+Isolation covers operator-provided context as well as transport payloads. Do
+not pass evaluator/reviewer context, private reset metadata or scorer outputs
+through actor launch messages, filenames or logs. Follow the selected track's
+episode-identity and memory rules; an opaque endpoint alone is not isolation.
+Preserve and disclose an affected attempt if private context leaks. A later
+correction does not rewrite its conditions or authorize an automatic retry.
 
-If such context has already reached an actor, retain and disclose the affected
-attempt; do not relabel it as fully blinded or retry it. A prospective operator
-correction must record its cutover separately from immutable runtime/prompt/
-budget manifests. See [task plans and coverage](TASK_COVERAGE.md) for the shared
-accounting rules.
+See [task plans and coverage](TASK_COVERAGE.md) for accounting and
+[agent-method integration](../../docs/agent-methods.md) for client construction.

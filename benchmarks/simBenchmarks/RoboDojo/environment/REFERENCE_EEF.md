@@ -1,4 +1,4 @@
-# Direct v2 EEF runtime binding
+# End-effector control runtime
 
 This document binds the only public RoboDojo server implementation to the
 reference Direct-control behavior at commit
@@ -8,18 +8,19 @@ not by itself prove identical model context, assets, rendering or success rate.
 ## Fixed scope
 
 - Task: `classify_objects`
-- Named panels: `fast` uses layouts 0–4; `full` uses layouts 0–49, once each
+- Layout selections: 0–4 (5 cases) or 0–49 (50 cases), once each
 - Native horizon: 1100 controls
 - Cameras: head, left wrist and right wrist, original 640×480 RGB
-- Public state: measured joint14 plus measured link6 EEF14
+- Public state: six measured joints and one last commanded gripper opening per
+  arm (14 values), followed by the two measured link6 poses (14 values)
 - Public action: absolute dual-arm EEF16 in world coordinates
 - Execution: robot-only numerical Jacobian DLS, no cuRobo planner
 - Feedback: mandatory `robodojo.robot-control-feedback/v1`
 
 The worker sets the native execution count to one selected reset while retaining
-the upstream configured count and full 55-layout inventory as provenance. The
-five-layout `fast` panel is the reference comparison. The `full` panel matches
-this task's 50 configured native episodes; it does not cover all RoboDojo tasks.
+the upstream configured count and 55-layout inventory. The
+50-layout selection matches this task's 50 configured native episodes; the
+five-layout selection chooses its first five cases.
 Both schedules are fixed in [../bench_server/protocol/task_catalog.json](../bench_server/protocol/task_catalog.json).
 
 ## Numerical execution
@@ -59,10 +60,10 @@ Use a fresh output directory. Starting the service does not reset Isaac. Once a
 layout is claimed, any failed reset or uncertain action is retained and cannot
 be replaced automatically.
 
-## Native validation status
+## Deployment validation
 
-The 2026-09-20 five-layout Direct v2 run exercised this service boundary and
-retained paired server/client evidence. That result is model-owned under
-`AgentPolicies/gpt6_astra/results/robodojo/`; it does not convert CPU tests into a
-portable fresh-machine certification. A new deployment still requires the
-readiness gate in [README.md](README.md).
+Each deployment requires the readiness gate in [README.md](README.md): verify
+the pinned assets/runtime, reset, public sensors, fixed control conversion,
+native accounting and cleanup. Previous runs or passing CPU checks do not
+certify rendering and control on another machine. Method scores and individual
+run evidence belong with the evaluated agent, not this runtime specification.

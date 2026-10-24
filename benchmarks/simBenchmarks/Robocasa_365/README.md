@@ -1,131 +1,163 @@
 # RoboCasa365
 
+RoboCasa365 evaluates mobile manipulation in kitchen environments: reaching
+fixtures, operating appliances and containers, and completing tasks with kitchen
+objects. Its task collection combines atomic skills with multi-stage household
+activities. It is separate from the GR1 [RoboCasa Tabletop](../Robocasa_tabletop/README.md)
+benchmark.
+
+- [Evaluation protocol](EVALUATION_PROTOCOL.md): task selection, reset conditions,
+  exact observation/action semantics, budgets and scoring.
+- [Environment setup](environment/README.md): pinned sources, assets, rendering
+  tracks and readiness tools.
+- [Target task catalog](bench_server/protocol/robocasa365_target50.json): ordered
+  task IDs, split membership and reference horizons.
+- [Shared service protocol](../SERVER_PROTOCOL.md): connection and lifecycle.
+
+## Native tasks, kitchens and evaluation
+
+RoboCasa365 defines **365 tasks: 65 atomic and 300 composite**. Atomic tasks
+cover skills such as opening a drawer, navigating a kitchen and operating an
+appliance; composite tasks combine skills into longer activities. Browse the
+official [atomic tasks](https://robocasa.ai/docs/build/html/tasks/atomic_tasks.html)
+and [composite tasks](https://robocasa.ai/docs/build/html/tasks/composite_tasks.html).
+
+Task identity and scene split are separate choices. The native `target50` task
+set contains 18 atomic seen, 16 composite seen and 16 composite unseen tasks;
+it is one benchmark task set, not the entire 365-task collection. The native
+registry also defines pretraining and lifelong-learning task sets. The
+[target catalog](bench_server/protocol/robocasa365_target50.json) lists all 50
+target tasks and their reference horizons.
+
+| Native scene split | Kitchen design | Other variation |
+| --- | --- | --- |
+| `pretrain` | 50 layouts × 50 styles = 2500 candidate kitchens | Pretraining objects and sampled placements |
+| `target` | Ten fixed layout/style pairs, (1,1) through (10,10) | Disjoint target objects and sampled placements |
+
+Layouts define fixture arrangement; styles define appearance and fixture
+attributes. Task-specific exclusions can reduce the eligible kitchens. These
+are scene candidates, not additional task names, and a seed is not a layout ID.
+See the official [scene definitions](https://robocasa.ai/docs/build/html/assets/scenes.html).
+
+Native evaluation randomly samples **50 scenarios per task**, uses that task's
+reference horizon and reports mean binary task success. Evaluating all 50 target
+tasks therefore calls for 2500 scenarios. See the
+[native evaluation rules](https://robocasa.ai/docs/build/html/benchmarking/benchmarking_overview.html).
+
+## Current Bench Server integration
+
+The service uses native PandaOmron control and scoring, but currently samples
+only one scenario per selected task at launch seed **20260907**. It does not
+expose the native repeated-scenario sampler, pretraining split or arbitrary
+layout/style selection. See [service support](../SERVICE_SUPPORT.md).
+
+| `task_scope` | Selectable task indices |
+| --- | --- |
+| `pilot` | `0=OpenDrawer`, `1=NavigateKitchen` |
+| `target50` | 0–49 in the target catalog |
+
+`task_ids` is an increasing, unique subset of the chosen scope's indices. Indices
+are scope-specific: NavigateKitchen is 1 in `pilot` and 4 in `target50`;
+OpenDrawer is 0 and 6 respectively.
+
+The service currently exposes neither a layout/style override nor a seed panel:
+each selected task gets one sample at the fixed seed. A larger `--episodes`
+value cannot create repetitions beyond the selected task list. Additional
+scenarios require an explicit extension of the sampling interface.
+
+Set `task_ids` explicitly when changing scope. Omitting it selects indices
+`[0,1]` in either scope; setting `task_scope="target50"` alone does not select
+all 50 tasks. For example, `task_scope="target50", task_ids=[4,6]` selects
+NavigateKitchen and OpenDrawer. Launch with `--episodes 2` for those two cases;
+the same two IDs under the default scope would be invalid.
+
+## Service robot interface and scoring
+
+| Property | Published contract |
+| --- | --- |
+| Observation | Native task language and three 256 × 256 RGB cameras: left/right agent view and wrist view; no proprioception |
+| Action | 12 values: base-frame end-effector translation/rotation deltas, binary gripper, base velocity, torso delta and binary base mode |
+| Control | Native hybrid mobile-base controller at 20 Hz; one action per service step |
+| Success | Native `info.success`, checked against sparse native reward; stop at first native success |
+| Native-reference budget | `budget_mode="horizon"`: task-specific reference horizons, 450–4350 controls across target50 |
+| Separate development budget | `budget_mode="decisions"`: declared calls D ≤ 200 and prefix K ≤ 5, with cap D × K |
+
+The **12-dimensional action** uses these zero-based slices:
+
+| Slots | Meaning, frame and units |
+| --- | --- |
+| 0–2 | Relative EEF translation in the current robot-base frame; normalized [-1,1], scale 0.05 m |
+| 3–5 | Relative EEF axis-angle rotation in the base frame; normalized [-1,1], scale 0.5 rad |
+| 6 | Exact binary gripper: 0 open, 1 close |
+| 7–9 | Base forward/lateral/yaw velocities in the current base frame; normalized [-1,1], scales 1 m/s, 1 m/s, 1.5 rad/s |
+| 10 | Relative torso joint displacement; normalized [-1,1], scale 0.05 m |
+| 11 | Exact binary base mode: 0 achieved-arm-goal update, 1 desired-arm-goal update |
+
+One vector advances one native 50 ms control. Mode selection does not zero
+the other command fields. The controller applies its native scaling and limits;
+the protocol specifies the exact accepted command bounds.
+
+The native engine has horizon 1000 with `ignore_done=True`; this is distinct from
+the task reference horizon. OpenDrawer's reference is 750 and NavigateKitchen's
+is 450. The decision-budget track can shorten or extend those references and
+must be reported separately. It retains a coupled budget contract; it is not a
+universal rule for how often an agent must reason.
+
+Only the declared language and camera images reach the agent. Object state,
+reset details and native scoring stay on the evaluator side. Native controller
+conversion is fixed by the protocol; prompts, planning, memory and action
+grouping belong to the participant method.
+
+## Start the benchmark service
+
+Complete [environment setup](environment/README.md), then copy
+[server.example.json](server.example.json) to an operator-owned file. Select the
+GPU, task scope/IDs, rendering track and budget before launch. The supplied
+example selects NavigateKitchen under `pilot`, the explicit
+`egl-owner-material-clamp-v1` visual track, and D=200/K=5 (1000 controls).
+To use its **450-control native reference**, change `budget_mode` to `horizon`
+and remove `max_policy_calls` and `replan_interval` from that copy.
+
+Supply `RSI_SIM_SERVER_TOKEN` privately to the server and trusted evaluator as
+described in the [connection guide](../SERVER_PROTOCOL.md#launch-and-connect).
+From the repository root, using the prepared native environment:
+
+```sh
+MUJOCO_GL=egl PYOPENGL_PLATFORM=egl python -B \
+  -m benchmarks.simBenchmarks.Robocasa_365.server \
+  --parameters /absolute/robocasa365-server.json \
+  --seed 20260907 --episodes 1 --port 8765 \
+  --output-dir /absolute/new-robocasa365-run/server
+```
+
+The service fixes the selected schedule without resetting the simulator. It
+binds to loopback; use SSH forwarding for a remote evaluator. Connect a trusted
+driver implementing the shared service protocol; no particular model, prompt or
+agent package is required. Each selected case has one attempt, with failure and
+infrastructure errors retained separately. Unknown control acknowledgements
+must not be replayed.
+
+## Results
+
+Report the selected task scope/IDs, seed, rendering and budget tracks, native
+outcomes, actual decisions and controls, and errors. Keep agent configuration,
+usage and optional interaction/media records with the participant's results;
+see [result and recording guidance](../../../docs/evaluation.md#inspect-and-report).
+State the selected tasks and sampling conditions; task-name coverage alone does
+not reproduce the native scenario distribution.
+
+## Runtime requirements
+
+Rendering configurations are not interchangeable: `egl-owner-material-clamp-v1` can
+change pixels, while `egl-owner-restore-v1` repairs EGL ownership without that
+material conversion. Native packages/assets require exact pins, and no complete
+portable asset installer is provided. Verify the selected deployment before
+evaluation; a listening service alone does not establish rendering readiness.
+
 ## Directory responsibilities
 
-```text
-Robocasa_365/
-├── server.py, server.example.json   # public launcher and operator configuration
-├── bench_server/
-│   ├── adapter.py                  # public observations/actions and native scorer
-│   └── protocol/
-│       ├── plan.py                 # predeclared fast selection
-│       ├── robocasa365_target50.json # supported target tasks and reference horizons
-│       └── task_inventory.json      # upstream task-count evidence
-└── environment/                    # native readiness, runtime pins and helpers
-```
-
-Protocol catalogs are benchmark definitions, not datasets or deployment settings.
-Source/asset locations and GPU selection remain operator configuration.
-There is no root adapter alias or separate `evaluation/` package; current callers
-use `bench_server.adapter` and `bench_server.protocol.plan`. The public server
-module name is unchanged. This directory migration changes no native controls,
-observations, scoring, budgets, selected cases or historical evidence.
-Model behavior and results belong under `AgentPolicies/<agent>/`; shared
-communication belongs in `benchkit/sim_server/`. Structure and offline checks
-do not establish native service readiness or native-full evaluation support.
-
-This benchmark can run as an independent SIM service via [server.py](server.py).
-Start from [server.example.json](server.example.json), adjust deployment paths/GPU
-before launch, and follow the [shared server workflow](../SERVER_PROTOCOL.md).
-The server owns native reset/control/scoring; the evaluator uses the client, and
-the model receives only permitted observations. Existing in-process commands
-below remain available for historical compatibility. Native service-mode
-validation is separate from adapter availability.
-
-The pinned runtime has a reproduced [native render-context lifecycle defect](environment/RENDERING.md).
-The explicit `render_track="egl-owner-restore-v1"` compatibility track repairs
-owning-context cleanup and checks render/readback failures without changing
-native pixels, controls or scoring. The service example selects the additional
-`egl-owner-material-clamp-v1` track: it also bounds invalid native scene shininess
-during drawing and restores it afterward. **This v3 track can change pixels and
-is not native-pixel-equivalent.** Its task definitions and controls are unchanged.
-The adapter's historical `native-v1` default is retained, not endorsed as healthy.
-Validate the repaired track on a fresh single-thread Linux/EGL deployment before
-another capability evaluation; transport integrity alone is insufficient.
-Historical results remain unchanged, and diagnostics do not authorize retries.
-
-The `robocasa365` adapter evaluates PandaOmron kitchen mobile manipulation using native RoboCasa success definitions. It is distinct from the GR1 [RoboCasa Tabletop](../Robocasa_tabletop/README.md) integration.
-
-The upstream implementation contains 365 tasks. The implemented task scopes are a two-task fast preset and the 50-task target set: **18 atomic seen + 16 composite seen + 16 composite unseen**. Enumerating those 50 tasks once is fast coverage, not 365-task coverage or native full evaluation. See [EVALUATION_PROTOCOL.md](EVALUATION_PROTOCOL.md) and [the target inventory](bench_server/protocol/robocasa365_target50.json).
-
-## Prepare the environment
-
-Use a dedicated environment with these native pins:
-
-| Component | Required version / revision |
-| --- | --- |
-| [RoboCasa](https://github.com/robocasa/robocasa) | 1.0.1; `b4684e6ee37d377cc392e98302a6b916d588b415` |
-| Robosuite | 1.5.2; `85abee228d1c43ab1939bce33028099945d453b4` |
-| MuJoCo | 3.3.1 |
-| NumPy | 2.2.5 |
-
-Install the pinned upstream sources and their environment dependencies, provision the required kitchen/object assets under their licenses, then install RSI with `python -m pip install --no-deps -e .` from its checkout. H.264 recording requires PyAV and a working graphics/EGL runtime. No training dataset or VLA checkpoint is needed for this sensor-policy adapter.
-
-The repository does not yet provide a complete portable native/asset installer. Source verification requires each imported native package to come from its own clean Git root at the exact revision; an enclosing unrelated repository is insufficient. Confirm import paths and source identities before evaluating rather than relaxing checks for newer packages.
-
-## Check the environment
-
-Select an available GPU and a new output directory:
-
-```sh
-python -B -m benchmarks.simBenchmarks.Robocasa_365.environment.diagnose \
-  --output /path/to/new-robocasa-diagnostic \
-  --task OpenDrawer --seed 20260907 --gpu 0 --render-track egl-owner-material-clamp-v1
-```
-
-The native diagnostic performs reset, one neutral action, rendering and artifact recording with zero policy decisions. Check all three cameras and complete PNG/video decoding. A separate fixed, nonadaptive controller-direction diagnostic is available:
-
-```sh
-python -B -m benchmarks.simBenchmarks.Robocasa_365.environment.adapter_diagnose \
-  --output /path/to/new-robocasa-direction-check --gpu 0 --render-track egl-owner-material-clamp-v1
-```
-
-These are infrastructure checks, not task-solving models or capability scores.
-Start with the three [geometry-only lifecycle checks](environment/RENDERING.md#geometry-only-validation)
-before constructing a benchmark environment. Set `MUJOCO_GL=egl` and
-`PYOPENGL_PLATFORM=egl` explicitly for SIM service launches. The repair does not
-support sharing native rendering across threads or switching tracks in-process.
-
-## Inspect closed RGB evidence
-
-The offline RGB diagnostic reads an existing episode artifact directory containing
-`frames.jsonl` and its three-camera PNGs. It requires NumPy and Pillow, but does
-not start a simulator, render extra images or contact a model:
-
-```sh
-python -B -m benchmarks.simBenchmarks.Robocasa_365.environment.audit_rgb \
-  /path/to/closed-episode-artifacts \
-  --output /path/to/model-results/diagnostics/new-rgb-audit.json
-```
-
-Choose a new output outside the original artifacts; preserve previous audit
-outputs as well as evaluation records. The diagnostic checks hashes, single-frame
-RGB PNG integrity and complete three-camera coverage. A clean SIM-server receipt
-also binds coverage to its reset-plus-control count; absent, legacy or faulted
-receipts leave episode completeness explicitly unknown. Output identifies the
-auditor source bytes, dependency versions, receipt/manifest hashes and thresholds.
-
-Warnings flag sustained camera similarity or alternating vertical orientation
-using configurable pixel-difference thresholds. They are not a renderer diagnosis,
-a success judgment or image repair. No warnings does not prove correct rendering.
-For temporal warnings, `first_step` is the destination of the first qualifying
-frame comparison; its source frame is `first_step - 1`. Keep anomalous attempts
-in their original denominator and report qualifications separately; this check
-neither changes scores nor authorizes a retry.
-
-## Evaluate one task
-
-After connecting a [mailbox actor](../../../AgentPolicies/anonymous_code_agent/README.md):
-
-```sh
-python -m benchkit run \
-  --benchmark robocasa365 --model-profile anonymous_code_agent \
-  --benchmark-args '{"task_ids":[0],"render_gpu_device_id":0,"render_track":"egl-owner-material-clamp-v1","budget_mode":"decisions","max_policy_calls":200,"replan_interval":5}' \
-  --policy-args '{"directory":"/path/to/opaque-mailbox"}' \
-  --seed 20260907 --episodes 1 --budget-mode decisions \
-  --max-policy-calls 200 --replan-interval 5 --max-steps 1000
-```
-
-In the default scope, task 0 is OpenDrawer and task 1 is NavigateKitchen. With `task_scope="target50"`, indices instead follow the native target-set ordering: NavigateKitchen is 4 and OpenDrawer is 6. Never reinterpret an index without its scope.
-
-The [campaign plan](bench_server/protocol/plan.py) selects the default pair or all 50 with explicit `target50`; see [campaign usage](../../../docs/evaluation.md). Preserve one outcome per preselected task, including errors and failures, without automatic retry. The anonymous transport does not prove model/provider identity. Model code and results belong under [AgentPolicies](../../../AgentPolicies/README.md). Native-aligned full mode remains unimplemented.
+`server.py` is the public launcher. `bench_server/adapter.py` implements the
+sensor/action/scoring contract; `bench_server/protocol/` holds task catalogs and
+selection plans. `environment/` contains native readiness and rendering tools.
+Deployment settings are operator-owned; participant methods and their results
+live outside this benchmark package.

@@ -1,10 +1,19 @@
 # RoboCasa365 evaluation protocol
 
-[The adapter](bench_server/adapter.py), registered as `robocasa365`, owns native PandaOmron reset/control/scoring. Policies receive only the declared [shared-interface](../POLICY_PROTOCOL.md) observation. This is not the GR1 Tabletop benchmark.
+This document describes RoboCasa365's native task and scene definitions, then
+the selection and robot interface implemented by the `robocasa365` service.
+This is not the GR1 Tabletop benchmark.
 
-## Task universe and fast/full selection
+## Tasks, kitchen candidates and sample selection
 
-The pinned upstream implementation has 365 tasks: 65 atomic and 300 composite. Its dataset registry contains 317 entries: 65 atomic and 252 composite. The other 48 composites lack dataset/horizon metadata in that registry; do not invent it or confuse implementation count with the supported evaluation schedule.
+The native collection has **365 tasks: 65 atomic and 300 composite**. Atomic
+tasks isolate skills; composite tasks combine them into household activities.
+The official [atomic](https://robocasa.ai/docs/build/html/tasks/atomic_tasks.html)
+and [composite](https://robocasa.ai/docs/build/html/tasks/composite_tasks.html)
+indexes describe this collection. The task set and scene split are independent
+evaluation choices; neither a dataset entry nor a sampled kitchen is a new task.
+
+The native `target50` task set is:
 
 | Target split | Tasks |
 | --- | ---: |
@@ -13,50 +22,72 @@ The pinned upstream implementation has 365 tasks: 65 atomic and 300 composite. I
 | Composite unseen | 16 |
 | Total target set | 50 |
 
-The 300-task pretraining set is separate. [robocasa365_target50.json](bench_server/protocol/robocasa365_target50.json) freezes the target task ordering, split membership, native horizons and module hashes.
+The native registry also defines `pretrain300` and lifelong-learning task sets;
+these named sets are not a disjoint partition of the 365 task classes. The pinned
+[registry](https://github.com/robocasa/robocasa/blob/b4684e6ee37d377cc392e98302a6b916d588b415/robocasa/utils/dataset_registry.py)
+defines membership. [robocasa365_target50.json](bench_server/protocol/robocasa365_target50.json)
+provides the target ordering and native horizons locally.
 
-Fast mode evaluates each preselected task once, retaining failure and infrastructure errors without automatic retries. The default `task_scope="pilot"` is a compatibility name for the two-task preset: local indices 0=OpenDrawer and 1=NavigateKitchen. Explicit `task_scope="target50"` uses target-set ordinals: 4=NavigateKitchen and 6=OpenDrawer. The [campaign plan](bench_server/protocol/plan.py) selects either the pair or all 50 once.
+Native `split="target"` uses ten paired kitchens, (layout, style) pairs (1,1)
+through (10,10), and target objects. `split="pretrain"` uses layout IDs 11–60
+crossed with style IDs 11–60: 2500 candidate kitchens and a separate object
+split. Layouts set fixture arrangement; styles set visual appearance and fixture
+attributes. Individual task exclusions still apply. Object selection and
+placement add variation within a kitchen. See the official
+[scene definitions](https://robocasa.ai/docs/build/html/assets/scenes.html).
 
-Target tasks use ten paired kitchens, layout/style pairs (1,1) through (10,10). The pretraining layout/style ranges 11–60 form a different candidate space. Individual task exclusions still apply; do not multiply all layout/style values indiscriminately. The native target reference uses 50 sampled scenarios per task, or 2500 target trials. **The native-aligned full sampler/schedule is not implemented here.** Fifty tasks sampled once is not full mode or complete 365-task evaluation.
+The [native evaluation rule](https://robocasa.ai/docs/build/html/benchmarking/benchmarking_overview.html)
+is 50 randomly sampled scenarios per evaluated task and mean binary task
+success. The complete `target50` schedule therefore contains 2500 scenarios.
+Reference horizons come from each task's pinned registry entry, not a uniform
+cap shared by every task.
+
+## Current Bench Server selection
+
+[The adapter](bench_server/adapter.py) exposes the target scene split only.
+The default `task_scope="pilot"` uses local indices 0=OpenDrawer and
+1=NavigateKitchen; `task_scope="target50"` uses target-set ordinals, including
+4=NavigateKitchen and 6=OpenDrawer. See [service support](../SERVICE_SUPPORT.md).
+
+The current service selects one scenario per chosen task at seed 20260907.
+`task_ids` must be an increasing, unique subset of the chosen scope's indices;
+an episode limit selects a prefix without repeating tasks. There is no public
+layout/style override, arbitrary seed selector or multi-seed panel. The native
+sampler determines the actual kitchen/object placement, so seed and layout are
+not interchangeable identifiers. The 50-scenario-per-task reference schedule
+needs additional sampling support; selecting all 50 task names gives 50 cases,
+not 2500 cases or coverage of all 365 implemented tasks.
+
+The `task_ids` default is `[0,1]` in either scope. Selecting `target50` changes
+the index namespace, not the selected list length; supply all desired indices
+explicitly before launching.
+
+The pinned dataset registry has horizon metadata for 317 task entries
+(65 atomic, 252 composite); 48 implemented composite classes lack that metadata.
+The service does not invent horizons for them or expose all 365 classes as an
+executable evaluation schedule.
 
 ## Environment and reset
 
 Pin RoboCasa 1.0.1 at `b4684e6ee37d377cc392e98302a6b916d588b415`, Robosuite 1.5.2 at `85abee228d1c43ab1939bce33028099945d453b4`, MuJoCo 3.3.1 and NumPy 2.2.5. Each imported native package must resolve to its own clean Git root. See [setup](README.md).
 
-Rendering is an explicit protocol choice. `render_track="native-v1"` preserves
-the original descriptor ending in `/v1` and does not install a repair. It remains
-the adapter default for historical compatibility, **not a reliability endorsement**:
-this native EGL stack has a reproduced [lifecycle defect](environment/RENDERING.md).
-`render_track="egl-owner-restore-v1"` has a descriptor ending in
-`/egl-owner-restore-v1/v2`. That Linux/EGL-only track
-installs the source-pinned, process-local ownership repair before any native
-environment construction. It frees MuJoCo resources in their owning GL context,
-restores another live previous EGL display/context/surfaces/API, and fails closed
-on cleanup, GL readback or guard errors. No upstream file is modified. Use a new,
-single-thread native process; tracks cannot be mixed in one process.
+Rendering is an explicit protocol choice:
 
-These two tracks keep the same scene sampler, constructor/reset behavior, cameras,
-pixels and vertical flip, controls and scorer. There is no renderer replacement,
-extra reset, pixel correction or success retry. Record the selected track and
-private `render_lifecycle.json` receipt; do not merge repaired and historical RGB
-results into one unqualified score. Geometry regression is not task acceptance:
-native reset/control/media validation is also required for a deployment.
+| `render_track` | Meaning and result identity |
+| --- | --- |
+| `native-v1` | Default native renderer, descriptor suffix `/v1`; the pinned EGL lifecycle defect is present |
+| `egl-owner-restore-v1` | Linux/EGL ownership and readback checks; suffix `/egl-owner-restore-v1/v2` |
+| `egl-owner-material-clamp-v1` | Ownership repair plus temporary clamping of finite out-of-range scene shininess; suffix `/egl-owner-material-clamp-v1/v3` |
 
-The service example explicitly selects a third, separate visual compatibility
-track: `render_track="egl-owner-material-clamp-v1"`, descriptor suffix
-`/egl-owner-material-clamp-v1/v3`. Native materials can contain shininess outside
-`[0,1]`, which produces invalid OpenGL draw commands in this pinned runtime.
-In addition to the lifecycle repair, v3 temporarily clamps only finite out-of-range
-shininess on the current managed renderer's expanded scene, immediately around
-the native draw, then restores every changed value in `finally`. Legal values are
-not rewritten; non-finite values and restoration failures fail closed. It never
-changes `mjModel`, XML, physics, task sampling, cameras, reset count or scoring.
-**Pixels can change: this track is not native-pixel-equivalent.** No GL error is
-ignored, and errors outside this narrowly declared conversion remain failures.
-Compare only results with the same explicit rendering track. Native-v1 and v2
-never enable this material conversion.
+The first two tracks preserve the native scene/camera/pixel operations. The
+third, selected by the service example, **can change pixels** and is not
+native-pixel-equivalent. It restores materials after drawing and does not
+change physics, task sampling, reset count, controls or scoring. Compare results
+with matching rendering settings. Use a fresh single-thread process; tracks
+cannot be mixed in one process. Setup and renderer details are in
+[environment/RENDERING.md](environment/RENDERING.md).
 
-The selected fast reset uses seed 20260907 and the target split. Native construction may initialize a scene before the explicit seeded reset; retain this upstream behavior and record the actual reset. Do not search seeds, replace assets, resample initial success or force an easier kitchen.
+The selected reset uses seed 20260907 and the target split. Native construction may initialize a scene before the explicit seeded reset; retain this upstream behavior and record the actual reset. Do not search seeds, replace assets, resample initial success or force an easier kitchen.
 
 ## Observation contract
 
@@ -89,10 +120,19 @@ Native Gym returns `info.success` and sparse reward 1/0; require their agreement
 
 Count policy calls, action decisions and controls independently. A stop-only response has no action decision; a chunk can execute fewer than K controls. Record first-success control and its policy-call index from events. Voluntary-stop persistence belongs to the model profile and cannot delay evaluator caps or native termination.
 
-## Evidence and limitations
+## Results and sample coverage
 
-Retain source/model/protocol identities, private compiled scene XML and initial state, actual reset metadata, controller specifications, per-action before/after records, delivered frames, counters, native outcomes, errors and decodable videos under the selected model's `results/robocasa365/` namespace.
+Report the selected scope/task IDs, seed, rendering and budget settings, native
+success, decisions, controls and termination/error reason. Success rate uses the
+declared selected cases; distinguish native failures from infrastructure errors
+and unattempted cases. Per-task reference horizons can differ, so report the
+actual cap as well as the reference.
 
-Hash the **used scene asset closure** from compiled XML, includes and file dependencies. Missing/out-of-root references fail closed and must remain visible as incomplete provenance. This closure is not proof of the entire upstream asset universe.
+The service supports the two-task list or target50, each with one sample at
+seed 20260907. It does not implement the native 50-scenario-per-task sampler or
+the other 315 implemented task names. Exact source/asset and rendering
+requirements are in [environment setup](environment/README.md).
 
-Zero-policy reset/hold diagnostics and nonadaptive direction checks are infrastructure evidence only. Report selected, completed, failed, errored and unattempted tasks separately; never drop environment errors, substitute visual scoring or claim native-full parity from CPU/diagnostic checks.
+Optional interaction/media retention is described in
+[recording](../../../docs/recording.md); it does not change inputs, controls or
+native scoring.

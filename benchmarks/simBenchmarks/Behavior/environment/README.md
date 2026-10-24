@@ -1,123 +1,98 @@
-# BEHAVIOR 2026 native preparation
+# BEHAVIOR native environment
 
-Status: the fixed DefaultWrapper debugging service has passed one two-control
-HTTP native smoke check; see [verified scope](../README.md#verified-scope).
-This is not a model score or a guarantee for another deployment. See the [launch and file-only
-deployment capture guide](../README.md). Do not launch the archived 2025 VLA
-bridge or publish its task inventory as the 2026 matrix.
+This guide prepares the native runtime used by the
+[selected-case service](../README.md). It covers installation inputs and
+deployment checks; participant methods and their results are separate.
 
-## Source identity and permissions
+## Source, runtime and assets
 
 Use [BEHAVIOR-1K v3.9.2](https://github.com/StanfordVL/BEHAVIOR-1K/tree/b1979916ec1549b10a4e65e630bc6504a9af1b00),
-commit `b1979916ec1549b10a4e65e630bc6504a9af1b00`, as required by the
-[2026 evaluation rules](https://behavior.stanford.edu/challenge/evaluation.html).
-Pin the complete source and installed runtime independently of that mutable web page.
+commit `b1979916ec1549b10a4e65e630bc6504a9af1b00`, in a dedicated persistent
+Python 3.11 / Isaac Sim 5.1 environment. Follow the
+[pinned installer](https://github.com/StanfordVL/BEHAVIOR-1K/blob/b1979916ec1549b10a4e65e630bc6504a9af1b00/setup.sh)
+and native evaluator dependency instructions for that release.
 
-The [pinned installer](https://github.com/StanfordVL/BEHAVIOR-1K/blob/b1979916ec1549b10a4e65e630bc6504a9af1b00/setup.sh)
-contains separate dataset terms. Code access or an earlier Isaac Sim license
-acceptance does not establish acceptance of the BEHAVIOR Data Bundle agreement.
-Obtain operator confirmation before its acceptance flags or restricted data
-download. Do not redistribute dataset files or keys in the public repository.
-Use a fresh environment; never run the installer against another benchmark's
-environment. Native model checkpoints and training demonstrations are not
-requirements for a fixed-action infrastructure diagnostic.
+The BEHAVIOR Data Bundle has its own license, separate from Isaac Sim and source
+code licensing. Obtain the required permissions before downloading restricted
+assets or accepting installer terms. Do not redistribute assets or credentials
+in this repository. The service requires robot assets and selected task
+instances; it does not require an agent checkpoint or training demonstrations.
 
-## Native interface to preserve
+Required bundles are `behavior-1k-assets`, `omnigibson-robot-assets` and
+`2026-challenge-task-instances`. Code and asset release numbers need not match.
+The deployed robot/controller configuration must match
+[NATIVE_CONTRACT.md](NATIVE_CONTRACT.md): R1Pro, absolute arm/torso joint
+controllers, mobile-base velocity control, native grippers and native
+`assisted` grasping.
 
-Read `OmniGibson/omnigibson/eval/{eval.py,evaluator.py,r1pro.yaml}` and
-`eval/wrappers/` at the pinned commit, not an archived policy launcher.
-The [source-level contract review](NATIVE_CONTRACT.md) records the 23-action /
-61-state mapping, observation allowlist and remaining runtime checks.
+This integration uses `DefaultWrapper`: three 224×224 RGB cameras and
+proprioception. The official `RGBDFullResWrapper` additionally supplies metric
+depth and higher-resolution RGB. Identify the sensors actually used when
+comparing results; these two observation configurations are not equivalent.
 
-- The official wrapper is `RGBDFullResWrapper`: head RGB/depth at 720×720,
-  wrists at 480×480, with robot proprioception. `DefaultWrapper` is a distinct
-  224×224 RGB plus proprioception debugging configuration without depth; never
-  silently substitute it.
-- The bundled robot config uses R1Pro, absolute arm/trunk joint-position
-  controllers, a velocity-controlled mobile base and native gripper controllers.
-  Its `assisted` grasping setting is an explicit native mechanism, not an
-  invitation to add an RSI task planner. Record it rather than silently changing it.
-  Validate action order, dimension, units and timing against the installed native
-  robot/controller contract before declaring an action schema.
-- Native preparation resets, loads the selected instance, settles it for 25
-  physics ticks while keeping relevant entities still, and resets for rollout.
-  Keep this setup server-private; one rollout does not imply one underlying
-  reset call. No reset/instance search is exposed to the model.
-- Native `Evaluator.step` obtains one supplied action, steps the environment,
-  updates observation/video and native metrics. The service must replace only
-  the policy-input boundary, preserving native termination and scoring.
-  Object states, private task metadata and metric internals remain server-private.
+## Capture the selected deployment
 
-## Runtime compatibility and deployment acceptance
+Use the native worker interpreter with the RSI repository and the pinned source's
+`OmniGibson`, `bddl3` and `joylo` directories on `PYTHONPATH`:
 
-### Node-local temporary files
+```sh
+python -B -m benchmarks.simBenchmarks.Behavior.environment.deployment \
+  --source-root /absolute/behavior-v3.9.2 \
+  --data-root /absolute/behavior-assets \
+  --receipts /absolute/extraction-receipts.json \
+  --task picking_up_trash \
+  --output /absolute/new-behavior-deployment.json
+```
 
-Set `TMPDIR` **before starting the server**, to a fresh operator-owned directory
-on a node-local filesystem; the isolated worker inherits it. Keep results,
-deployment manifests and evidence on persistent storage. No additional server
-parameter or change to the native controller is required.
+The receipts JSON maps each of the three bundle names above to its extraction
+receipt path. A receipt contains `archive_sha256`, `source_commit` and absolute
+extraction `target`. Keep the source archives and receipts in operator storage.
+The capture checks files without importing OmniGibson or constructing a scene.
 
-The pinned native runtime creates its temporary USD directory during import and
-removes it before closing the Kit application. On NFS, an open file can become a
-temporary `.nfs*` entry during unlink; recursive directory removal can then fail
-with `ENOTEMPTY`. This failure was reproduced independently with an open-file
-fixture on the evaluation deployment. A subsequent native shutdown crash must
-still be recorded as an infrastructure error, not suppressed or converted to a
-successful evaluation.
+Use a separate capture for each selected task. The manifest must match the task
+and instance selected in the server configuration. Omitting `--task` selects
+radio; a radio manifest cannot be used for another task.
 
-Use a dedicated mode-0700 child directory, not `/tmp`, `/dev/shm`, or a workspace
-root itself. A tmpfs such as `/dev/shm` is an option only when both filesystem
-capacity and the process cgroup memory budget have adequate headroom: its free
-space is not a memory reservation. Check actual mount type, ownership, capacity
-and memory before launching; do not infer local storage from a directory name.
-Keep workers sequential when resources are constrained. Never delete other
-runs' temporary files or discard failed-run evidence to make a check pass.
+Before initialization, the worker rechecks selected robot/task files, tracked
+native package sources, runtime versions, interpreter and module origins.
+Stale or untracked source bytecode is rejected. The recorded extraction receipts
+identify archive/extraction provenance; they do not certify every live asset
+byte or all host dependencies.
 
-After changing the launch setting, use a new run ID and verify native controls,
-video decoding and graceful worker cleanup through the same service. Do not
-patch `og.cleanup`, ignore its errors or change native scoring. This is a
-deployment correction, not a new observation/action protocol or a score result.
+## Runtime placement
 
-### CPython crash-handler initialization
+Set `TMPDIR` before launching the server to a fresh, private directory on
+node-local storage. Keep result records, manifests and retained videos on
+persistent storage. Native USD temporary-file cleanup can fail on NFS when open
+files become `.nfs*` entries. Check actual mount type, ownership and capacity;
+a directory name alone does not establish local storage.
 
-The private worker starts with `python -X faulthandler -B -m ...`, registering
-the real CPython crash handler before native imports, then enlarges the main
-thread's POSIX alternate signal stack to at least 64 KiB. Early enable alone is
-not sufficient: actual AMX use can still prevent crash-traceback delivery on
-the smaller stack. On an affected Linux x86
-runtime, enabling AMX extended CPU state before late `faulthandler.enable()`
-can make alternate signal-stack registration fail with `OSError: ENOMEM`, even
-with free memory. This is a worker-runtime compatibility fix, not a change to
-the benchmark. Do not swallow the exception, monkeypatch the
-handler or disable crash diagnostics. Crash output remains in the private
-`native_worker.log`; native source, controls and scoring are unchanged.
-`native_crash_handler.json` records the stack sizes and main-thread scope. The
-Linux x86-64 bootstrap retains its small libc allocation for the process lifetime
-so a registered signal stack never points at freed Python memory. It does not
-claim to configure native SDK threads or replace their own crash handlers.
-See the [Linux XSTATE documentation](https://docs.kernel.org/arch/x86/xstate.html)
-and [Python startup options](https://docs.python.org/3.11/using/cmdline.html#cmdoption-X).
+Use a dedicated mode-0700 child directory, not a filesystem root. If using
+tmpfs, account for both free space and the process memory limit. Do not remove
+other jobs' temporary files or suppress native cleanup errors. Failed cleanup
+is an infrastructure error, even after valid controls have executed.
 
-### Validation sequence
+The private worker enables CPython crash diagnostics before native imports and
+reserves an enlarged main-thread alternate signal stack on the supported Linux
+x86-64 runtime. This supports diagnostics with AMX-enabled native libraries.
+The service records its scope in `native_crash_handler.json`; it does not
+configure every native SDK thread. See the
+[Linux XSTATE documentation](https://docs.kernel.org/arch/x86/xstate.html) and
+[Python startup options](https://docs.python.org/3.11/using/cmdline.html#cmdoption-X).
 
-1. Verify a dedicated runtime, licensed asset revision and a fixed public task
-   instance. Record all missing inputs without claiming an attempted rollout.
-2. Freeze robot config, native task/instance schedule, observation allowlist and
-   action semantics. Keep the old 2025 inventory separate.
-3. The implemented `benchkit/sim_server` service selects DefaultWrapper RGB plus
-   proprioception, not the full RGBD track. Full RGBD needs a separately reviewed
-   depth representation; never encode metric depth as RGB or silently drop it.
-4. Independently review no-reset startup, private-data filtering, native metric
-   bridge, counters, media, source capture and cleanup; run offline regressions.
-5. Predeclare one task/instance and two fixed valid controls for a no-model
-   service diagnostic. Preserve any failure, with no automatic retry. Only
-   after this gate may a separate model trial be called executable.
+## Readiness and launch
 
-Cold startup may spend many minutes importing the scene and generating collision,
-shader and rendering caches, especially on shared storage. Monitor CPU, I/O and
-native logs; do not confuse a live initialization with an acknowledged reset.
-Choose the bounded `worker_timeout` before claiming a case. Never extend a frozen
-run silently or replay a timed-out reset/control.
+1. Verify native source/runtime, licensed assets, the selected instance and GPU capacity.
+2. Create the deployment capture and copy its path/digest into an operator-owned
+   [server configuration](../server.example.json).
+3. Set `worker_python`, `gpu_id`, `worker_timeout` and the selected `task`
+   before launching the [public entrypoint](../README.md#prepare-and-launch).
+4. Use a separately labelled infrastructure check through the service to verify
+   reset, all three RGB views, measured state, one valid control, timing and cleanup.
+5. Keep a diagnostic's outcome separate from a scored task attempt.
 
-The recorded smoke check does not grant license acceptance or establish an
-installation on another host, model capability, or full challenge parity.
+Cold scene initialization may take minutes to build collision, shader and
+rendering caches. Choose a bounded worker timeout in advance and inspect native
+logs when necessary. A listening HTTP server is not a completed native reset.
+Do not replay a timed-out reset or control, change the frozen timeout mid-run,
+or reinterpret a short diagnostic as a completed evaluation.

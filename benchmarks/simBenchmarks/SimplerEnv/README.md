@@ -1,110 +1,99 @@
 # SimplerEnv
 
-This integration follows the [RoboDojo-derived service conventions](../SERVICE_CONVENTIONS.md).
-Its native delta actions, sensor tracks and final-step scoring remain SimplerEnv-specific.
+SimplerEnv evaluates robot manipulation in simulation using environments designed
+to match real robot tasks and visual conditions. This integration supports Google
+Robot and WidowX tasks through a benchmark-owned service: task selection,
+observations, native actions, execution budgets and scoring are independent of
+the participating agent method.
 
-This benchmark can run as an independent SIM service via [server.py](server.py).
-Start from [server.example.json](server.example.json), adjust deployment paths/GPU
-before launch, and follow the [shared server workflow](../SERVER_PROTOCOL.md).
-The server owns native reset/control/scoring; the evaluator uses the client, and
-the model receives only permitted observations. Native service-mode validation is separate from adapter availability.
+- [Evaluation protocol](EVALUATION_PROTOCOL.md): task selection, budgets and native scoring.
+- [Tasks and variants](bench_server/protocol/TASKS.md): aliases, canonical tasks and reference evaluation matrices.
+- [Public interface](bench_server/protocol/INTERFACE.md): sensor channels and action semantics.
+- [Rendering checks](environment/RENDERING.md): graphics readiness and device selection.
 
-Evaluate a policy through `SimplerEnvBenchmarkAdapter`: the model receives only
-declared observations and returns action chunks; the adapter owns the simulator,
-controller and native scoring. No model training is required.
+## Benchmark tasks and variation design
 
-- [Evaluation protocol](EVALUATION_PROTOCOL.md): fast/full scope, budgets and scoring.
-- [Tasks and variants](bench_server/protocol/TASKS.md): 25 aliases, 15 canonical subtasks and native VM/VA matrices.
-- [Policy interface](bench_server/protocol/INTERFACE.md): observations, actions, transport and isolation.
-- [Rendering checks](environment/RENDERING.md): preflight and graphics-driver troubleshooting.
+The [upstream task overview](https://github.com/allenai/SimplerEnv/blob/c701ea271b16b80616d6fed9713c4a50a0adea3b/README.md#current-environments)
+lists 10 task categories: six Google Robot categories (can picking, random-object
+picking, move-near, drawer opening, drawer closing and drawer placement) and four
+WidowX tasks (spoon on towel, carrot on plate, cube stacking and eggplant in
+basket). Its registry provides 25 aliases; orientations, drawer levels and alias
+names are not 25 independent task families.
 
-The prepackaged fast track is executable. Native full VM/VA evaluation is
-documented but is not yet implemented by the unified adapter; fast results must
-not be presented as full reference scores.
+The benchmark uses two evaluation designs. **Visual Matching** aligns simulated
+scenes with real task images. **Variant Aggregation** evaluates across changed
+visual conditions. The pinned reproduction scripts define nine task families
+(random-object picking is an additional environment): VM expands to 864 Google
+Robot and 96 WidowX episodes; Google VA expands to 1,992 episodes. These are
+separate reference matrices, with different condition sets and denominators.
+The [task and variation guide](bench_server/protocol/TASKS.md) details layouts,
+object orientations, robot poses and appearance changes for each family.
 
-## Directory responsibilities
+## Select tasks through this service
 
-```text
-SimplerEnv/
-├── server.py                  # stable public launch entrypoint
-├── server.example.json        # example deployment and selected-track settings
-├── bench_server/
-│   ├── adapter.py             # native bridge, observation allowlist and scoring
-│   └── protocol/              # task catalog, selection plan and interface reference
-└── environment/               # upstream pins, installation and rendering checks
-```
+The current catalog exposes 15 canonical subtasks, expanding can orientations
+and drawer levels:
 
-`bench_server/protocol/` is benchmark definition data, not simulator assets or
-server credentials. The catalog's bytes and task order are unchanged by this
-layout migration. [plan.py](bench_server/protocol/plan.py) owns task selection.
-The canonical adapter lives in `bench_server/adapter.py` and lazily
-imports the native simulator on reset, solely inside the service process.
-Model prompts, action selection and results stay under `AgentPolicies/<profile>/`;
-`benchkit/` supplies shared records, source capture and reports.
+| Task group | Canonical subtasks | Native control horizon |
+| --- | ---: | ---: |
+| Google Robot: pick horizontal, vertical or standing can | 3 | 80 |
+| Google Robot: move near (`v0`) | 1 | 80 |
+| Google Robot: open or close top, middle or bottom drawer | 6 | 113 |
+| Google Robot: put apple in initially closed top drawer | 1 | 200 |
+| WidowX: spoon on towel, carrot on plate, stack cubes | 3 | 60 |
+| WidowX: eggplant in basket | 1 | 120 |
 
-## Launch the benchmark service
+A service selects one task and a predeclared number of seeded resets. Its seeds
+are `--seed + episode_index`; changing the seed samples the native prepackaged
+reset and does not guarantee a distinct layout.
 
-After verifying the native environment, copy `server.example.json` to your own
-configuration and select its task, device, observation track and budgets before
-launch. The example selects the horizontal-can task's native 80-control horizon,
-`interaction_mode: "agent_method"` and explicit action-rejection feedback. A
-method's decision-call cap and action prefix are configured on its driver; they
-do not extend the native horizon. The separately labeled decision-budget track
-remains available when explicitly selected. Use a fresh output directory:
+The service schedules prepackaged seeded resets; it does not enumerate the VM
+or VA visual-condition matrices. Increasing the episode count does not by itself
+reproduce either reference matrix. This is a limitation of the current selector,
+not a limit on the benchmark's task or variation universe.
 
-On multi-GPU hosts, first run the [renderer-only device preflight](environment/RENDERING.md#first-verify-the-actual-gpu-without-starting-a-task).
-Keep its exact `device` selector and add `"expected_gpu_uuid": "GPU-..."`
-(the complete verified UUID) to the server parameters. This optional deployment
-assertion rejects an unexpected physical device before any public observation;
-it never silently selects a replacement GPU. CUDA ordinal visibility is not
-proof of Vulkan device selection.
+## Observations, actions and scoring
 
-```bash
-# Activate the native SimplerEnv environment first; set this secret privately.
-export RSI_SIM_SERVER_TOKEN='<32-or-more-character-random-URL-safe-secret>'
-python -B -m benchmarks.simBenchmarks.SimplerEnv.server \
-  --parameters /absolute/path/to/simpler-server.json \
-  --seed 0 --episodes 1 --port 8765 \
-  --output-dir /absolute/path/to/AgentPolicies/your_agent/results/simpler_env/raw/your-run/server
-```
+| Contract | Google Robot | WidowX |
+| --- | --- | --- |
+| RGB camera | `overhead_camera`, 512 × 640 | `3rd_view_camera`, 480 × 640 |
+| Native control frequency | 3 Hz | 5 Hz |
+| Arm target | Measured-pose delta, base-aligned (`ee_align`) | Accumulated target delta, base-aligned (`ee_align2`) |
+| Gripper | Positive closes; negative opens; zero holds | +1 open; −1 closed; zero intermediate |
 
-The listener binds loopback. Use the [shared transport](../SERVER_PROTOCOL.md)
-for a trusted driver on another machine. Keep its bearer token and administrative
-client out of the model actor's workspace. There is no background control tick
-while the policy is thinking; lost action acknowledgments are not replayed.
-Each predeclared episode is claimed once, including failures.
+The default observation is current native RGB and language. An explicitly
+selected RGB+joint-position track adds 11 Google Robot or 8 WidowX encoders;
+see the [joint order and units](bench_server/protocol/INTERFACE.md#joint-position-order).
+Object poses, depth, segmentation, reset metadata and native scores are not
+public observations.
 
-The service preserves this benchmark's seven-value delta-action interface;
-it does **not** expose RoboDojo's absolute dual-arm EEF16 action or robot-feedback
-extension. Choose a compatible agent method, not an action-vector conversion
-guessed by a server. Explicitly select `interaction_mode: "agent_method"` for
-methods that use internal inference or local tools over permitted public data,
-including the current Codex CLI method. This adds `/agent-method` before `/v1`
-in the selected protocol identity. Omission or `"single_response"` preserves
-the historical one-provider-request-per-call track and its existing ID. Neither
-the service nor the CLI wrapper verifies hidden provider request counts. The
-new mode grants no extra observations, native access, resets or control budget;
-see [interaction modes](EVALUATION_PROTOCOL.md#interaction-modes).
+Each control is seven finite values:
+`[dx_m, dy_m, dz_m, rx_rad, ry_rad, rz_rad, gripper]`. Rotation is an axis-angle
+vector, not Euler angles. Both deltas use robot-base axes, not rotating tool
+axes; [the interface](bench_server/protocol/INTERFACE.md#actions) explains
+WidowX's retained-target rotation pivot and the bounds. Native low-level control
+performs the command without task planning.
 
-The example explicitly selects `"action_rejection_feedback": true`, as required
-by the current Codex native-vector driver's default feedback behavior.
-This adds `/action-feedback` before the optional `/agent-method` and final `/v1`
-suffixes: a rejected action does
-not execute, and its bounded validation issue reaches the next counted call
-with the last acknowledged observation. The omitted/default `false` setting
-preserves historical fail-fast semantics. The selected flag is captured in the
-service parameters; see [the protocol](EVALUATION_PROTOCOL.md#optional-rejected-action-feedback).
+Success is the **last executed native step's** `info["success"]`. Intermediate
+success does not terminate this benchmark and is not substituted for the final
+score. Preserve call, action-decision and control counts separately.
 
-## Install the evaluation environment
+`budget_mode="horizon"` with `horizon_multiplier=1` retains the native horizons
+above. Explicit 2× horizons and decision-budget configurations are separate
+development tracks with distinct protocol identities. In horizon mode, action
+grouping and inference timing belong to the agent driver; they do not extend
+the native budget. See [the protocol](EVALUATION_PROTOCOL.md) for exact conditions.
+
+## Install the environment
 
 Use a Linux NVIDIA node with a separate Python 3.10 environment. From the
-repository root:
+repository root, replace the source path with an owned installation directory:
 
 ```bash
 conda env create -f benchmarks/simBenchmarks/SimplerEnv/environment/environment.yml
 conda activate starvla-rsi-simpler
 
-export SIMPLERENV_ROOT=/absolute/path/to/benchmarks/SimplerEnv
+export SIMPLERENV_ROOT=/absolute/path/to/native/SimplerEnv
 git clone --recurse-submodules https://github.com/allenai/SimplerEnv.git "$SIMPLERENV_ROOT"
 git -C "$SIMPLERENV_ROOT" checkout c701ea271b16b80616d6fed9713c4a50a0adea3b
 git -C "$SIMPLERENV_ROOT" submodule update --init --recursive
@@ -114,77 +103,64 @@ python -m pip install \
   -e "$SIMPLERENV_ROOT/ManiSkill2_real2sim" -e "$SIMPLERENV_ROOT" -e .
 ```
 
-The submodule pin is `ef7a4d4fdf4b69f2c2154db5b15b9ac8dfe10682`.
-The adapter checks upstream revisions and tracked modifications before reset.
-Use the assets shipped with the pinned recursive checkout. Model checkpoints,
-training data and a StarVLA model server are not required.
+The ManiSkill2_real2sim submodule pin is
+`ef7a4d4fdf4b69f2c2154db5b15b9ac8dfe10682`. The adapter verifies both revisions
+and tracked modifications before reset. Use the assets shipped with that
+recursive checkout. Model weights and training datasets are not required.
 
-The constraints avoid incompatible NumPy/OpenCV combinations and select an
-available Ruckig wheel. If your deployment requires a network proxy, use its
-existing configuration; do not put credentials into protocols or model files.
-
-## Validate graphics before evaluating a model
-
-CUDA visibility alone is insufficient: the native renderer also needs graphics
-libraries and a working NVIDIA Vulkan ICD. Prefer your system's NVIDIA ICD. If
-the graphics library is already installed but the container lacks its ICD
-registration, this process-local example uses the provided descriptor:
+The native renderer needs graphics libraries and a working NVIDIA Vulkan ICD,
+in addition to CUDA. Prefer the system ICD; the provided
+[descriptor](environment/nvidia_icd.json) can register an already-installed
+graphics library in containers that lack the descriptor. Run the separate
+readiness diagnostic using the native environment:
 
 ```bash
-export VK_ICD_FILENAMES="$PWD/benchmarks/simBenchmarks/SimplerEnv/environment/nvidia_icd.json"
 python benchmarks/simBenchmarks/SimplerEnv/environment/verify_environment.py
 ```
 
-The verifier performs environment/reset/render and constant-action checks, not a
-model evaluation. Use `--help` for task and diagnostic-step options. Check both
-IBL and drawer-task RT rendering: a detailed photographic background can hide a
-black robot or foreground. [RENDERING.md](environment/RENDERING.md) explains this distinction
-and matching driver-data requirements. Simulator-free `catalog` or `list`
-commands do not establish graphics readiness.
+This performs reset/render and constant-action checks, not agent evaluation.
+Inspect the robot and objects, as a photographic background can hide a black
+foreground. Validate both IBL and drawer-task RT rendering. On multi-GPU nodes,
+first follow the [renderer-only device check](environment/RENDERING.md#first-verify-the-actual-gpu-without-starting-a-task):
+CUDA visibility alone does not prove Vulkan device selection.
 
-## Connect an agent
+## Start the benchmark service
 
-After service readiness, launch a compatible model-owned driver. For the current
-Codex native-vector method, follow [client README](../../../AgentPolicies/gpt6_astra/README.md).
-Model configuration, prompts, memory and decision loops belong to that profile,
-not this benchmark. The service exposes only its declared observation/action
-contract, not a task-solving RPC or the simulator handle.
+Copy [server.example.json](server.example.json) to an operator-owned file and
+choose the task, GPU, observation track and budget before starting. The example
+selects the horizontal-can task's native 80-control horizon, explicit
+`interaction_mode: "agent_method"` and `action_rejection_feedback: true`.
+The alternative `single_response` and fail-fast tracks retain separate declared
+conditions; omitted parameters do not inherit the example's values.
 
-See [the evaluation workflow](../../../docs/evaluation.md) for source capture and
-closed-record reporting. Protocol and call-accounting restrictions apply to each
-selected method; a method name alone does not establish provider metering or native parity.
+Set a strong `RSI_SIM_SERVER_TOKEN` privately for the server and trusted driver.
+From the prepared native environment, use a new output directory:
 
-## Results and offline review
+```bash
+python -B -m benchmarks.simBenchmarks.SimplerEnv.server \
+  --parameters /absolute/path/to/simpler-server.json \
+  --seed 0 --episodes 1 --port 8765 \
+  --output-dir /absolute/path/to/results/simpler_env/your-run/server
+```
 
-Outputs belong under `AgentPolicies/<model-profile>/results/simpler_env/`:
+The service binds loopback and fixes its schedule without resetting a task.
+Use authenticated SSH forwarding for a driver on another node. A compatible
+driver connects through the [shared wire protocol](../SERVER_PROTOCOL.md);
+[agent integration](../../../docs/agent-methods.md) describes the separate
+participant side. No provider, prompt, agent library or action chunk size is
+selected by this launch command.
 
-- `raw/`: campaigns, manifests, event streams, responses, source snapshots and original media.
-- `reports/` and `indices/`: task coverage, typed failures and hash-bound summaries.
-- `media/`: presentation copies of closed videos, named with task IDs/descriptions.
+## Directory responsibilities and results
 
-Raw/media outputs are ignored by Git. Preserve original closed bytes and every
-attempt, including failures. Do not expose closed artifacts to an active policy.
+`server.py` is the public launcher; `bench_server/adapter.py` defines the public
+contract and native bridge. `bench_server/protocol/` contains task definitions,
+selection and interface documents. `environment/` holds source pins and readiness
+tools. Deployment paths and credentials belong to operator configuration.
 
-The primary score uses the final executed native step's success, not a video's
-appearance, an actor's declaration or the best intermediate frame. Record
-policy calls, executed action decisions, control steps and first-success timing
-separately. First success is diagnostic, not a replacement score.
-
-`harness_source/` binds shared and benchmark integration bytes;
-`model_source/` separately binds declared policy/configuration/prompt bytes.
-These are provenance records, not proof of OS isolation, loaded-memory identity,
-native asset completeness or trusted provider accounting.
-
-Use the shared [closed-record auditor](../../../benchkit/audits/closed_run.py),
-[mailbox artifact auditor](../../../benchkit/audits/mailbox_artifacts.py) and
-[progress reporter](../../../benchkit/reports/progress.py) on closed runs only.
-Their `--help` commands describe supported inputs and limitations. A passed
-record audit does not establish native baseline parity. Changing code or setup
-requires a separately declared evaluation configuration, never rewritten results.
-
-Use [the review checklist](../../../benchkit/audits/REVIEW_GUIDE.md) for independent
-closed-run review. Shared video export is available as
-`python -m benchkit.reports.export_videos --help`; it copies only closed evidence.
-Historical anonymous results remain in the local, Git-ignored
-`AgentPolicies/anonymous_code_agent/results/simpler_env/` directory and are not
-included in source checkouts.
+Keep method implementations under `AgentPolicies/<agent>/` and generated reports
+and evidence under `AgentPolicies/<agent>/results/simpler_env/`. Reports identify the selected
+task/reset denominator, protocol, native outcome, counters and typed errors.
+Optional interaction histories and videos follow the shared
+[recording policy](../../../docs/recording.md); native videos remain on the
+server by default. See [evaluation and reporting](../../../docs/evaluation.md)
+for connecting a method and inspecting closed results.
