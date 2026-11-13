@@ -1,114 +1,71 @@
-# VLN-CE environment and asset prerequisites
+# VLN-CE environment preparation
 
-This is a reusable integration checklist, not a machine inspection log or a
-runnable installer. The repository does not yet provide a unified VLN-CE adapter.
-Existing pinned source evidence is separated from work that must be validated
-in each deployment. No model score or native compatibility is implied.
+Prepare the service Python (3.10+) separately from a native interpreter with
+Habitat-Lab and headless Habitat-Sim 0.3.3. The service imports Habitat only in
+its configured native worker. A compatible existing environment can be reused
+read-only; copy it to an operator-owned prefix before changing packages or
+patching installed code. Do not assume another node's identical path has a
+working interpreter or matching libraries.
 
-## Verified sources and compatible runtime
+## Runtime
 
-The retained StarVLA integration points to
-[StarVLA-VLN-CE-Evaluation](https://github.com/LiuRicky/StarVLA-VLN-CE-Evaluation/tree/2e56d1c026b2945b90b4ff339bdec2cb1e42b800),
-revision `2e56d1c026b2945b90b4ff339bdec2cb1e42b800` (2026-06-02).
-The benchmark authors' implementation is
-[jacobkrantz/VLN-CE](https://github.com/jacobkrantz/VLN-CE).
+The native interpreter needs Habitat's R2R configuration and VLN task, NumPy,
+Pillow, ImageIO and its ffmpeg backend. Confirm imports without constructing an
+environment. Record both module and distribution versions; a version string
+alone does not establish an exact Git revision. Runtime provenance records the
+loaded source files and effective configuration rather than inventing a commit.
 
-The [integration installation guide](https://github.com/LiuRicky/StarVLA-VLN-CE-Evaluation/blob/2e56d1c026b2945b90b4ff339bdec2cb1e42b800/README.md)
-specifies Python at most 3.10 and uses 3.10, Habitat-Sim and Habitat-Lab
-`v0.1.7`, a headless simulator build, NumPy `1.26.0` / `<2`, and
-`webdataset==0.1.103`. Its example Torch stack is `2.6.0` with CUDA 12.4;
-the [requirements file](https://github.com/LiuRicky/StarVLA-VLN-CE-Evaluation/blob/2e56d1c026b2945b90b4ff339bdec2cb1e42b800/requirements.txt)
-also pins Gym `0.17.3`, OpenCV `4.8.0.74`, DTW `1.4.0` and FastDTW `0.3.4`.
-These are upstream instructions; compatibility must be validated in the selected deployment.
-The original VLN-CE README instead describes Python 3.6; do not conflate the two
-runtime recipes or assume a current Habitat release is compatible.
+Habitat 0.3.3 uses structured configuration. This service starts from
+`benchmark/nav/vln_r2r.yaml` and explicitly sets the contract in
+[EVALUATION_PROTOCOL.md](EVALUATION_PROTOCOL.md): 500 actions, 0.25-metre forward,
+15° turns, sliding enabled, RGB 512×512 / 90° FOV, instruction-only task sensing
+and native success distance 3 m. It exposes only current RGB and instruction.
+Do not reuse a model evaluation script that adds GPS, oracle sensors, extra
+actions or a larger step budget.
 
-Relevant native implementation evidence:
+## Data and scenes
 
-- [R2R task configuration](https://github.com/LiuRicky/StarVLA-VLN-CE-Evaluation/blob/2e56d1c026b2945b90b4ff339bdec2cb1e42b800/habitat_extensions/config/vlnce_task.yaml):
-  500 steps, 0.25-metre forward, 15-degree turns, RGB 512x512, depth 256x256,
-  sliding enabled, four actions, and oracle sensors in the inherited configuration.
-- [QwenVL evaluator](https://github.com/LiuRicky/StarVLA-VLN-CE-Evaluation/blob/2e56d1c026b2945b90b4ff339bdec2cb1e42b800/vlnce_baselines/qwenvl_trainer.py):
-  RGB/instruction wire payload, up to eight sampled history frames, text-to-action
-  parsing and native-step queues. Its invalid-output fallback is forward, action
-  repeats are not capped at five, and the queue is not cleared at episode reset.
-  These behaviors must not be inherited silently by a new shared policy adapter.
-- [Dataset loader](https://github.com/LiuRicky/StarVLA-VLN-CE-Evaluation/blob/2e56d1c026b2945b90b4ff339bdec2cb1e42b800/habitat_extensions/task.py):
-  episode/trajectory identity, scene paths, role/language and allowed-episode
-  filters. Use explicit episode IDs; chunk/shard arguments are not episode IDs.
-- [Habitat navigation task and success](https://github.com/facebookresearch/habitat-lab/blob/v0.1.7/habitat/tasks/nav/nav.py),
-  [environment step limits](https://github.com/facebookresearch/habitat-lab/blob/v0.1.7/habitat/core/env.py),
-  [VLN-CE measures](https://github.com/LiuRicky/StarVLA-VLN-CE-Evaluation/blob/2e56d1c026b2945b90b4ff339bdec2cb1e42b800/habitat_extensions/measures.py):
-  STOP is required for success; native step counting includes STOP; nDTW reads
-  evaluator-private GT locations.
+Use an authorized [Matterport3D](https://niessner.github.io/Matterport/)
+installation compatible with Habitat. Scene meshes and navigation meshes are
+separate from the [R2R episode data](https://jacobkrantz.github.io/vlnce/data).
+Code availability does not grant asset rights; do not distribute licensed
+scenes or private download credentials with the repository.
 
-## Data, variants and access
+The complete selected split must be readable as gzip JSON. Example layout:
 
-The [official R2R data definition](https://jacobkrantz.github.io/vlnce/data)
-lists `R2R_VLNCE_v1-3`: train 10,819 episodes, val_seen 778, val_unseen 1,839,
-and test 3,408. The val_unseen split spans 11 scenes. The 3 MB minimal package
-contains episodes; the 250 MB preprocessed package includes validation GT actions
-and locations needed by the retained nDTW scorer. Its augmented training split
-is outside this evaluation scope. Test goals/GT are withheld for server scoring;
-do not substitute test data for locally scored validation episodes.
+```text
+episodes/R2R_VLNCE_v1-3_preprocessed/
+  val_unseen/val_unseen.json.gz
+  val_unseen/val_unseen_gt.json.gz
+scene_data/
+  mp3d/<scene>/<scene>.glb
+  mp3d/<scene>/<scene>.navmesh
+```
 
-RxR is a separate dataset with train/val_seen/val_unseen/test_challenge splits,
-guide/follower roles and English, Hindi and Telugu instructions. The pinned
-[StarVLA RxR experiment](https://github.com/LiuRicky/StarVLA-VLN-CE-Evaluation/blob/2e56d1c026b2945b90b4ff339bdec2cb1e42b800/vlnce_baselines/config/rxr_baselines/qwenvl.yaml)
-selects val_unseen/en-US and enables resize/crop transforms; evaluator setup
-selects guide. The [transform defaults](https://github.com/LiuRicky/StarVLA-VLN-CE-Evaluation/blob/2e56d1c026b2945b90b4ff339bdec2cb1e42b800/vlnce_baselines/config/default.py)
-set the RGB crop to 224x224. Its task uses 15-degree turns and sliding. In contrast, the
-[authors' RxR task configuration](https://github.com/jacobkrantz/VLN-CE/blob/master/habitat_extensions/config/rxr_vlnce_english_task.yaml)
-uses 30-degree turn/tilt actions, sliding disabled and 480x640 RGBD. This latter
-link is a comparison source, not an additional pinned runtime. RxR needs its
-own frozen variant and acceptance pass; the two configurations are not an
-interchangeable challenge score.
+Set `dataset_path` to the split JSON and `scenes_dir` to `scene_data`, since
+episode scene IDs already contain `mp3d/`. Select `episode_ids` from the whole
+split before inspecting outcomes or filtering by available scenes. Missing
+selected assets block initialization; they never select replacement episodes.
+Use `val_seen` or `val_unseen` for local scoring; test goals are withheld.
 
-MP3D scene meshes are a separate required asset. The
-[Matterport3D project](https://niessner.github.io/Matterport/) requires a signed
-Terms of Use agreement and a request to the dataset owners for access. Reuse
-an authorized asset location if available; do not sign on a participant's behalf,
-send an access request without authorization or bypass access through mirrors.
-The [VLN-CE license notice](https://github.com/jacobkrantz/VLN-CE#license) states
-that code is MIT, while MP3D-derived task datasets and trained models carry
-Matterport3D Terms of Use and CC BY-NC-SA 3.0 US. Dataset rights do not follow
-automatically from the code license.
+The preprocessed package supplies validation GT paths/actions. Optional
+`gt_path` validates matching entries and records their origin; this version
+reports native success, SPL and distance and does not compute nDTW.
 
-## Deployment checklist
+## Readiness sequence
 
-Check authorized existing assets and compatible environments before provisioning
-new copies. Record the evaluator revision, Habitat build, selected split,
-scene inventory and data hashes. Episode IDs and scene requirements must come
-from the selected complete dataset, not from guesses or available-asset filtering.
-Missing assets or an unavailable runtime are setup prerequisites, not model failures.
+1. Check interpreter resolution, package versions, complete split/GT coverage
+   and required GLB/navmesh files before claiming a case.
+2. Set explicit native interpreter, data paths, selected IDs and GPU in a copy
+   of [server.example.json](server.example.json). Keep local paths out of Git.
+3. Verify the configured GPU is available. Start the service from stable source
+   and use a trusted client for a separate, labelled no-model diagnostic:
+   describe, claim, reset, inspect RGB, execute a valid action, execute STOP,
+   read metrics and finish. Invalid actions must not move the simulator.
+4. Confirm finalization, video decoding and owned worker cleanup. Only then
+   declare model evaluation cases. A diagnostic STOP failure is not a model
+   capability result, and a successful reset alone is not control validation.
 
-## Adapter implementation requirements
-
-1. Resolve the execution node and authorized MP3D root. Obtain the complete
-   selected episode split and scoring GT, then freeze the selection rule in
-   [EVALUATION_PROTOCOL.md](EVALUATION_PROTOCOL.md) into an explicit episode
-   manifest. Only then determine the required scenes; asset availability must
-   not choose the episodes. Validate readability and checksums before simulation.
-2. Create an isolated simulator environment, obtain the pinned evaluator and
-   Habitat v0.1.7 sources, and record resolved revisions, build flags and package
-   versions. Review the integration's
-   [NumPy compatibility replacement](https://github.com/LiuRicky/StarVLA-VLN-CE-Evaluation/blob/2e56d1c026b2945b90b4ff339bdec2cb1e42b800/scripts/habitat_sim_autofix.py)
-   before use: it overwrites an installed Habitat-Sim source file. Any applied
-   patch is part of runtime provenance. Verify import and headless rendering;
-   this old stack's compatibility must be demonstrated on the chosen node.
-3. Resolve task `DATA_PATH`, `SCENES_DIR` and `NDTW.GT_PATH` explicitly. The pinned
-   integration contains nonportable absolute GT defaults and differing scene
-   path benchmarks. Check the
-   final resolved mesh and GT files, not merely the presence of a directory.
-4. Implement a lazy-loading `BenchmarkAdapter` and one-episode session around
-   native `habitat.Env`, registered datasets/tasks and measures. Expose only
-   the proposed RGB/instruction boundary, enforce integer navigation actions,
-   execute native STOP, preserve the 500-step horizon, and record native metrics
-   and RGB video in runner-owned artifacts. Keep provider/model code outside
-   the evaluator, with no simulator or GT access from the policy process.
-5. Add dependency-light contract/boundary checks and native direct-versus-session
-   trajectory/metric verification. Select explicit episode IDs from the native split;
-   retain every scheduled attempt, failure and typed error without
-   automatic retries. Do not register or advertise a runnable adapter before one
-   exists and passes its relevant checks. A successful task completion is not
-   required to validate correct environment stepping and scoring.
+Keep diagnostic output separate from scored model runs. Use the shared
+[server interface](../SERVER_PROTOCOL.md); do not give simulator handles,
+scenes, private route/goal fields or evaluator credentials to the model.

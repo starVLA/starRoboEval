@@ -13,12 +13,18 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--task", required=True, choices=TASKS)
     parser.add_argument("--output", type=Path, required=True)
-    parser.add_argument("--gpu", type=int, default=4)
+    parser.add_argument("--simple-root", required=True)
+    parser.add_argument("--eval-root", required=True)
+    parser.add_argument("--python-executable")
+    parser.add_argument("--cuda-root")
+    parser.add_argument("--gpu", type=int, default=0)
     parser.add_argument("--rgb-only", action="store_true")
-    parser.add_argument("--budget-mode", choices=("decisions", "horizon"), default="decisions")
+    parser.add_argument("--budget-mode", choices=("decisions", "horizon"), default="horizon")
     args = parser.parse_args()
     args.output.mkdir(parents=True, exist_ok=False)
-    adapter = SimpleHumanoidBenchmarkAdapter(task_names=(args.task,), gpu_id=args.gpu, diagnostic=True,
+    adapter = SimpleHumanoidBenchmarkAdapter(simple_root=args.simple_root, eval_root=args.eval_root,
+        python_executable=args.python_executable, cuda_root=args.cuda_root,
+        task_names=(args.task,), gpu_id=args.gpu, diagnostic=True,
         proprioception=not args.rgb_only, budget_mode=args.budget_mode)
     session = adapter.open_episode(adapter.episodes(SEED)[0])
     session.bind_artifact_dir(args.output)

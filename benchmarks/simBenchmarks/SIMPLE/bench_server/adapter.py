@@ -32,6 +32,37 @@ FULL_TASKS = tuple(TASK_CONFIGS)
 HORIZONS = {task: row["reference_native_horizon"] for task, row in TASK_CONFIGS.items()}
 
 
+def execution_budget(native_horizon: int, budget_mode: str = "horizon",
+    max_policy_calls: int | None = None, replan_interval: int | None = None,
+) -> tuple[int, int | None, int | None]:
+    """Resolve execution limits without assigning a method's decision cadence.
+
+    The explicit decisions track retains its original 200-by-5 definition.
+    Native-horizon services do not advertise or accept method call/prefix caps.
+    """
+    if type(native_horizon) is not int or native_horizon <= 0:
+        raise ValueError("native_horizon must be a positive integer")
+    if budget_mode == "horizon":
+        if max_policy_calls is not None or replan_interval is not None:
+            raise ValueError("horizon mode has no server call/prefix limits; configure these in the agent")
+        return native_horizon, None, None
+    if budget_mode != "decisions":
+        raise ValueError("budget_mode must be horizon or decisions")
+    calls = 200 if max_policy_calls is None else max_policy_calls
+    prefix = 5 if replan_interval is None else replan_interval
+    if type(calls) is not int or calls != 200 or type(prefix) is not int or prefix != 5:
+        raise ValueError("the explicit decisions track requires 200 policy calls and prefix cap 5")
+    return 1000, calls, prefix
+
+
+def deployment_path(value: str | Path, name: str, *, resolve_symlinks: bool = True) -> Path:
+    """Require operator-selected absolute paths, without opening native assets."""
+    if (not isinstance(value, (str, Path)) or not str(value)
+            or not Path(value).is_absolute() or ".." in Path(value).parts):
+        raise ValueError(f"{name} must be an absolute path without '..'")
+    return Path(value).resolve() if resolve_symlinks else Path(value)
+
+
 def task_config(task: str, task_scope: str = "pilot") -> Mapping[str, Any]:
     """Select an explicit frozen scope without expanding legacy pilot defaults."""
     if task_scope not in ("pilot", "released-12"):
@@ -67,6 +98,44 @@ ACTION_SPEC = ActionSpec(
     rotation="joint radians; waist roll,pitch,yaw; heading radians",
     gripper="14 individual dexterous hand joint position targets (radians)",
 )
+
+
+def task_contract(task: str, *, task_scope: str = "pilot", proprioception: bool = True,
+    budget_mode: str = "horizon", max_policy_calls: int | None = None,
+    replan_interval: int | None = None,
+) -> tuple[BenchmarkDescriptor, EpisodeSpec, ActionSpec, ObservationSpec]:
+    """Describe a pinned task without installation paths or native construction."""
+    config = task_config(task, task_scope)
+    if type(proprioception) is not bool:
+        raise ValueError("proprioception must be an explicit boolean")
+    if task_scope == "released-12" and not proprioception:
+        raise ValueError("released-12 requires RGB+qpos31")
+    cap, _, _ = execution_budget(HORIZONS[task], budget_mode, max_policy_calls, replan_interval)
+    backend = config["backend"]
+    names = list(ACTION_NAMES)
+    names[34] = "turning_flag" if backend == "amo" else "turning_gate"
+    action_spec = ActionSpec(mode=f"simple_{backend}_physical_joint_nav_36", size=36,
+        names=tuple(names), control_hz=50.0, frame=ACTION_SPEC.frame,
+        rotation=ACTION_SPEC.rotation, gripper=ACTION_SPEC.gripper)
+    observation_spec = ObservationSpec(cameras=("head_stereo_left",),
+        state_names=ACTION_NAMES[:31] if proprioception else (),
+        modalities=("rgb", "language", "proprioception") if proprioception else ("rgb", "language"))
+    modality = "rgb-qpos31" if proprioception else "rgb"
+    budget = "decision-200-prefix-5" if budget_mode == "decisions" else f"native-horizon-{HORIZONS[task]}"
+    version = "v2" if budget_mode == "decisions" else "v3"
+    prefix = "simple" if task_scope == "pilot" else "simple/released-12"
+    descriptor = BenchmarkDescriptor("simple_humanoid", "5e3d6f8-patched-native",
+        f"{prefix}/{backend}/{modality}/{budget}/{version}", SIMPLE_REVISION)
+    episode = EpisodeSpec(id=f"{task}/dr0/ep0", task=task, seed=SEED,
+        instruction=config["instruction"], metadata={"dr_level": 0, "episode_index": 0,
+            "reference_native_horizon": HORIZONS[task], "environment_step_cap": cap,
+            "budget_mode": budget_mode, "track": descriptor.protocol_version,
+            **({"task_scope": task_scope, "task_inventory_sha256": INVENTORY_SHA256,
+                "native_task_uid": config["task_uid"], "native_backend": backend,
+                "reset_metadata_sha256": config["reset_metadata_sha256"],
+                "environment_config_sha256": config["environment_config_sha256"]}
+                if task_scope == "released-12" else {})})
+    return descriptor, episode, action_spec, observation_spec
 
 
 def decode_action(values: Sequence[float]) -> dict[str, Any]:
@@ -203,12 +272,18 @@ class SimpleHumanoidEpisode(NativeWorkerClient):
 class SimpleHumanoidBenchmarkAdapter:
     """One native task/backend per runner; expansion requires an explicit scope."""
 
-    def __init__(self, simple_root: str = "/mnt/workspace/users/jinhuiye/SIMPLE-5e3d6f8",
-        eval_root: str = "/mnt/workspace/users/jinhuiye/SIMPLE/data/evals", gpu_id: int = 4,
+    def __init__(self, simple_root: str, eval_root: str, gpu_id: int = 0,
         task_names: Sequence[str] = (TASKS[0],), worker_timeout: float = 900,
-        diagnostic: bool = False, proprioception: bool = True, budget_mode: str = "decisions",
-        max_policy_calls: int = 200, replan_interval: int = 5, task_scope: str = "pilot") -> None:
-        self.simple_root, self.eval_root = Path(simple_root).resolve(), Path(eval_root).resolve()
+        diagnostic: bool = False, proprioception: bool = True, budget_mode: str = "horizon",
+        max_policy_calls: int | None = None, replan_interval: int | None = None,
+        task_scope: str = "pilot", python_executable: str | None = None,
+        cuda_root: str | None = None) -> None:
+        self.simple_root = deployment_path(simple_root, "simple_root")
+        self.eval_root = deployment_path(eval_root, "eval_root")
+        # Launch through a venv's symlink, not its resolved base interpreter.
+        self.python_executable = (deployment_path(python_executable, "python_executable", resolve_symlinks=False)
+            if python_executable is not None else self.simple_root / ".venv/bin/python")
+        self.cuda_root = deployment_path(cuda_root, "cuda_root") if cuda_root is not None else None
         if type(gpu_id) is not int or gpu_id < 0:
             raise ValueError("gpu_id must be a nonnegative integer")
         if isinstance(worker_timeout, bool) or not isinstance(worker_timeout, Real) or not math.isfinite(worker_timeout) or worker_timeout <= 0:
@@ -221,48 +296,26 @@ class SimpleHumanoidBenchmarkAdapter:
             raise ValueError("choose exactly one SIMPLE task/backend per adapter/runner")
         config = task_config(self.task_names[0], task_scope)
         self.task_scope = task_scope
-        if budget_mode not in ("decisions", "horizon"):
-            raise ValueError("budget_mode must be decisions or horizon")
-        if type(max_policy_calls) is not int or max_policy_calls != 200 or type(replan_interval) is not int or replan_interval != 5:
-            raise ValueError("this frozen development track requires 200 policy calls and prefix cap 5")
         if type(proprioception) is not bool:
             raise ValueError("proprioception must be an explicit boolean")
-        if task_scope == "released-12" and (not proprioception or budget_mode != "decisions"):
-            raise ValueError("released-12 requires RGB+qpos31 and the decision-200-prefix-5 track")
+        if task_scope == "released-12" and not proprioception:
+            raise ValueError("released-12 requires RGB+qpos31")
         self.proprioception, self.budget_mode = proprioception, budget_mode
-        self.max_policy_calls, self.replan_interval = max_policy_calls, replan_interval
         self.native_horizon = HORIZONS[self.task_names[0]]
-        self.environment_step_cap = 1000 if budget_mode == "decisions" else self.native_horizon
+        self.environment_step_cap, self.max_policy_calls, self.replan_interval = execution_budget(
+            self.native_horizon, budget_mode, max_policy_calls, replan_interval)
         backend = config["backend"]
         self.backend = backend
-        names = list(ACTION_NAMES)
-        names[34] = "turning_flag" if backend == "amo" else "turning_gate"
-        self.action_spec = ActionSpec(mode=f"simple_{backend}_physical_joint_nav_36", size=36,
-            names=tuple(names), control_hz=50.0, frame=ACTION_SPEC.frame,
-            rotation=ACTION_SPEC.rotation, gripper=ACTION_SPEC.gripper)
-        self.observation_spec = ObservationSpec(cameras=("head_stereo_left",),
-            state_names=ACTION_NAMES[:31] if proprioception else (),
-            modalities=("rgb", "language", "proprioception") if proprioception else ("rgb", "language"))
-        modality = "rgb-qpos31" if proprioception else "rgb"
-        budget = "decision-200-prefix-5" if budget_mode == "decisions" else f"native-horizon-{self.native_horizon}-200calls-prefix5"
-        prefix = "simple" if task_scope == "pilot" else "simple/released-12"
-        self.descriptor = BenchmarkDescriptor("simple_humanoid", "5e3d6f8-patched-native",
-            f"{prefix}/{backend}/{modality}/{budget}/v2", SIMPLE_REVISION)
+        self.descriptor, self._episode, self.action_spec, self.observation_spec = task_contract(
+            self.task_names[0], task_scope=task_scope, proprioception=proprioception,
+            budget_mode=budget_mode, max_policy_calls=max_policy_calls, replan_interval=replan_interval)
 
     def episodes(self, seed: int = SEED, limit: int | None = None) -> Sequence[EpisodeSpec]:
         if type(seed) is not int or seed != SEED:
             raise ProtocolError(f"frozen SIMPLE development seed is {SEED}")
         if limit is not None and (type(limit) is not int or limit <= 0):
             raise ValueError("episode limit must be a positive integer or None")
-        episodes = tuple(EpisodeSpec(id=f"{task}/dr0/ep0", task=task, seed=SEED,
-            instruction=TASK_CONFIGS[task]["instruction"], metadata={"dr_level": 0, "episode_index": 0,
-                "reference_native_horizon": HORIZONS[task], "environment_step_cap": self.environment_step_cap,
-                "budget_mode": self.budget_mode, "track": self.descriptor.protocol_version,
-                **({"task_scope": self.task_scope, "task_inventory_sha256": INVENTORY_SHA256,
-                    "native_task_uid": TASK_CONFIGS[task]["task_uid"], "native_backend": self.backend,
-                    "reset_metadata_sha256": TASK_CONFIGS[task]["reset_metadata_sha256"],
-                    "environment_config_sha256": TASK_CONFIGS[task]["environment_config_sha256"]}
-                    if self.task_scope == "released-12" else {})}) for task in self.task_names)
+        episodes = (self._episode,)
         return episodes if limit is None else episodes[:limit]
 
     def open_episode(self, episode: EpisodeSpec) -> SimpleHumanoidEpisode:

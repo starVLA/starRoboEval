@@ -23,11 +23,13 @@ PUBLICATION_SCHEMA = "starvla-rsi.result-publication/v1"
 INDEX_SCHEMA = "starvla-rsi.result-index/v1"
 EPISODE_SCHEMA = "starvla-rsi.published-episode/v1"
 MAX_METADATA_BYTES = 64 * 1024 * 1024
-CAMERA_ARTIFACTS = {
-    "video_cam_head": "cam_head",
-    "video_cam_left_wrist": "cam_left_wrist",
-    "video_cam_right_wrist": "cam_right_wrist",
-}
+OUTCOME_FILES = ("claim.json", "native_result.json", "native_events.jsonl")
+
+
+def _videos(artifacts: dict) -> dict:
+    """Named MP4 artifacts of one episode."""
+    return {name: path for name, path in artifacts.items()
+            if isinstance(path, str) and path.lower().endswith(".mp4")}
 
 
 def _require(condition, message):
@@ -170,9 +172,14 @@ def _portable(value, name="publication"):
 
 
 def _bind_server(raw_run: Path, source: Path, manifest: dict, rows: list[dict], evidence: dict):
+    """Bind each episode to the paired server record; return verified videos per case.
+
+    The server copy of every outcome and video file must match the SIM receipt.
+    Every file the receipt says the client kept must be present and match too.
+    """
     declared = manifest.get("benchmark_service")
     if declared is None:
-        return {"status": "not_declared"}
+        return {"status": "not_declared"}, None
     _require(isinstance(declared, dict), "benchmark service declaration must be an object")
     server = raw_run / "server"
     _require(server.is_dir(), "declared benchmark service requires the paired server evidence")
@@ -182,7 +189,7 @@ def _bind_server(raw_run: Path, source: Path, manifest: dict, rows: list[dict], 
     _require(service == declared, "client manifest and server service declaration differ")
     evidence["server/service.json"] = {"sha256": hashlib.sha256(service_payload).hexdigest(),
                                        "bytes": len(service_payload)}
-    bindings = []
+    bindings, videos = [], {}
     for row in rows:
         case_id = row.get("episode", {}).get("id")
         _require(isinstance(case_id, str), "episode ID is required for server binding")
@@ -218,15 +225,24 @@ def _bind_server(raw_run: Path, source: Path, manifest: dict, rows: list[dict], 
         _require(claim == {"episode_id": case_id, "session_id": session}, "server claim differs from client receipt")
         artifact_root = candidates[0] / "artifacts" / "sim_server_files"
         server_episode = server / "episodes" / _slug(session)
-        required = {"claim.json", "native_result.json", "native_events.jsonl",
-                    "cam_head.mp4", "cam_left_wrist.mp4", "cam_right_wrist.mp4"}
-        _require(required <= set(by_path), "SIM receipt omits required outcome/media artifacts")
-        for name in sorted(required):
-            client_file = _relative_file(artifact_root, name)
-            server_file = _relative_file(server_episode, name)
+        _require(set(OUTCOME_FILES) <= set(by_path), "SIM receipt omits required outcome artifacts")
+        named = finish.get("artifacts")
+        _require(isinstance(named, dict) and all(path in by_path for path in named.values()),
+                 "SIM receipt artifact names must point into its inventory")
+        kept = (receipt.get("client_retention") or {}).get("selected_paths")
+        _require(isinstance(kept, list) and "native_result.json" in kept,
+                 "SIM receipt must list the client copies, including native_result.json")
+        case_videos = _videos(named)
+        verified = {}
+        for name in sorted({*OUTCOME_FILES, *case_videos.values()}):
             expected = {"sha256": by_path[name]["sha256"], "bytes": by_path[name]["size_bytes"]}
-            _require(_sha(client_file) == expected and _sha(server_file) == expected,
-                     f"client/server artifact differs from receipt: {name}")
+            server_file = _relative_file(server_episode, name)
+            _require(_sha(server_file) == expected, f"server artifact differs from receipt: {name}")
+            if name in kept:
+                _require(_sha(_relative_file(artifact_root, name)) == expected,
+                         f"client artifact differs from receipt: {name}")
+            verified[name] = server_file
+        videos[case_id] = {key: verified[path] for key, path in case_videos.items()}
         native = _json(artifact_root / "native_result.json")
         metrics = row.get("metrics") or {}
         _require(all(metrics.get(key) == value for key, value in native.items()),
@@ -242,11 +258,11 @@ def _bind_server(raw_run: Path, source: Path, manifest: dict, rows: list[dict], 
         bindings.append({"case_id": case_id, "session_id_sha256": hashlib.sha256(session.encode()).hexdigest(),
                          "receipt": receipt_key, "claim": claim_key})
     _require(isinstance(service.get("server_id"), str), "server ID is required")
-    return {"status": "outcome_bound", "server_id_sha256": hashlib.sha256(service["server_id"].encode()).hexdigest(),
-            "episodes": bindings}
+    return ({"status": "outcome_bound", "server_id_sha256": hashlib.sha256(service["server_id"].encode()).hexdigest(),
+             "episodes": bindings}, videos)
 
 
-def _episode(row, descriptions, media_root: Path, run_id: str, episode_root: Path):
+def _episode(row, descriptions, media_root: Path, run_id: str, episode_root: Path, videos: dict | None):
     episode = row.get("episode")
     metrics = row.get("metrics")
     _require(isinstance(episode, dict) and isinstance(metrics, dict), "episode and metrics objects are required")
@@ -266,19 +282,24 @@ def _episode(row, descriptions, media_root: Path, run_id: str, episode_root: Pat
     case_suffix = _slug(case_tail.replace("/", "-"))
     directory = f"{_slug(task)}-{descriptions[task]}-{case_suffix}"
     public_media = []
-    artifacts = row.get("artifacts") or {}
-    source_artifacts = episode_root / _slug(case_id.replace("/", "_")) / "artifacts"
-    # Some runs use the exact slash-free directory generated by the runner.
-    if not source_artifacts.is_dir():
-        matches = [path for path in episode_root.iterdir() if path.is_dir()
-                   and (path / "result.json").is_file()
-                   and _json(path / "result.json").get("episode", {}).get("id") == case_id]
-        _require(len(matches) == 1, f"cannot bind episode artifact directory: {case_id}")
-        source_artifacts = matches[0] / "artifacts"
-    for artifact, camera in CAMERA_ARTIFACTS.items():
-        if artifact not in artifacts:
-            continue
-        source = _relative_file(source_artifacts, artifacts[artifact])
+    if videos is None:
+        # Without a paired server record, publish the run's own MP4 artifacts.
+        source_artifacts = episode_root / _slug(case_id.replace("/", "_")) / "artifacts"
+        # Some runs use the exact slash-free directory generated by the runner.
+        if not source_artifacts.is_dir():
+            matches = [path for path in episode_root.iterdir() if path.is_dir()
+                       and (path / "result.json").is_file()
+                       and _json(path / "result.json").get("episode", {}).get("id") == case_id]
+            _require(len(matches) == 1, f"cannot bind episode artifact directory: {case_id}")
+            source_artifacts = matches[0] / "artifacts"
+        videos = {name: _relative_file(source_artifacts, path)
+                  for name, path in _videos(row.get("artifacts") or {}).items()}
+    # `video_<camera>` names the camera; a bare name such as `video` uses the file stem.
+    cameras = {artifact: _slug(artifact[len("video_"):] if artifact.startswith("video_") else source.stem)
+               for artifact, source in videos.items()}
+    _require(len(set(cameras.values())) == len(cameras), f"video artifact names collide: {case_id}")
+    for artifact, source in sorted(videos.items()):
+        camera = cameras[artifact]
         relative = Path("media") / run_id / directory / f"video_{camera}.mp4"
         destination = media_root / relative.relative_to("media")
         _materialize(source, destination)
@@ -355,14 +376,17 @@ def publish(raw_run: Path, results_root: Path, task_descriptions: dict,
              and parameters.get("diagnostic") is not True,
              "infrastructure diagnostics cannot be published as model capability results")
     profile_id = results_root.parents[1].name
-    profile = (policy.get("parameters") or {}).get("model_profile")
-    _require(isinstance(profile, dict) and profile.get("id") == profile_id,
+    policy_parameters = policy.get("parameters") or {}
+    _require(policy_parameters.get("model_profile") == profile_id,
              "manifest model profile differs from the selected result namespace")
-    for name in ("profile_sha256", "config_sha256", "dependencies_sha256", "prompt_sha256",
-                 "source_inventory_sha256"):
-        _require(re.fullmatch(r"[0-9a-f]{64}", str(profile.get(name, ""))) is not None,
-                 f"model profile {name} is missing or invalid")
-    server_binding = _bind_server(raw_run, source, manifest, rows, evidence)
+    client_git = (manifest.get("runtime") or {}).get("git") or {}
+    _require(re.fullmatch(r"[0-9a-f]{40}", str(client_git.get("revision", ""))) is not None
+             and type(client_git.get("dirty")) is bool,
+             "manifest lacks the client Git revision and dirty flag")
+    for name in ("preset_sha256", "prompt_sha256"):
+        _require(re.fullmatch(r"[0-9a-f]{64}", str(policy_parameters.get(name, ""))) is not None,
+                 f"policy {name} is missing or invalid")
+    server_binding, server_videos = _bind_server(raw_run, source, manifest, rows, evidence)
     protocol = manifest.get("benchmark") or {}
     accepted = panel["complete_panel"]
 
@@ -370,7 +394,9 @@ def publish(raw_run: Path, results_root: Path, task_descriptions: dict,
     # are materialized.  A rejected source must leave no partial publication.
     report_dir = results_root / "reports" / run_id
     media_root = results_root / "media"
-    episodes = [_episode(row, task_descriptions, media_root, run_id, source / "episodes") for row in rows]
+    episodes = [_episode(row, task_descriptions, media_root, run_id, source / "episodes",
+                         None if server_videos is None else server_videos[row["episode"]["id"]])
+                for row in rows]
     _require(len({row["case_id"] for row in episodes}) == len(episodes), "duplicate episode IDs")
     publication = {
         "schema_version": PUBLICATION_SCHEMA,
@@ -380,13 +406,14 @@ def publish(raw_run: Path, results_root: Path, task_descriptions: dict,
         "created_at": manifest.get("created_at"),
         "model": {
             "profile": profile_id,
-            "profile_sha256": profile["profile_sha256"],
-            "config_sha256": profile["config_sha256"],
             "policy": policy.get("name"),
             "provider": policy.get("provider"),
             "model": policy.get("model"),
             "method": policy.get("version"),
-            "identity_evidence": (policy.get("parameters") or {}).get("model_identity_evidence"),
+            "identity_evidence": policy_parameters.get("model_identity_evidence"),
+            "effective_config": policy_parameters.get("effective_config"),
+            "preset_sha256": policy_parameters["preset_sha256"],
+            "prompt_sha256": policy_parameters["prompt_sha256"],
         },
         "protocol": {
             "version": protocol.get("protocol_version"),
@@ -403,6 +430,9 @@ def publish(raw_run: Path, results_root: Path, task_descriptions: dict,
         "source": {
             "tree": declaration.get("source_tree"),
             "client_commit": declaration.get("local_commit"),
+            "client_revision": client_git.get("revision"),
+            "client_dirty": client_git.get("dirty"),
+            "client_diff_sha256": (client_git.get("diff") or {}).get("sha256"),
             "server_commit": declaration.get("remote_commit"),
             "raw_evidence": evidence,
             "server_binding": server_binding,

@@ -77,7 +77,7 @@ There is no independent layout, dynamic-level or multi-seed selector. The launch
 | Action | 14 absolute native joint/gripper targets, with arm values in radians |
 | Execution | One native qpos/TOPP target per step; variable physics ticks at 250 Hz |
 | Budget | 400 native target calls |
-| Current interface restriction | `required_replan_interval=1`; a client must respect this versioned prefix requirement |
+| Action grouping | Chosen by the agent; each target is a separately acknowledged control |
 
 The **14-dimensional action** is ordered as six left-arm absolute joint angles,
 left gripper, six right-arm absolute joint angles, right gripper: slots 0–5,
@@ -87,8 +87,8 @@ nominally 0 closed and 1 open, mapped natively to [-0.01,0.045] m. Native
 interpolation/clipping is preserved. One target takes a variable number of
 4 ms physics ticks, so there is no fixed target-control frequency.
 
-The prefix-one restriction is part of the current DOMINO integration, not a
-general rule for all agents or benchmarks. There is no extra service motion or
+An agent may send successive targets from one decision; every target still
+performs the native termination checks before another can execute. There is no extra service motion or
 joint-range guard; dimensions, type and finiteness are checked, while native
 controller clipping and interpolation remain native behavior. Object truth,
 dynamic trajectories, expert plans and private metrics are not agent inputs.
@@ -121,7 +121,7 @@ PYTHONDONTWRITEBYTECODE=1 python -B -m benchmarks.simBenchmarks.DOMINO.server \
 
 The launch seed and native scene seed are distinct recorded fields. Startup and
 description do not reset or actuate the simulator. A trusted agent driver
-connects through the shared protocol, using the declared prefix-one contract.
+connects through the shared protocol and chooses its own action grouping.
 The service binds loopback; remote drivers use SSH forwarding. No particular
 model implementation or prompt is required.
 

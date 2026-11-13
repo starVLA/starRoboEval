@@ -2,8 +2,9 @@
 
 This trusted driver is not the model actor: it retains the administrative
 benchmark client and passes only declared observations/counters to Policy.
-Recording and source capture are shared tooling under benchkit/;
-native task/control/score semantics stay on the benchmark server.
+Recording is shared tooling under benchkit/; the manifest records the Git
+revision and dirty flag, while native task/control/score semantics stay on
+the benchmark server.
 """
 
 from __future__ import annotations
@@ -15,7 +16,7 @@ import time
 import traceback
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Mapping
+from typing import Mapping
 
 from benchkit.artifacts import (
     append_jsonl,
@@ -41,7 +42,6 @@ from benchkit.errors import (
     PolicyCallError, PolicyError, ProtocolError,
 )
 from benchkit.interfaces import BenchmarkAdapter, EpisodeSession, Policy
-from benchkit.source_snapshot import capture_harness_source
 from benchkit.reports.run_summary import summarize_run
 from benchkit.recording import (
     InteractionRecorder, RecordingOptions, public_error_record,
@@ -53,6 +53,7 @@ from benchkit.methods import (
 from benchkit.validation import validate_action_vector
 
 SCHEMA_VERSION = "starvla-rsi.eval/v1"
+INSTRUCTION_CHANGE_HANDLING = "replan-after-ack/v1"
 
 
 @dataclass(frozen=True)
@@ -148,12 +149,6 @@ class EvaluationRunner:
 
         try:
             atomic_write_json(run_dir / "status.json", {"status": "initializing", "updated_at": utc_now()})
-            source_snapshot = capture_harness_source(run_dir)
-            model_snapshot = None
-            if "model_profile" in policy.descriptor.parameters:
-                from benchkit.model_profiles import capture_policy_source
-
-                model_snapshot = capture_policy_source(run_dir, policy)
             manifest: dict[str, JsonValue] = {
                 "schema_version": SCHEMA_VERSION,
                 "run_id": run_id,
@@ -177,25 +172,27 @@ class EvaluationRunner:
                     "primary_budget": "policy_decisions" if request.budget_mode == "decisions" else "first_exhausted_limit",
                     "fail_fast": request.fail_fast,
                     "execution_feedback_version": "starvla-rsi.execution-feedback/v1",
+                    "instruction_change_handling": INSTRUCTION_CHANGE_HANDLING,
                     **({"control_acknowledgement_version": "starvla-rsi.control-acknowledgement/v1",
                         "control_feedback_schema": benchmark.observation_spec.control_feedback_schema}
                        if benchmark.observation_spec.control_feedback_schema is not None else {}),
                     "invalid_action_handling": request.invalid_action_handling,
                     "usage_accounting_version": USAGE_ACCOUNTING_VERSION,
                 },
-                "harness_source": source_snapshot,
-                "runtime": runtime_provenance(
-                    request.repository, evaluation_root=Path(source_snapshot["source_root"]),
-                ),
+                "runtime": runtime_provenance(request.repository),
             }
-            if model_snapshot is not None:
-                manifest["model_source"] = model_snapshot
             if request.invalid_action_handling == "feedback":
                 manifest["protocol"]["action_rejection_feedback_version"] = (
                     "starvla-rsi.action-rejection-feedback/v1"
                 )
             if required_prefix is not None:
                 manifest["protocol"]["required_replan_interval"] = required_prefix
+            # Record the used horizon against the service's advertised one.
+            if request.budget_mode == "horizon":
+                service_cap = getattr(benchmark, "environment_step_cap", None)
+                service_cap = service_cap if type(service_cap) is int else None
+                manifest["protocol"]["service_environment_step_cap"] = service_cap
+                manifest["protocol"]["max_steps_overridden"] = request.max_steps != service_cap
             service_provenance = getattr(benchmark, "execution_provenance", None)
             if callable(service_provenance):
                 provenance = ensure_jsonable(service_provenance(), "benchmark service provenance")
@@ -379,6 +376,7 @@ class EvaluationRunner:
                 )
                 usage_pending_since = time.monotonic()
                 policy_call_failure = None
+                decision_instruction = observation.instruction
                 try:
                     decision = policy.act(observation)
                 except PolicyCallError as exc:
@@ -525,6 +523,12 @@ class EvaluationRunner:
                         break
                     if env_steps >= request.max_steps:
                         termination_reason = "runner:step_limit"
+                        break
+                    if observation.instruction != decision_instruction:
+                        # The next instruction is already public in this ACK.
+                        # Discard the unexecuted suffix and let the method decide
+                        # again; never inspect reward, native info or private
+                        # subtask state to select this boundary.
                         break
                 if rejected_control is not None:
                     # A typed service rejection confirms that THIS vector did

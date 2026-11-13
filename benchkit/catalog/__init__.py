@@ -11,7 +11,12 @@ from typing import Any
 
 @dataclass(frozen=True)
 class CatalogEntry:
-    """One benchmark's stable identity and adapter migration status."""
+    """One benchmark's stable identity and adapter migration status.
+
+    `id` equals the adapter descriptor name recorded in run manifests.
+    `step_success_field` names the boolean native-success key the adapter puts
+    in every step's info, or is null when it reports no per-step success.
+    """
 
     id: str
     display_name: str
@@ -20,6 +25,7 @@ class CatalogEntry:
     migration_status: str
     priority: str
     tags: tuple[str, ...]
+    step_success_field: str | None
 
     @classmethod
     def from_dict(cls, value: dict[str, Any]) -> "CatalogEntry":
@@ -31,6 +37,7 @@ class CatalogEntry:
             "migration_status",
             "priority",
             "tags",
+            "step_success_field",
         }
         missing = sorted(required - value.keys())
         extra = sorted(value.keys() - required)
@@ -38,10 +45,13 @@ class CatalogEntry:
             raise ValueError(f"invalid catalog entry keys; missing={missing}, extra={extra}")
         if not isinstance(value["tags"], list) or not all(isinstance(tag, str) for tag in value["tags"]):
             raise TypeError("catalog tags must be a list of strings")
-        strings = {key: value[key] for key in required - {"tags"}}
+        field = value["step_success_field"]
+        if field is not None and not (isinstance(field, str) and field.strip()):
+            raise TypeError("catalog step_success_field must be a non-empty string or null")
+        strings = {key: value[key] for key in required - {"tags", "step_success_field"}}
         if not all(isinstance(item, str) and item.strip() for item in strings.values()):
             raise TypeError("catalog fields must be non-empty strings")
-        return cls(tags=tuple(value["tags"]), **strings)
+        return cls(tags=tuple(value["tags"]), step_success_field=field, **strings)
 
 
 def load_catalog() -> tuple[CatalogEntry, ...]:
@@ -60,6 +70,11 @@ def load_catalog() -> tuple[CatalogEntry, ...]:
     if len(directories) != len(set(directories)):
         raise ValueError("benchmark catalog directories must be unique")
     return entries
+
+
+def step_success_field(benchmark: str) -> str | None:
+    """Return a cataloged benchmark's per-step success key; None if absent or uncataloged."""
+    return next((entry.step_success_field for entry in load_catalog() if entry.id == benchmark), None)
 
 
 def validate_repository_catalog(repository: Path) -> list[str]:

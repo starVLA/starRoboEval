@@ -27,11 +27,11 @@ with those conditions instead of receiving an invisible task-solving wrapper.
 | Benchmark adapter (`bench_server/adapter.py` in RoboDojo) | `BenchmarkAdapter` | Expose the pinned descriptor, observation/action specifications, selected episodes and an episode-session factory. |
 | `<benchmark>/server.py` | Independently launched SIM server | Host the native factory, declare runtime supplements and keep native control/scoring private. Shared transport mechanics live in `benchkit/sim_server/`. |
 | Benchmark adapter or native worker | `EpisodeSession` | Reset, execute one native control target, return the transition, collect native metrics/artifacts and close resources. |
-| Benchmark selection definition (`bench_server/protocol/task_catalog.json` in RoboDojo; `bench_server/protocol/plan.py` where implemented) | Selection plan | Declare the task/variant/state schedule and required runtime resources. Selection is independent of model identity and observed success. |
+| Benchmark selection definition (`bench_server/protocol/task_catalog.json` in RoboDojo; the adapter elsewhere) | Selection plan | Declare the task/variant/state schedule and required runtime resources. Selection is independent of model identity and observed success. |
 | `<benchmark>/EVALUATION_PROTOCOL.md` | Native track specification | Explain sensors, actions, horizons, task variants, native scoring, sampling and verified limitations. |
 | `AgentPolicies/<profile>/` | Agent method; optional Python `Policy` | Check compatibility, initialize episode memory, produce actions or a permitted stop from declared observations, and clear episode state. |
 | Agent-owned trusted driver | Decision loop | Connect to the service, execute the method's chosen action grouping and count calls/controls; Python reference utilities are optional. |
-| `benchkit/` | Communication, scheduling and result tools | Supply shared transport, fixed-case scheduling, records, source capture, audits and reports without selecting robot actions. |
+| `benchkit/` | Communication and result tools | Supply shared transport, case leasing, records, service source capture, audits and reports without selecting robot actions. |
 
 RoboDojo's `bench_server/` groups its service adaptation, private worker client
 and `protocol/` definitions. `environment/` contains the native runtime. See its
@@ -44,7 +44,7 @@ An in-process Python interface is an ownership boundary, not an OS sandbox.
 ## Episode lifecycle
 
 ```text
-Frozen plan -> adapter.open_episode(EpisodeSpec) -> session.reset()
+Pinned plan -> adapter.open_episode(EpisodeSpec) -> session.reset()
                                                        |
                                                        v
                    policy.act(permitted Observation) -> PolicyDecision

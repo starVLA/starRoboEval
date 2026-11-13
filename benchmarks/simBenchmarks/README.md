@@ -33,7 +33,7 @@ native scoring. Upstream sources and count definitions are linked in each guide.
 | SIMPLE | 60 humanoid whole-body tasks across 50 indoor scenes; randomized object and robot conditions | [Guide](SIMPLE/README.md) · [Protocol](SIMPLE/EVALUATION_PROTOCOL.md) |
 | LIBERO-Plus | 10,030 perturbation variants across 4 suites and 7 robustness dimensions | [Guide](LIBERO-plus/README.md) · [Protocol](LIBERO-plus/EVALUATION_PROTOCOL.md) |
 | BEHAVIOR | BEHAVIOR-1K: 1,000 activities; 2026 challenge: 100 household tasks with public/hidden instance splits | [Guide](Behavior/README.md) · [Protocol](Behavior/EVALUATION_PROTOCOL.md) |
-| VLN-CE | Instruction/route episodes in continuous scenes; R2R unseen-scene validation has 1,839 episodes across 11 scenes | [Guide](VLN-CE/README.md) · [Draft protocol](VLN-CE/EVALUATION_PROTOCOL.md) |
+| VLN-CE | Instruction/route episodes in continuous scenes; R2R unseen-scene validation has 1,839 episodes across 11 scenes | [Guide](VLN-CE/README.md) · [Protocol](VLN-CE/EVALUATION_PROTOCOL.md) |
 
 [Service support](SERVICE_SUPPORT.md) separately lists implemented selectors,
 deployment requirements and current restrictions. Native inventory does not
@@ -42,6 +42,9 @@ A task, layout, initial state, variation and seed are not
 interchangeable: see [how to select cases](TASK_COVERAGE.md). A different seed
 does not guarantee a different layout. The machine-readable catalog is
 [`benchkit/catalog/benchmarks.json`](../../benchkit/catalog/benchmarks.json).
+Its `step_success_field` names the boolean native-success key the adapter writes
+into every step's info (null when none); offline progress reports read it from
+there. A new adapter that reports per-step success declares the key there.
 
 ## Evaluate through a service
 

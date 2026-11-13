@@ -55,12 +55,13 @@ states are not selectable; changing the run seed does not choose another layout.
 There is no scene reset between subtasks. Each subtask allows at most 360
 controls; the sequence ceiling is 1,800 controls. Earlier success advances to
 the next subtask without using the remaining controls for the completed one.
+Action grouping and inference frequency belong to the agent. Each control
+returns an observation with the current public instruction. Handling a changed
+instruction is the driver's responsibility; the service does not prescribe a
+replanning strategy or require one model call per control.
 
 ## Current integration limits
 
-- The service requires a new observation/decision after each control
-  (`required_replan_interval=1`). This is a current integration constraint,
-  not a native CALVIN limit on reasoning or action grouping.
 - The service applies `[-1,1]` input bounds; the native controller itself does
   not clip the first six inputs to that range.
 - Setup uses the official `calvin_debug_dataset` configuration. Equivalence

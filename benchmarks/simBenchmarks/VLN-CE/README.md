@@ -27,12 +27,13 @@ instruction with a route/start state; several instructions may describe the
 same route. Scene counts are split-specific and should not be summed as unique
 buildings. RxR and challenge configurations have separate data and settings.
 
-## Integration status
+## Bench Server
 
-This directory is a **protocol draft** for R2R `val_unseen`; it does not yet
-provide an executable benchmark service. Implementation and validation of the
-adapter, plus an authorized MP3D installation, are required before deployment.
-These are service prerequisites, not restrictions on VLN-CE's native dataset.
+The service selects explicit R2R `val_seen` or `val_unseen` episode IDs from a
+complete split. It uses Habitat-Lab/Sim 0.3.3 in a separate native worker, with
+RGB and instruction observations and four discrete navigation actions. The
+server and client use the shared communication protocol. This runtime version
+does not imply rendering or score parity with Habitat 0.1.7.
 
 ## Required data and access
 
@@ -40,7 +41,7 @@ A locally scored R2R validation configuration needs:
 
 - Authorized Matterport3D scene assets in the format required by the pinned Habitat runtime.
 - The complete selected `R2R_VLNCE_v1-3` episode split.
-- Matching ground-truth paths/actions required by the selected native metrics.
+- Matching ground-truth paths/actions when using metrics that require them.
 - Explicit paths, checksums, runtime versions and a frozen episode-selection rule.
 
 MP3D assets require the dataset owner's authorization and applicable Terms of
@@ -48,23 +49,40 @@ Use. Obtain or reuse an authorized installation; code availability does not
 grant scene-data rights. Do not bundle restricted assets, access credentials or
 private dataset download links into the repository.
 
-See [PREFLIGHT.md](PREFLIGHT.md#data-variants-and-access) for dataset variants
-and their access requirements.
+See [PREFLIGHT.md](PREFLIGHT.md#data-and-scenes) for the expected asset layout
+and access requirements.
 
-## Intended interface
+## Robot interface
 
-The draft R2R RGB track provides a current image and instruction, with discrete
+The R2R RGB track provides a current image and instruction, with discrete
 forward/left/right/STOP actions. The action is one integer ID: 0=STOP,
 1=forward 0.25 m, 2=left 15°, 3=right 15°. It is not an arm-control vector.
-The adapter must own the native runtime and
+The adapter owns the native runtime and
 scorer; a policy cannot inspect simulator metadata, maps, goal coordinates,
 oracle directions, distances or scoring data.
 
 Native STOP must be executed as a Habitat action. A generic policy abort does
-not send native STOP and cannot establish navigation success. Any adapter must
-validate this distinction, native step limits, observation isolation and
-retained artifacts before being advertised as runnable.
+not send native STOP and cannot establish navigation success. The 500-action
+budget includes STOP. Action grouping belongs to the agent.
 
-There is no supported server launch command yet. Implementing the adapter,
-validating the selected Habitat configuration and supplying authorized assets
-are separate prerequisites; a reachable agent endpoint satisfies none of them.
+## Start the service
+
+Follow [environment preparation](PREFLIGHT.md), then copy
+[server.example.json](server.example.json) to an operator-owned file and set
+the dataset, scene root, native Python and selected episode IDs. The scene root
+must contain the `mp3d/` directory referenced by the dataset. No personal path
+is built into the adapter. Supplying `python_executable` keeps native Habitat
+dependencies separate from the service's Python 3.10+ environment.
+
+```sh
+# Set RSI_SIM_SERVER_TOKEN privately for the trusted evaluator and server.
+python -B -m benchkit.sim_server.cli serve --benchmark vln_ce \
+  --parameters /absolute/vlnce-server.json --seed 0 \
+  --port 8765 --output-dir /absolute/new-run/server
+```
+
+The service fixes the selected episodes without starting Habitat. A client claim
+initializes one episode and receives only RGB and language. Goal distances and
+scores remain evaluator-private. Results include native success, SPL and final
+distance to goal. This implementation does not compute nDTW or oracle metrics;
+do not label these partial metrics as the complete original evaluation suite.

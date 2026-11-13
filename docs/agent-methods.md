@@ -12,12 +12,12 @@ not yet define a cross-benchmark aggregate leaderboard.
   budget, fixed episode selection and native scoring.
 - `AgentPolicies/<method>/`: actor implementation, trusted driver, models,
   prompts/configuration and `results/<benchmark>/`.
-- `benchkit/`: shared transport, central case scheduling, data formats, optional recorders and reports;
+- `benchkit/`: shared transport, case leasing, data formats, optional recorders and reports;
   not a mandatory third process or a central model proxy.
 
-Scheduling organizes selected cases, not the agent's thoughts or actions. Current
-campaign scheduling uses frozen local adapters; protocol-first remote drivers
-are a separate supported path. See [workflow choices](evaluation.md#choose-a-workflow).
+Scheduling organizes selected cases, not the agent's thoughts or actions.
+Central campaign scheduling is not part of this version. See
+[workflow choices](evaluation.md#choose-a-workflow).
 
 Direct control constrains environment access and robot execution, not internal
 reasoning. A method may use several declared general-purpose models and tools
@@ -134,9 +134,9 @@ budget remain benchmark-owned. A method's five-control example is not a universa
 benchmark rule. Retained decision-coupled tracks and declared replan requirements
 must still match until explicitly migrated.
 
-New records declare `usage_accounting_version: starvla-rsi.method-usage/v1`:
-one decision may contain several model requests. Historical records without
-that marker retain their original one-request audit semantics.
+Records declare `usage_accounting_version: starvla-rsi.method-usage/v1`:
+one decision may contain several model requests. The current auditor rejects a
+record without that marker; older runs remain data.
 
 The Python SDK accepts optional `component_usage` in decision or typed-error
 metadata, keyed by the declared model component ID, with the normal `Usage`

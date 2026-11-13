@@ -17,8 +17,10 @@ from benchkit.registry import register_benchmark
 from ..environment.runtime import REVISION, file_sha256, prepare_runtime
 
 PROTOCOL = "vla-arena-babe582/rgb256x2-rot180/osc-base/control300/reset-once/native-success/fast-v1"
+LONG_HORIZON_PROTOCOL = "vla-arena-babe582/rgb256x2-rot180/osc-base/control600/reset-once/native-success/fast-v1"
 CAMERAS = ("agentview", "robot0_eye_in_hand")
 CONTROL_CAP, SETTLE_STEPS, NATIVE_HORIZON = 300, 10, 1000
+LONG_HORIZON_CONTROL_CAP = 600
 CONTROL_HZ = 20.0
 DEFAULT_TASK = "safety_cautious_grasp/level_0/pick_up_the_fork_and_place_it_in_the_top_layer_of_the_cabinet"
 
@@ -31,6 +33,15 @@ def task_catalog() -> tuple[dict, ...]:
             or [sum(row["level"] == level for row in rows) for level in range(3)] != [60, 55, 55]):
         raise CompatibilityError("VLA-Arena task matrix differs")
     return tuple(rows)
+
+
+def control_cap(row: Mapping) -> int:
+    # Pinned evaluators: 600 participant controls for long_horizon L1/L2, 300 otherwise.
+    return LONG_HORIZON_CONTROL_CAP if row["suite"] == "long_horizon" and row["level"] >= 1 else CONTROL_CAP
+
+
+def protocol_for(cap: int) -> str:
+    return PROTOCOL if cap == CONTROL_CAP else LONG_HORIZON_PROTOCOL
 
 
 def policy_observation(raw: Any, step: int, instruction: str) -> Observation:
@@ -132,6 +143,7 @@ class VLAArenaEpisode:
     def __init__(self, adapter, episode: EpisodeSpec):
         self.adapter, self.episode = adapter, episode
         self.row = adapter.rows[episode.task]
+        self.control_cap = control_cap(self.row)
         self.env = None
         self.artifact_dir: Path | None = None
         self.writers: dict = {}
@@ -173,10 +185,11 @@ class VLAArenaEpisode:
             self._log("native_construction_end", **_clock(self.env),
                       includes_native_internal_reset=True, internal_physics_count=None)
             _validate_controller(self.env)
-            provenance.update({"protocol": PROTOCOL, "task": self.episode.task, **init_receipt,
+            provenance.update({"protocol": protocol_for(self.control_cap), "task": self.episode.task,
+                 "level": self.row["level"], **init_receipt,
                  "image_transform": "both cameras: 180-degree full-frame rotation; no crop/resize",
                  "reset_method": "owned inner env.reset exactly once; native wrapper retry loop bypassed",
-                 "native_horizon": NATIVE_HORIZON, "control_cap": CONTROL_CAP, "settle_controls": SETTLE_STEPS,
+                 "native_horizon": NATIVE_HORIZON, "control_cap": self.control_cap, "settle_controls": SETTLE_STEPS,
                  "control_hz": CONTROL_HZ, "physics_ticks_per_control": 25,
                  "primary_score": "native_success; native evaluator safety flag false",
                  "cost_scope": "native policy-control cost plus native-cap final cost; setup cost separate"})
@@ -253,11 +266,11 @@ class VLAArenaEpisode:
             self.cost = _number(self.cost + cost, "cumulative cost", True)
             if self.env.env.timestep != self.settle_controls + self.controls:
                 raise CompatibilityError("native control counter differs")
-            if self.controls == CONTROL_CAP and not done:
+            if self.controls == self.control_cap and not done:
                 helper = importlib.import_module("vla_arena.vla_arena.utils.eval_cost")
                 self.timeout_final_cost = _number(helper.get_timeout_final_cost(self.env), "timeout final cost", True)
                 self.cost = _number(self.cost + self.timeout_final_cost, "cumulative final cost", True)
-            truncated = timeout or (self.controls >= CONTROL_CAP and not success)
+            truncated = timeout or (self.controls >= self.control_cap and not success)
             self.finished = success or truncated
             self.cost_complete = self.finished
             reward = _number(reward, "reward")
@@ -293,7 +306,7 @@ class VLAArenaEpisode:
                 "native_clock_error_type": self.native_clock_error_type,
                 "native_steps_including_settle": self.controls + self.settle_controls,
                 "policy_physics_ticks": self.controls * 25, "native_horizon": NATIVE_HORIZON,
-                "policy_control_cap": CONTROL_CAP}
+                "policy_control_cap": self.control_cap}
 
     def _close_writers(self) -> None:
         errors = []
@@ -360,7 +373,7 @@ class VLAArenaEpisode:
 
 
 class VLAArenaBenchmarkAdapter:
-    environment_step_cap = CONTROL_CAP
+    environment_step_cap = CONTROL_CAP  # Default only; __init__ sets the selection's authoritative cap.
 
     def __init__(self, native_root: str, task_names: Sequence[str] = (DEFAULT_TASK,), evaluation_mode: str = "fast"):
         if not isinstance(native_root, str) or not native_root:
@@ -371,14 +384,20 @@ class VLAArenaBenchmarkAdapter:
         self.rows = {row["key"]: row for row in task_catalog()}
         if (isinstance(task_names, (str, bytes)) or not task_names or
                 not all(isinstance(name, str) for name in task_names) or len(set(task_names)) != len(task_names) or
-                any(name not in self.rows or self.rows[name]["level"] != 0 for name in task_names)):
-            raise ValueError("select unique explicit native L0 task keys; higher levels are not yet supported")
+                any(name not in self.rows for name in task_names)):
+            raise ValueError("select unique explicit native task keys")
+        caps = {control_cap(self.rows[name]) for name in task_names}
+        if len(caps) != 1:
+            # describe advertises one environment_step_cap per service.
+            raise ValueError("select tasks that share one native control cap; long_horizon L1/L2 use 600 controls")
+        self.environment_step_cap = caps.pop()
         self.selected = tuple(task_names)
         self.claimed = set()
 
     @property
     def descriptor(self) -> BenchmarkDescriptor:
-        return BenchmarkDescriptor(name="vla_arena", version="babe582-L0", protocol_version=PROTOCOL, source_revision=REVISION)
+        return BenchmarkDescriptor(name="vla_arena", version="babe582-L0-L2",
+                                   protocol_version=protocol_for(self.environment_step_cap), source_revision=REVISION)
 
     @property
     def observation_spec(self) -> ObservationSpec:
@@ -400,9 +419,9 @@ class VLAArenaBenchmarkAdapter:
             raise ValueError("limit must be a positive integer")
         return tuple(EpisodeSpec(id=f"{key.replace('/', '--')}-seed{seed}-episode000", task=key, seed=seed,
                      instruction=self.rows[key]["instruction"], metadata={"suite": self.rows[key]["suite"],
-                     "level": 0, "native_id": self.rows[key]["native_id"], "initial_state_index": 0,
+                     "level": self.rows[key]["level"], "native_id": self.rows[key]["native_id"], "initial_state_index": 0,
                      "episode_index": 0, "evaluation_mode": "fast", "native_horizon": NATIVE_HORIZON,
-                     "policy_control_cap": CONTROL_CAP, "settle_steps": SETTLE_STEPS}) for key in self.selected[:limit])
+                     "policy_control_cap": control_cap(self.rows[key]), "settle_steps": SETTLE_STEPS}) for key in self.selected[:limit])
 
     def open_episode(self, episode: EpisodeSpec) -> VLAArenaEpisode:
         if episode not in self.episodes(episode.seed) or episode.id in self.claimed:

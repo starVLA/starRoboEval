@@ -1,126 +1,111 @@
 # VLN-CE evaluation protocol
 
-VLN-CE measures instruction following and navigation in continuous indoor
-scenes, using native route-success and path-efficiency metrics. The specification
-below proposes a service interface for the R2R unseen-scene validation split;
-the service is not implemented yet.
-Pinned upstream sources and environment/asset requirements are in [PREFLIGHT.md](PREFLIGHT.md).
+VLN-CE evaluates natural-language navigation in continuous indoor scenes.
+An episode specifies a building, starting pose, route instruction and private
+goal. A scene is a building, not an individual task or layout.
 
-## Identity and episode selection
+## Dataset and selection
 
-- Evaluator: [StarVLA-VLN-CE-Evaluation at
-  `2e56d1c026b2945b90b4ff339bdec2cb1e42b800`](https://github.com/LiuRicky/StarVLA-VLN-CE-Evaluation/tree/2e56d1c026b2945b90b4ff339bdec2cb1e42b800).
-- Native task: `VLN-v0`; dataset registration: `VLN-CE-v1`; released data:
-  `R2R_VLNCE_v1-3`, split `val_unseen`. These version names are different fields.
-- Reset seed: an explicit manifest field, applied before native reset.
+The released R2R-VLNCE v1-3 dataset contains train 10,819 episodes / 61 scenes,
+val_seen 778 / 53, val_unseen 1,839 / 11 and test 3,408 / 18.
+Several instructions may describe one trajectory. Scene counts overlap across
+splits; they are not a count of unique buildings when summed.
+See the [dataset definition](https://jacobkrantz.github.io/vlnce/data).
 
-Select episode IDs from the complete split before filtering by asset availability
-or inspecting outcomes. Freeze IDs, scene IDs, instructions, seed, dataset
-checksum and order before any attempt. Do not invent IDs while assets are missing. A missing
-selected scene blocks that attempt; it does not authorize a substitute episode.
+This service supports explicit episode IDs from a complete `val_seen` or
+`val_unseen` split. Dataset path, scene root, ordered episode IDs and reset seed
+are operator inputs fixed before any claim. The server validates selected scenes
+without choosing substitute episodes. Native IDs, starting poses, routes, goals
+and scene paths remain evaluator-private; actor episode labels are opaque.
+The test split needs its separate official scoring process and is not supported.
 
-One navigation episode pairs an instruction with a native start state, scene and
-goal. `trajectory_id` identifies a route and `scene_id` identifies a building;
-neither should be counted as a distinct manipulation task. Different instructions
-can describe the same route. Native reset/scoring fields remain evaluator-private.
+## Runtime identity
 
-R2R `val_unseen` contains 1,839 released episodes across 11 scenes. R2R, RxR,
-language, guide/follower roles and challenge configurations are separate
-selection dimensions. Specify episode IDs and repetitions in the evaluation
-configuration.
+Protocol: `vlnce-r2r-habitat033/rgb512/native500/v1`.
 
-## Policy observation boundary
+The native worker uses Habitat-Lab and Habitat-Sim reporting version 0.3.3 and
+the installed `benchmark/nav/vln_r2r.yaml` configuration. It records package
+versions, relevant source fingerprints, resolved configuration and asset/data
+identities. The native worker interpreter is configured explicitly and may be
+separate from the Python 3.10+ service. No policy implementation is imported
+by the server.
 
-The proposed RGB track delivers the instruction and current forward-facing
-`rgb` image at each decision: `512x512`, RGB `uint8`, 90-degree horizontal field
-of view, without policy-specific crop or resize. The policy may retain its own
-previously delivered observations and actions; episode state resets between
-attempts. No extra camera query or simulator access is permitted between calls.
+This is a declared Habitat 0.3.3 integration of R2R-VLNCE, not a reproduction of
+the earlier [Habitat 0.1.7 integration](https://github.com/LiuRicky/StarVLA-VLN-CE-Evaluation/tree/2e56d1c026b2945b90b4ff339bdec2cb1e42b800).
+Do not combine results across native runtime or sensor configurations without
+identifying those differences. Native Habitat task, action and success code
+remain responsible for execution and scoring.
 
-The native configuration also generates depth, but this track exposes only
-RGB and language. Remove `SHORTEST_PATH_SENSOR` and
-`VLN_ORACLE_PROGRESS_SENSOR` from the task sensor configuration, leaving the
-instruction sensor. Use an explicit observation allowlist: do not forward native
-observation dictionaries or `info` wholesale. No depth, GPS, compass, global
-pose, goal coordinates, shortest paths, navigation graph, maps, oracle progress,
-distance, reward, success or other scoring metadata reaches the policy. The
-runner supplies an opaque episode label rather than the native episode ID.
+## Observations
 
-The draft specifies current-image delivery, not a model-specific history sampler.
-Methods may retain previously delivered inputs within the declared episode
-scope; adding server-provided history requires explicit sampling/timing rules.
-Video or metric overlays are evaluator artifacts, never policy images.
+Each acknowledged control provides the current forward RGB image, `512×512`
+`uint8`, 90° horizontal FOV, and the route instruction. RGB dimensions are
+explicitly configured from the installed default of 256×256. No policy-specific
+crop or visual overlay is applied by the benchmark service.
 
-## Native navigation actions
+The native configuration can render depth but depth is not a policy input.
+The only task sensor is the instruction sensor; the adapter projects its text,
+not tokens, trajectory identity or the native observation dictionary. It does
+not expose GPS, compass, global pose, maps, goal coordinates, shortest paths,
+oracle sensors, collision diagnostics, reward or scoring metrics. The method
+may retain the observations and actions already delivered in this episode.
 
-Use the pinned R2R configuration's `v0` action space, `ALLOW_SLIDING=true` and
-the following native action IDs:
+## Action and timing
 
-| ID | Native action | Effect per executed action |
+`ActionSpec.mode = habitat_discrete_navigation_v0`, size **1**, name `action_id`.
+Each row must contain an integer-valued number from 0 to 3. Fractional values,
+non-finite values, wrong dimensions and out-of-range IDs are rejected without
+execution. No rounding or invalid-output fallback is used.
+
+| ID | Native action | Requested effect |
 | ---: | --- | --- |
-| 0 | `STOP` | Call the native task's stop action; counts as one action |
-| 1 | `MOVE_FORWARD` | Request a 0.25-metre forward step; collision may limit movement |
-| 2 | `TURN_LEFT` | Turn left by 15 degrees |
-| 3 | `TURN_RIGHT` | Turn right by 15 degrees |
+| 0 | STOP | End the native task; counts as one control |
+| 1 | MOVE_FORWARD | Move forward 0.25 m; collisions can limit displacement |
+| 2 | TURN_LEFT | Turn left by 15° |
+| 3 | TURN_RIGHT | Turn right by 15° |
 
-The proposed shared `ActionSpec` has mode `habitat_discrete_navigation_v0`,
-size `1`, name `action_id` and bounds `[0, 3]`. The adapter must additionally
-reject fractional IDs; numeric bounds alone do not validate a discrete enum.
-Do not use a seven-dimensional arm action, velocity command, waypoint planner,
-teleport or shortest-path follower. Do not invent a control frequency for these
-native task actions.
+Sliding is enabled. The action is not a waypoint or velocity command, and the
+service has no route planner or shortest-path follower. There is no declared
+wall-clock control frequency for discrete Habitat actions (`control_hz=null`).
+Saved video uses 10 FPS for presentation only; it does not change execution.
 
-One service `step` would execute exactly one explicit native action. The method
-chooses whether to group several actions before another decision. Do not
-silently repeat short chunks, round malformed output, default invalid text to
-forward, or carry queued actions into another episode. The runner records the
-executed prefix and stops playing it when the native episode ends.
+One sequenced service step executes one native action. The agent chooses chunk
+length and when to reason again. Execution stops at native termination or the
+500-control horizon; no unexecuted chunk suffix carries into another episode.
+An optional inference-call cap is a method setting, not a benchmark budget.
 
-Navigation STOP is an action chunk containing `(0,)`, not
-`PolicyDecision.stop=True`. Generic policy stop aborts the runner loop without
-calling `env.step(0)`; it cannot substitute for the native stop required by the
-scorer. Report generic stop separately as a policy abort.
+## Termination and score
 
-## Budgets and native termination
+The native limit is **500 actions**, including STOP. Exhaustion maps to
+`truncated`; an explicit native STOP maps to `terminated`. Closing a session,
+policy abort or budget exhaustion never inserts STOP automatically.
 
-A proposed R2R configuration uses the following native execution budget;
-this table is a draft, not an implemented service preset:
+The service sets the native `Success` measure's threshold to **3 metres**,
+the R2R-VLNCE criterion. This explicitly overrides Habitat 0.3.3's generic
+0.2-metre default. Habitat itself reports success only when STOP was executed
+and final geodesic distance is strictly below the threshold. Entering that
+radius during a route does not establish terminal success.
 
-| Setting | Value |
-| --- | ---: |
-| `budget_mode` | `horizon` |
-| Native `ENVIRONMENT.MAX_EPISODE_STEPS` | 500 |
-| Service control cap | 500 native actions |
+Metrics are taken from native `get_metrics()`:
 
-An optional method-call cap and action-grouping policy belong to the agent and
-must be disclosed separately; no universal 200-call/five-action setting is part
-of this draft. Count STOP as a native action, and record decision calls, controls,
-executed chunk lengths and the exact termination reason separately.
+- `success`: native STOP-aware success, normalized to boolean;
+- `distance_to_goal`: final geodesic distance in metres;
+- `spl`: native success weighted by path length;
+- execution counters and native termination reason.
 
-An extended control cap would need a separate development protocol; it cannot
-be presented as the native 500-action condition or applied retroactively to
-existing attempts. An agent's choice of action grouping does not extend the cap.
+The wire reward is a neutral 0.0, not a task progress signal. Metrics and
+native result metadata remain with the evaluator and are never included in
+policy observations. Non-finite or missing required metrics are explicit
+infrastructure errors. nDTW, oracle success/SPL and path-length reports from
+the older extended evaluator are not currently implemented; their absence is
+not a zero score. Optional GT files are checked and retained as provenance,
+but do not imply that additional metrics were computed.
 
-Native success is authoritative: Habitat requires an executed STOP and a final
-geodesic distance strictly below 3 metres. Merely entering that radius does not
-terminate the native task or establish success. `oracle_success` records whether
-the trajectory ever entered the radius; it is a separate metric. Map native
-STOP to `terminated`, native horizon exhaustion to `truncated`, and retain the
-specific reason. Runner budget exhaustion must not execute an unrequested STOP
-to turn an unfinished trajectory into a success.
+## Recording and reports
 
-Use native `get_metrics()` for `success`, `distance_to_goal`, `spl`, `ndtw`,
-`path_length`, `oracle_success`, `steps_taken` and the pinned R2R `oracle_spl`.
-Normalize native success to the required boolean without recomputing it. GT
-paths needed by nDTW belong exclusively to the evaluator. Non-finite metrics
-or missing scoring assets are visible errors, not silently discarded failures.
-
-## Result statistics
-
-Report the selected split, scene/episode counts, native metrics and termination
-reason. Keep infrastructure errors distinct from completed unsuccessful routes.
-Do not equate oracle success with success after a native STOP.
-
-Interaction history and video retention are optional; see
-[recording settings](../../../docs/recording.md). The implementation work and
-environment checks needed before deployment are listed in [PREFLIGHT.md](PREFLIGHT.md).
+Report the split, selected episodes/scenes, seed, runtime/protocol, success rate
+denominator, SPL, final distance, actual decisions/controls and termination.
+Keep infrastructure errors distinct from unsuccessful completed routes.
+RGB videos contain the same camera observations, without oracle overlays;
+standard retention keeps videos on the server and removes temporary frame PNGs
+only after successful finalization. See [recording settings](../../../docs/recording.md).

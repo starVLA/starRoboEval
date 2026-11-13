@@ -67,18 +67,19 @@ range rejection or clipping. Native motor/controller behavior remains in force.
 Exact ordering and backend navigation semantics are in
 [the action reference](bench_server/protocol/POLICY_GUIDE.md).
 
-## Execution budget and current limits
+## Execution budget
 
 For the 12 service-bound tasks, native horizons range from 400 to 1,200 controls;
-the task table lists each one. The current service configuration instead binds
-`max_policy_calls=200`, `replan_interval=5` and a 1,000-control cap. This is an
-integration constraint, **not a native requirement** on inference frequency or
-action grouping.
+the task table lists each task's metadata value. The default
+`budget_mode="horizon"` uses that reference budget for every supported task.
+Decision-call limits and action grouping are configured by the agent, not this
+server. One public step executes one control, and native terminal conditions
+can end the episode earlier.
 
-For the two default-scope tasks, `budget_mode="horizon"` selects the native
-control horizon, but the adapter still requires the same 200/5 settings.
-Use [the evaluation protocol](EVALUATION_PROTOCOL.md) to distinguish the native
-horizon and the actual selected cap when comparing results.
+An explicit `budget_mode="decisions"` retains a separate 1,000-control protocol
+with fixed 200-call/five-prefix settings. It does not match every native task
+horizon. See [the evaluation protocol](EVALUATION_PROTOCOL.md#budget-and-native-scoring)
+for the exact contract identities and budget distinction.
 
 ## Prepare the environment
 
@@ -88,16 +89,27 @@ controller weights, robot assets, released evaluation metadata and HSSD scenes
 under their licenses. Installing RSI does not supply those dependencies.
 
 [environment/upstream.json](environment/upstream.json) records required runtime,
-source-patch, controller and asset identities. Set explicit `simple_root` and
-`eval_root` paths; the worker interpreter is `<simple_root>/.venv/bin/python`.
-The current runtime checks expect a compatible asset/source installation;
-a portable all-assets bootstrap is not available.
+source-patch, controller and asset identities. Set explicit absolute
+`simple_root` and `eval_root` paths. Optional `python_executable` selects the
+native interpreter; its default is `<simple_root>/.venv/bin/python`.
+Optional `cuda_root` selects a CUDA toolkit with `targets/x86_64-linux/include`
+and `lib`; without it, existing `CUDA_HOME`, `CPATH` and `LD_LIBRARY_PATH`
+environment settings are preserved. No particular Conda prefix is required.
+
+Native source verification binds 596 Python files by repository-relative path,
+size and SHA-256, plus the pinned Git revision and Python patch bytes. Moving an
+identical installation does not change that source identity. Repaired HSSD
+layers retain their byte hashes; the repair manifest's recorded host path does
+not dictate the new installation root. This does not make the runtime and all
+assets relocatable automatically: interpreter links, external libraries and
+asset references still need valid deployment paths. A complete asset bootstrap
+is not provided.
 
 SIMPLE can create controller contexts on multiple visible GPUs. Check actual
 GPU capacity and process visibility; renderer selection alone is not isolation.
 The separate [diagnostic tool](environment/diagnose.py) checks reset,
-stabilization and hold control. Its deployment defaults need explicit adjustment
-when used on a different installation.
+stabilization and hold control. Supply `--simple-root`, `--eval-root` and
+`--gpu`; optional `--python-executable` and `--cuda-root` select the runtime.
 
 ## Launch and connect
 

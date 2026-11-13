@@ -42,7 +42,7 @@ class ValidationIssue:
         "invalid_stop", "invalid_action",
     })
     FIELDS: ClassVar[frozenset[str]] = frozenset({
-        "action", "response", "steps", "memory", "note", "safety_stop",
+        "action", "response", "steps", "memory", "note", "safety_stop", "stop_reason",
         "left", "right", "left.pose", "right.pose",
         "left.opening", "right.opening", "left.translation_m",
         "right.translation_m", "left.rotation_rad", "right.rotation_rad",

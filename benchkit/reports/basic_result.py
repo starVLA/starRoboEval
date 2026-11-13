@@ -144,7 +144,7 @@ def _recording(manifest):
     # Only known scalar settings, never paths, arbitrary metadata or receipts.
     allowed = {"mode", "preset", "schema_version", "scope", "source_capture"}
     settings = {key: _text(value[key], "recording " + key) for key in allowed if key in value}
-    boolean_options = {"interactions", "model_io", "tool_traces", "images", "videos"}
+    boolean_options = {"interactions", "model_io", "tool_traces", "images", "videos", "copy_server_media"}
     for key in boolean_options:
         if key in value:
             require(type(value[key]) is bool, "invalid recording option")
@@ -294,6 +294,16 @@ def _build_result(run_dir, metrics=()):
     if prefix is not None:
         require(counter(prefix, "action prefix") > 0, "invalid action prefix")
     public_protocol.update(max_steps=max_steps, max_policy_calls=max_calls, replan_interval=prefix)
+    if {"service_environment_step_cap", "max_steps_overridden"} & set(protocol):
+        require({"service_environment_step_cap", "max_steps_overridden"} <= set(protocol),
+                "incomplete recorded control-horizon override")
+        service_cap = protocol["service_environment_step_cap"]
+        if service_cap is not None:
+            require(counter(service_cap, "service control horizon") > 0, "invalid service control horizon")
+        require(protocol.get("max_steps_overridden") is (max_steps != service_cap),
+                "invalid recorded control-horizon override")
+        public_protocol.update(service_environment_step_cap=service_cap,
+                               max_steps_overridden=protocol["max_steps_overridden"])
     method_origin = manifest.get("method_origin", "participant_declaration" if "method" in manifest
                                  else "legacy_policy_projection")
     require(method_origin in {"participant_declaration", "legacy_policy_projection"}, "invalid method origin")

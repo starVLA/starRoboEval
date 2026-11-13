@@ -89,6 +89,8 @@ def build(config_path, output):
                 "episode index changed after record audit")
         score = indexed["metrics"].get("native_benchmark_score")
         require(score is None or (type(score) in (int, float) and math.isfinite(score)), "invalid final score")
+        scale = indexed["metrics"].get("native_benchmark_score_scale")
+        scale = scale if isinstance(scale, str) and len(scale) <= 32 else None  # Display hint only.
         videos, cameras = [], set()
         for video in spec.get("videos", []):
             camera = video["camera"]
@@ -113,12 +115,13 @@ def build(config_path, output):
             videos.append({key: video[key] for key in ("camera", "fps", "frames", "bytes", "sha256", "mapping")})
             videos[-1].update(url=url, verification="declared decode metadata; serving verifies SHA-256")
         tasks.append({"id": identifier, "title": spec["title"], "run_id": history["run_id"],
-            "task": episode["task"], "seed": episode["seed"], "method": history["policy"]["version"],
+            "task": episode["task"], "seed": episode["seed"], "method": history["policy"]["name"],
+            "method_version": history["policy"]["version"],
             "model": history["policy"]["model"], "benchmark": history["benchmark"]["name"],
             "protocol": history["benchmark"]["protocol_version"], "status": episode["status"],
             "success": episode["success"], "termination_reason": episode["termination_reason"],
             "counters": episode["counters"], "contracts": history["contracts"],
-            "score": {"label": "原生任务进度 Q（事后）", "value": score,
+            "score": {"label": "原生 benchmark 分数（事后）", "value": score, "scale": scale,
                       "source": "closed episode metrics.native_benchmark_score; not actor input"},
             "calls": [compact_call(call) for call in episode["calls"]], "videos": videos,
             "limitations": history["limitations"]})

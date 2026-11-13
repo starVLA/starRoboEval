@@ -38,7 +38,8 @@ Each native task pairs a BDDL goal/constraint definition with **50 saved initial
 states**, yielding 8500 saved task/state pairs across the release. Saved states
 vary initialization within a task; they are not 8500 tasks or a universal list of
 layout IDs. The native evaluator selects the task, level and saved-state episode
-separately, executes ten settling controls, then allows 300 participant controls.
+separately, executes ten settling controls, then allows 300 participant controls
+(600 for long-horizon L1/L2 tasks).
 
 Native task success and safety cost are distinct. For safety suites,
 safety-qualified success additionally requires total cost at most 10; plain
@@ -46,18 +47,20 @@ task success must not be confused with that safety-qualified outcome.
 
 ## Current Bench Server integration
 
-The current service accepts explicitly selected **L0 tasks only**. Each task
-uses native initial-state index zero and one attempt. Although each released
-init file contains 50 states, the service exposes only index zero; it has no
-initial-state selector. L1 and L2 are not selectable. See
-[service support](../SERVICE_SUPPORT.md).
+The current service accepts explicitly selected tasks from **all three levels,
+L0–L2**. Each task uses native initial-state index zero and one attempt. Although
+each released init file contains 50 states, the service exposes only index zero;
+it has no initial-state selector. Following the pinned evaluators, the ten
+long-horizon L1/L2 tasks permit 600 participant controls and every other task
+300. One service run selects tasks that share a cap, so run those ten in their
+own service. See [service support](../SERVICE_SUPPORT.md).
 
 The configurable uint32 launch seed seeds Python/NumPy and the native
 constructor. It does not select a different saved initial state or layout:
-the same task still installs state zero. A selected list of N distinct L0 task
+the same task still installs state zero. A selected list of N distinct task
 keys produces N cases; an episode limit selects a prefix without repetitions.
-The service can select 60 task/state-zero pairs; this is its present interface
-boundary, not the native task universe.
+The service can select all 170 task/state-zero pairs; other saved states remain
+outside its present interface boundary.
 
 ## Service robot interface and native metrics
 
@@ -68,7 +71,7 @@ boundary, not the native task universe.
 | Action | Seven normalized values in [-1,1]: XYZ deltas, rotation-vector deltas and Panda gripper |
 | Physical interpretation | Robot-base-frame OSC deltas; scales 0.05 m / 0.5 rad; positive gripper closes |
 | Timing | 20-Hz controls, 25 physics ticks per control at 0.002 s |
-| Budget | 300 participant controls plus ten separately counted native setup controls |
+| Budget | 300 participant controls (600 for long-horizon L1/L2) plus ten separately counted native setup controls |
 | Primary outcome | Native task success, corresponding to the native evaluator's `safety=False` score |
 | Additional metrics | Native cost and, for safety suites, `safe_success = success and cost ≤ 10` |
 
@@ -83,11 +86,11 @@ target. These are delta commands, not absolute EEF targets. One vector advances
 Primary task success and safety-qualified success must be shown separately.
 A task can succeed with cost above 10. A shorter run or voluntary stop preserves
 partial cost rather than fabricating a final score. See the protocol for the
-once-only final-cost calculation at the 300-control cap.
+once-only final-cost calculation at the participant-control cap.
 
-The native engine horizon remains 1000; the 300-control participant cap follows
-the pinned evaluator's policy loop. A participant chooses its decision frequency
-and action grouping within that cap. No robot proprioception, object poses,
+The native engine horizon remains 1000; the 300-control participant cap (600 for
+long-horizon L1/L2) follows the pinned evaluator's policy loop. A participant
+chooses its decision frequency and action grouping within that cap. No robot proprioception, object poses,
 task predicates or private costs enter the agent observation.
 
 ## Start the benchmark service
@@ -95,8 +98,8 @@ task predicates or private costs enter the agent observation.
 Prepare [the native environment](environment/README.md), including its private
 `LIBERO_CONFIG_PATH`, EGL settings and a fresh empty `NUMBA_CACHE_DIR` outside
 pinned sources. Copy [server.example.json](server.example.json) to an
-operator-owned file, set `native_root`, and preselect duplicate-free L0
-`task_names` from the catalog. The example selects a fork-placement task from
+operator-owned file, set `native_root`, and preselect duplicate-free
+`task_names` from the catalog that share one control cap. The example selects a fork-placement task from
 `safety_cautious_grasp`.
 
 Supply `RSI_SIM_SERVER_TOKEN` only to the trusted server/evaluator environments.
@@ -124,8 +127,7 @@ decisions, controls and errors. Keep optional interaction/media records with
 participant results; see [recording guidance](../../../docs/recording.md).
 The service differs from the upstream wrapper in its single reset attempt and
 explicit constructor seeding; the protocol documents these initialization
-conditions. Additional initial-state selection and L1/L2 scheduling are not
-implemented.
+conditions. Additional initial-state selection is not implemented.
 
 `server.py` is the launcher. `bench_server/adapter.py` owns observations,
 actions and scoring; `bench_server/protocol/task_catalog.json` holds immutable

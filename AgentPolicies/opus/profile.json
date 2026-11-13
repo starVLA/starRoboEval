@@ -1,8 +1,0 @@
-{
-  "schema_version": "starvla-rsi.model-profile/v1",
-  "id": "opus",
-  "display_name": "Opus",
-  "configured": false,
-  "factory": "AgentPolicies.opus.policy:create_policy",
-  "policy": null
-}

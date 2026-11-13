@@ -255,14 +255,12 @@ class DOMINOEpisode:
 
 class DOMINOBenchmarkAdapter:
     budget_mode = "horizon"
-    required_replan_interval = 1
-    replan_interval = 1
     environment_step_cap = NATIVE_HORIZON
 
     def __init__(self, source_root, deployment_manifest_sha256, episode_manifest,
                  episode_manifest_sha256, native_seed=100000, task=TASK, evaluation_mode="fast"):
         if task != TASK or evaluation_mode != "fast":
-            raise ValueError("DOMINO v1 supports only one fixed click_bell fast case, not full")
+            raise ValueError("DOMINO supports only the declared fixed click_bell case")
         for value in (source_root, episode_manifest):
             if not isinstance(value, str) or not Path(value).is_absolute() or ".." in Path(value).parts:
                 raise ValueError("DOMINO source and trusted manifest require explicit absolute paths")

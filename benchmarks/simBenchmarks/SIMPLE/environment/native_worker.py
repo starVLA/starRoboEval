@@ -16,7 +16,7 @@ import subprocess
 import sys
 import time
 import traceback
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 
 
 def write_json(path, value):
@@ -39,6 +39,36 @@ def require_hash(path, expected):
     return record
 
 
+def native_python_inventory(root):
+    """Pin the same native source bytes independently of the installation path."""
+    root = Path(root).resolve()
+    records = []
+    for relative in ("src/simple", "third_party/decoupled_wbc", "third_party/gear_sonic"):
+        for path in (root / relative).rglob("*.py"):
+            record = fingerprint(path)
+            # Reject source symlinks escaping the selected native repository.
+            record["path"] = path.resolve().relative_to(root).as_posix()
+            records.append(record)
+    records.sort(key=lambda row: row["path"])
+    if len({row["path"] for row in records}) != len(records):
+        raise ValueError("duplicate native source inventory path")
+    return records
+
+
+def repaired_layer_hashes(repair):
+    """Resolve identities inside a hash-verified repair manifest, not its host."""
+    original_root = PurePosixPath(repair["hssd_root"])
+    if not original_root.is_absolute() or ".." in original_root.parts:
+        raise ValueError("invalid repair manifest HSSD root")
+    records = {}
+    for row in repair["layers"]:
+        relative = PurePosixPath(row["layer"]).relative_to(original_root)
+        if not relative.parts or ".." in relative.parts or relative.as_posix() in records:
+            raise ValueError("invalid or duplicate repair layer path")
+        records[relative.as_posix()] = row["after_sha256"]
+    return records
+
+
 def check_initial_state(success, stabilized=None):
     if type(success) is not bool or success:
         raise ValueError("native initial state is already successful or has an invalid success flag")
@@ -59,11 +89,12 @@ def verify_scene_alias(root, pins, original_uid):
     mapped_uid = original_uid.replace("102344280", "scene3")
     selected = scenes[mapped_uid.split(":", 1)[-1]]
     repair = json.loads(repair_path.read_text())
-    records = {str(Path(row["layer"]).resolve()): row for row in repair["layers"]}
+    records = repaired_layer_hashes(repair)
     checked = []
     for name in sorted({selected["name"], "102344280"}):
-        path = root / "data/scenes/hssd" / name / (name + ".usd")
-        expected = records[str(path.resolve())]["after_sha256"]
+        relative = PurePosixPath(name) / (name + ".usd")
+        path = root / "data/scenes/hssd" / relative
+        expected = records[relative.as_posix()]
         checked.append(require_hash(path, expected))
     return mapped_uid, {"before": original_uid, "after": mapped_uid, "applied": original_uid != mapped_uid,
         "native_loader_rule": "src/simple/datasets/lerobot.py:21: 102344280 -> scene3",
@@ -105,7 +136,7 @@ class NativeRuntime:
 
     def reset(self, request):
         from benchmarks.simBenchmarks.SIMPLE.bench_server.adapter import (
-            SIMPLE_REVISION, HORIZONS, SEED, INVENTORY_PATH, task_config,
+            SIMPLE_REVISION, HORIZONS, SEED, INVENTORY_PATH, task_config, execution_budget,
         )
         self.artifact_dir = Path(request["artifact_dir"]).resolve()
         self.artifact_dir.mkdir(parents=True, exist_ok=True)
@@ -115,16 +146,19 @@ class NativeRuntime:
         self.diagnostic = bool(request["diagnostic"])
         self.proprioception = bool(request["proprioception"])
         self.budget_mode = request["budget_mode"]
-        if self.budget_mode not in ("decisions", "horizon") or request["max_policy_calls"] != 200 or request["replan_interval"] != 5:
-            raise ValueError("invalid frozen development budget")
+        self.horizon = HORIZONS[self.task_id]
+        self.environment_step_cap, policy_call_cap, prefix_cap = execution_budget(
+            self.horizon, self.budget_mode, request["max_policy_calls"], request["replan_interval"])
+        if request["environment_step_cap"] != self.environment_step_cap:
+            raise ValueError("worker and runner environment step cap differ")
         self.task_scope = request.get("task_scope", "pilot")
         config = task_config(self.task_id, self.task_scope)
         self.backend = config["backend"]
         if request["seed"] != SEED:
             raise ValueError("seed outside the frozen SIMPLE manifest")
         if self.task_scope == "released-12":
-            if request["proprioception"] is not True or self.budget_mode != "decisions":
-                raise ValueError("released-12 requires RGB+qpos31 and decisions budget")
+            if request["proprioception"] is not True:
+                raise ValueError("released-12 requires RGB+qpos31")
         if self.env is not None:
             raise RuntimeError("one native environment per process")
         actual_root = Path(subprocess.check_output(
@@ -146,10 +180,12 @@ class NativeRuntime:
         require_hash(source_dir / "native-existing.patch", pins["existing_native_python_patch_sha256"])
         dirty = subprocess.check_output(["git", "-C", str(self.root), "status", "--porcelain",
             "--untracked-files=no"], text=True)
-        source_hashes = [fingerprint(path) for base in (self.root / "src/simple", self.root / "third_party/decoupled_wbc",
-            self.root / "third_party/gear_sonic") for path in sorted(base.rglob("*.py"))]
+        source_hashes = native_python_inventory(self.root)
+        if (pins["native_python_inventory_format"] != "relative-path-v1"
+                or len(source_hashes) != pins["native_python_inventory_file_count"]):
+            raise ValueError("native source inventory format or file count differs")
         write_json(source_dir / "native-python-hashes.json", source_hashes)
-        require_hash(source_dir / "native-python-hashes.json", pins["native_python_inventory_sha256"])
+        require_hash(source_dir / "native-python-hashes.json", pins["native_python_relative_inventory_sha256"])
         data = Path(request["eval_root"]) / "simple-eval" / self.task_id / "dr-level-0/meta"
         require_hash(data / "episodes.jsonl", pins["reset_metadata_sha256"][self.task_id])
         require_hash(data / "episodes.jsonl", config["reset_metadata_sha256"])
@@ -168,10 +204,6 @@ class NativeRuntime:
         mapped_uid, scene_alias = verify_scene_alias(self.root, pins, conf["dr_state_dict"]["scene"]["uid"])
         conf["dr_state_dict"]["scene"]["uid"] = mapped_uid
         write_json(self.artifact_dir / "private_reset.json", conf)
-        self.horizon = HORIZONS[self.task_id]
-        self.environment_step_cap = 1000 if self.budget_mode == "decisions" else self.horizon
-        if request["environment_step_cap"] != self.environment_step_cap:
-            raise ValueError("worker and runner environment step cap differ")
         weights = list((self.root / "src/simple/robots/policy").glob("*.pt"))
         weights += list((self.root / "third_party/decoupled_wbc/sim2mujoco/resources/robots/g1/policy").glob("*.onnx"))
         for controller in pins["controllers"].values():
@@ -181,6 +213,7 @@ class NativeRuntime:
         self.provenance = {"track": request["protocol_version"], "actual_git_root": str(actual_root), "git_revision": revision,
             "git_tracked_status": dirty, "existing_patch": fingerprint(source_dir / "native-existing.patch"),
             "native_python_manifest": fingerprint(source_dir / "native-python-hashes.json"),
+            "native_python_manifest_format": pins["native_python_inventory_format"],
             "reset_metadata": fingerprint(data / "episodes.jsonl"),
             "selected_reset": fingerprint(self.artifact_dir / "private_reset.json"),
             "task_inventory": fingerprint(INVENTORY_PATH), "task_scope": self.task_scope,
@@ -189,7 +222,7 @@ class NativeRuntime:
             "controller_weight_files": [fingerprint(path) for path in sorted(weights)],
             "task": self.task_id, "dr_level": 0, "episode_index": 0, "seed": SEED,
             "reference_native_horizon": self.horizon, "environment_step_cap": self.environment_step_cap,
-            "budget_mode": self.budget_mode, "policy_call_cap": 200, "prefix_cap": 5,
+            "budget_mode": self.budget_mode, "policy_call_cap": policy_call_cap, "prefix_cap": prefix_cap,
             "diagnostic_only": self.diagnostic, "native_task_metadata_horizon_unchanged": True,
             "time_limit_wrapper_extension": self.environment_step_cap > self.horizon,
             "time_limit_wrapper_reduction": self.environment_step_cap < self.horizon,
@@ -197,6 +230,10 @@ class NativeRuntime:
             "source_worker": fingerprint(Path(__file__)),
             "source_codec": fingerprint(Path(codec.__file__)),
             "versions": {name: importlib.metadata.version(name) for name in ("numpy", "torch", "mujoco", "isaacsim")},
+            "python_executable": sys.executable,
+            "python_executable_resolved": str(Path(sys.executable).resolve()),
+            "python_prefix": sys.prefix,
+            "cuda_home": os.environ.get("CUDA_HOME"),
             "gpu_id": os.environ["SIMPLE_ISAAC_GPU_ID"],
             "policy_observation": "native head_stereo_left RGB 360x640, native instruction; " +
                 ("31 named measured robot joint encoders; no task metadata" if self.proprioception else "no state/metadata"),

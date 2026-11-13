@@ -72,7 +72,7 @@ from the upstream model launcher's episode-specific instruction sampling.
 | State | 14 **commanded targets**, not measured encoders: left six arm targets, left normalized gripper, right six arm targets, right gripper |
 | Action | 14 absolute native qpos targets, same order; arm values in radians |
 | Gripper | Nominal 0 closed/1 open; native clipping, interpolation and mapping to `[-0.01,0.045]` metres unchanged |
-| Control | One target per public step; prefix 1; native TOPP expands targets into variable physics ticks at 250Hz |
+| Control | One target per public step; native TOPP expands targets into variable physics ticks at 250Hz |
 | Horizon | 400 native target calls, from pinned `click_bell` entry in `_eval_step_limit.yml` |
 
 State channel names use `commanded_target_` and explicitly declare commanded
@@ -81,6 +81,13 @@ checks are mandatory, while native controller constraints stay native. Optional
 movement guards belong to agents. Physics ticks, started native targets, ACKs
 and model decisions are recorded separately. Initialization/settling ticks are
 not currently instrumented; do not report them as zero or model controls.
+
+The current `sm120-agent-grouping-v2` interface does not require a model call
+after each target. The agent chooses grouping; the service acknowledges each
+target separately and applies native termination and the 400-target limit
+before accepting another. Native TOPP, physics frequency, dynamics and scoring
+are unchanged. Report the returned protocol identity; earlier records retain
+their captured prefix-one conditions.
 
 No object truth, depth, camera-calibration mapping, expert plan, dynamic
 motion parameters, hidden score, branch rollout or task-planning RPC is exposed.

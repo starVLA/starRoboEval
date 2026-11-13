@@ -68,6 +68,7 @@ _REMOTE_ERROR_CODES = frozenset({
     "incomplete_request", "invalid_action", "invalid_artifact_path",
     "invalid_artifact_request", "invalid_envelope", "invalid_fields",
     "invalid_framing", "invalid_length", "invalid_sequence", "invalid_session_state",
+    "media_retention_changed", "media_retention_receipt_collision",
     "nonregular_artifact", "server_busy", "unknown_episode", "unknown_operation",
     "unknown_session", "server_identity_mismatch", "native_open_failed",
     "native_or_observation_failed", "native_metrics_failed", "service_request_failed",
@@ -160,6 +161,12 @@ class SimServerBenchmarkAdapter:
                 description_fields.add("action_rejection")
                 if data["action_rejection"] != ACTION_REJECTION_PROTOCOL:
                     raise ValueError("unsupported action rejection contract")
+            if isinstance(data, dict) and "selection" in data:
+                description_fields.add("selection")
+                selection = _fields(data["selection"], ("episode_ids", "schedule_size"))
+                if (_strings(selection["episode_ids"]) != tuple(e["id"] for e in data["episodes"])
+                        or _integer(selection["schedule_size"], 1) < len(data["episodes"])):
+                    raise ValueError("selection differs from the served schedule")
             _fields(data, description_fields)
             if not isinstance(data["server_id"], str) or not re.fullmatch(r"[a-zA-Z0-9_-]{1,128}", data["server_id"]):
                 raise ValueError("invalid server identity")

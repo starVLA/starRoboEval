@@ -11,27 +11,34 @@ import shutil
 from datetime import datetime, timezone
 from pathlib import Path
 
+SERVER_VIDEO_SUFFIXES = (".mp4", ".webm", ".mkv", ".avi", ".mov")
+
 
 def component(value: str) -> str:
     return re.sub(r"[^A-Za-z0-9_.-]", "_", value).strip(".") or "episode"
+
+
+def artifact_dir(run: Path, episode: dict) -> Path:
+    """The bound artifact directory of the one closed result for this episode."""
+    matches = []
+    for result_path in (run / "episodes").glob("*/result.json"):
+        if not result_path.resolve().is_relative_to(run):
+            raise ValueError("episode result escaped the closed run")
+        recorded = json.loads(result_path.read_text())
+        if recorded["episode"]["id"] == episode["episode"]["id"]:
+            if recorded != episode:
+                raise ValueError("episode index and result disagree")
+            matches.append(result_path.parent / "artifacts")
+    if len(matches) != 1:
+        raise ValueError("relative video requires one matching closed episode result")
+    return matches[0].resolve(strict=True)
 
 
 def resolve_video(run: Path, episode: dict, source: str) -> Path:
     """Absolute artifacts or bound-worker paths relative to that episode only."""
     path = Path(source)
     if not path.is_absolute():
-        matches = []
-        for result_path in (run / "episodes").glob("*/result.json"):
-            if not result_path.resolve().is_relative_to(run):
-                raise ValueError("episode result escaped the closed run")
-            recorded = json.loads(result_path.read_text())
-            if recorded["episode"]["id"] == episode["episode"]["id"]:
-                if recorded != episode:
-                    raise ValueError("episode index and result disagree")
-                matches.append(result_path.parent / "artifacts")
-        if len(matches) != 1:
-            raise ValueError("relative video requires one matching closed episode result")
-        base = matches[0].resolve(strict=True)
+        base = artifact_dir(run, episode)
         path = (base / path).resolve(strict=True)
         if not base.is_relative_to(run) or not path.is_relative_to(base):
             raise ValueError("relative worker video escaped its bound artifact directory")
@@ -39,6 +46,22 @@ def resolve_video(run: Path, episode: dict, source: str) -> Path:
     if not path.is_relative_to(run) or not path.is_file() or path.suffix.lower() != ".mp4":
         raise ValueError("video artifact must be an MP4 file inside the closed run")
     return path
+
+
+def server_videos(run: Path, episode: dict) -> list[dict]:
+    """Videos the benchmark server kept without a client copy, from the SIM receipt."""
+    try:
+        receipt = artifact_dir(run, episode) / "sim_server_receipt.json"
+    except (OSError, ValueError):
+        return []
+    if not receipt.is_file():
+        return []
+    retention = json.loads(receipt.read_text())["client_retention"]
+    return [{"path": row["path"], "sha256": row["sha256"], "bytes": row["size_bytes"],
+             "server_id": retention["reference_identity"]["server_id"],
+             "session_id": retention["reference_identity"]["session_id"]}
+            for row in retention["server_media_references"]
+            if Path(row["path"]).suffix.lower() in SERVER_VIDEO_SUFFIXES]
 
 
 def main() -> int:
@@ -97,13 +120,14 @@ def main() -> int:
                 raise RuntimeError("copied video digest differs from its source")
             videos.append({"path": str(destination.relative_to(output)), "sha256": source_digest,
                            "source": str(source), "bytes": destination.stat().st_size})
+        on_server = [] if videos else server_videos(run, episode)
         report["episodes"].append({
             "episode": episode["episode"], "status": episode["status"],
             "success": episode["success"], "metrics": episode["metrics"],
             "termination_reason": episode["termination_reason"], "error": episode["error"],
             "environment_steps": episode["environment_steps"], "policy_calls": episode["policy_calls"],
-            "usage": episode["usage"], "videos": videos,
-            "video_status": "available" if videos else "not_produced",
+            "usage": episode["usage"], "videos": videos, "server_videos": on_server,
+            "video_status": "available" if videos else "retained_on_server" if on_server else "not_produced",
         })
     (output / "index.json").write_text(json.dumps(report, indent=2, sort_keys=True) + "\n")
     print(output)

@@ -28,7 +28,7 @@ Use the existing transport under `benchkit/sim_server/`. The model
 actor receives only the declared observation and execution feedback. The trusted
 driver holds service credentials and administrative/result methods; it must not
 give these capabilities to the model. Only benchmark-owned code touches the SIM.
-The service must not import a model implementation or legacy campaign entrypoint.
+The service must not import a model implementation.
 
 Register implemented services in `benchkit/sim_server/cli.py`: `rsi-bench list`
 and `rsi-bench serve --benchmark <id> ...` delegate to the existing wrapper.
@@ -36,21 +36,21 @@ Do not construct a second factory path that bypasses its source inventory,
 cache exclusions or complete-schedule rules. Availability is not native readiness.
 Public reports identify the complete method and its outcomes; optional histories
 show recorded inputs, outputs, actions and acknowledged feedback. Recording is
-default on, not a participation/publication gate. Hash/source checks remain internal support;
+default on, not a participation/publication gate. Service source snapshots remain internal support;
 recorded upstream/environment/asset provenance can support reproducibility.
 
 An in-process native adapter inside the service is permitted; a second worker
 process is needed only for runtime isolation. Do not add empty layers or duplicate
 servers merely to make file lists identical. Migrated integrations use only
-`bench_server/adapter.py` and, when needed, `bench_server/protocol/plan.py`.
+`bench_server/adapter.py` and, when needed, protocol data under `bench_server/protocol/`.
 Do not retain old root adapter shims or duplicate `evaluation/` packages solely
 for compatibility. Update current callers, packaging and source inventories
-together; frozen historical packages retain their own original sources.
+together; historical records keep their original sources as data.
 
 ## Public documentation contract
 
 Write benchmark documentation for any compatible agent, not for a particular
-model or evaluation campaign. Use this division consistently:
+model or evaluation run. Use this division consistently:
 
 - `README.md`: introduce what the benchmark measures and its native task,
   scene and variation organization first; then explain environment prerequisites
@@ -113,8 +113,7 @@ Editing prose must not silently redefine a runtime contract or historical result
 6. Native scoring remains authoritative. Keep task failures, policy stops and
    infrastructure errors distinct; preserve all attempts and unknown accounting.
 7. Source inventories include the service, protocol and required worker code.
-   Shared service capture is scoped separately from campaign/agent capture;
-   declare the selected benchmark's complete supplemental inventory without
+   The agent side captures no source; declare the selected benchmark's complete supplemental inventory without
    relying on another benchmark or model file being incidentally captured.
    Paired client/server records, native outcomes and media belong under the model's
    results namespace. Only closed artifacts are exported and audited.
@@ -128,7 +127,7 @@ identity attestation. Apply deployment isolation separately.
 | --- | --- | --- |
 | Observation/action | Declared, versioned, validated | EEF16, three cameras, robot ACK payload |
 | Native runtime | Service-owned and lazily initialized | Isaac Sim, worker topology, fixed IK |
-| Schedule | Frozen selected cases, each once | Selections of 5 or 50 layouts |
+| Schedule | Fixed selected cases, each once | Selections of 5 or 50 layouts |
 | Budget | Explicit units and resolved caps | 1100 controls, number of ticks per control |
 | Scoring | Native rule, never model self-report | Dojo's success conjunction or 0–100 score |
 | Rejection | Never execute invalid input | A track's feedback/fail-fast selection |
@@ -142,8 +141,7 @@ LIBERO retains its selected task/init-state contract; SIMPLE retains its native
 
 For future real-robot backends, reuse these declared capability boundaries, not
 the simulator's paused-time/reset assumptions. Hardware adapters require their
-own timing, watchdog, safety, calibration and scoring validation. See
-[real-robot status](../realRobots/README.md).
+own timing, watchdog, safety, calibration and scoring validation.
 
 ## One acceptance sequence for every integration
 

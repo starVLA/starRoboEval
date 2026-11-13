@@ -7,7 +7,6 @@ model behavior, prompts and results belong under [`AgentPolicies/`](../AgentPoli
 | Area | Purpose | Current execution status |
 | --- | --- | --- |
 | [simBenchmarks](simBenchmarks/README.md) | Native task/environment adapters, setup, inventories, selection plans and scoring contracts | Eleven benchmark families have development services; three remain drafts/deferred |
-| [realRobots](realRobots/README.md) | Hardware/interface references and future safety-reviewed robot benchmark adapters | No unified real-robot adapter or unattended hardware evaluation is enabled |
 | Git history and local `barks/` | Retired model-serving, old evaluation-loop and training references | Not part of the public runtime or package |
 
 Within an integrated simulation benchmark, adapters own native I/O and scoring,
@@ -27,4 +26,4 @@ give-up rules never belong in the native benchmark adapter.
 Retained historical launchers may depend on the original StarVLA training/model
 repository and are not runnable merely because their files remain here. Do not
 execute a legacy launcher to claim the unified policy boundary was evaluated.
-Preserve frozen campaigns, original results and native reference evidence.
+Preserve original run records, results and native reference evidence.

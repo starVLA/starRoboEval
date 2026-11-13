@@ -45,7 +45,7 @@ Required fields and their meanings:
 | `policy` | At least a declared `name`; legacy `kind`, `model`, `provider`, `version` may also be present |
 | `action_spec` | Service-declared `mode`, positive `size`, `names`, optional `low`/`high`, `control_hz`, `frame`, `rotation`, `gripper` |
 | `observation_spec` | Service-declared `cameras`, `state_names`, `modalities`, `privileged: false`, optional `control_feedback_schema` |
-| `protocol` | Selected `episode_ids`, positive `max_steps`, `max_policy_calls` (positive integer or null), `replan_interval` (positive integer or null), `fail_fast` (boolean); retain actual budget/track declarations |
+| `protocol` | Selected `episode_ids`, positive `max_steps`, `max_policy_calls` (positive integer or null), `replan_interval` (positive integer or null), `fail_fast` (boolean); retain actual budget/track declarations. A horizon run may add the service's `service_environment_step_cap` (positive integer or null) and `max_steps_overridden` (boolean: no service cap, or `max_steps` differs from it) |
 
 Optional public method declaration:
 
@@ -187,7 +187,8 @@ arbitrary nested metric objects or copy media automatically. This publication
 choice does not make private metrics available to the acting model.
 
 Inputs reject duplicate JSON keys and nonfinite numbers, are bounded to 10,000
-episodes and 128 MiB of files read, and are checked for changes during export.
+episodes, 64 MiB per file and 128 MiB of files read in total, and are checked
+for changes during export.
 The optional [interaction viewer](../benchkit/reports/interaction_history.py)
 adds a timeline when compatible detailed events exist. Its absence does not
 prevent the basic result above.

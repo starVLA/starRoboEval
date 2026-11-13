@@ -26,9 +26,9 @@ the task universe of its upstream benchmark.
 | [RoboTwin](Robotwin/README.md) | Two tasks with joint-target actions | Matching SAPIEN/OIDN runtime and GPU; native seeds are not expert-screened |
 | [DOMINO](DOMINO/README.md) | One fixed dynamic scenario with joint-target actions | Matching dynamic manifest/runtime; current interface requires observation after each target |
 | [CALVIN](calvin/README.md) | One fixed five-subtask sequence | Pinned scene/reset data; observation after each action; no per-subtask policy-reset hook |
-| [VLA-Arena](VLA-Arena/README.md) | 60 L0 tasks | Pinned source/assets and initial-state index 0; L1/L2 selection is unavailable |
+| [VLA-Arena](VLA-Arena/README.md) | 170 tasks, L0–L2 | Pinned source/assets and initial-state index 0; long-horizon L1/L2 use a 600-control cap and run as a separate service |
 | [BEHAVIOR](Behavior/README.md) | Seven fixed-case tasks, RGB224 + robot state | v3.9.2 runtime, licensed assets and task-bound manifest; observation differs from the challenge's RGB-D configuration |
-| [VLN-CE](VLN-CE/README.md) | Protocol draft; no runnable adapter/server | Authorized MP3D scenes, pinned runtime and an implemented/validated adapter are required; public code does not grant scene-data rights |
+| [VLN-CE](VLN-CE/README.md) | R2R val_seen/val_unseen, explicit episode IDs, RGB512 and four native navigation actions | Habitat 0.3.3 worker and authorized MP3D assets; native success/SPL/distance, no nDTW or old-runtime parity claim |
 
 Use each benchmark's protocol for its exact task/variation universe and supported
 subset. A local installation in another user's workspace is only a readiness lead,
@@ -53,8 +53,8 @@ gates apply to each added benchmark.
 4. In an isolated compatible runtime, use a separately labelled no-model native
    diagnostic through the same server/client path. A diagnostic is not a task
    score and does not authorize a scored retry.
-5. Only then schedule explicitly selected model attempts. Keep native sampling,
-   frozen-campaign support and capability results separate from service availability.
+5. Only then schedule explicitly selected model attempts. Keep native sampling
+   and capability results separate from service availability.
 
 Setup may download public assets without evaluating a model. It does not bypass
 gated asset agreements, silently change reset distributions or launch a model trial.

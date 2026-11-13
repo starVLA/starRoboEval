@@ -41,11 +41,12 @@ task listed above; each server still selects exactly one task/backend.
 
 Backend selection follows the native environment/robot pair, not task-name suffix inference. `LocoManipulationEnv` with `g1_wholebody` uses AMO; `SonicLocoManipEnv` with `g1_sonic` uses SONIC. AMO executes ten 2 ms physics steps and SONIC four 5 ms steps per public 50 Hz control.
 
-The current 12-task service configuration requires 200 maximum policy calls,
-an action-prefix setting of five and a 1,000-control cap. These are integration
-restrictions, not native SIMPLE rules. The cap extends the 400/800-control
-reference horizons and shortens LocomotionPickBetweenTables' 1,200-control
-horizon. Report both the reference horizon and actual cap.
+The default service uses each task's metadata horizon from this table, with no
+benchmark-imposed decision frequency or action-prefix length. An explicitly
+selected `budget_mode="decisions"` instead retains its fixed 200-call/five-prefix
+configuration and 1,000-control cap. That cap extends the 400/800-control reference
+horizons and shortens LocomotionPickBetweenTables' 1,200-control horizon. Report
+the selected protocol and actual control cap.
 
 TabletopGrasp's source default render frequency is 30 Hz but its released reset
 metadata is 50 Hz; this service constructs all environments at 50 Hz.

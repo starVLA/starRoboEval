@@ -6,7 +6,7 @@ This document describes the benchmark's public sensor and action contract.
 session selection, initialization and result collection; the evaluated actor
 receives only the declared observations and submits robot actions.
 
-The wire contract does not require a particular model, SDK, mailbox transport,
+The wire contract does not require a particular model, SDK, transport library,
 prompt or decision loop. See [agent integration](../../../../../docs/agent-methods.md)
 for participant-side implementations, [installation](../../README.md) for the
 service environment, and [the evaluation protocol](../../EVALUATION_PROTOCOL.md)

@@ -30,8 +30,7 @@ reset cases only within the user's authorized evaluation scope.
 The authenticated protocol is the integration boundary. Python `Policy`, the
 profile registry and `EvaluationRunner` are optional. Use the shared SIM transport
 and result writers where helpful; do not add a simulator, task solver or another
-scheduler to the agent side. Current central campaign commands use a separate
-frozen local-adapter path, not remote-service orchestration.
+scheduler to the agent side.
 
 ## Choose whether the template fits
 

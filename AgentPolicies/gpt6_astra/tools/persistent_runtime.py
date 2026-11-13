@@ -57,7 +57,7 @@ def _toml(value, *, ensure_ascii=True):
     return json.dumps(value, ensure_ascii=ensure_ascii)
 
 
-def launch_settings(actor, public, audit):
+def launch_settings(actor, public, audit, effort):
     """No inherited shell secrets, network tools, repository or SIM filesystem.
 
     This is an explicitly requested sandbox profile, not an attestation of the
@@ -69,7 +69,7 @@ def launch_settings(actor, public, audit):
              str(actor): "write", str(public): "read"}
     runtime = Path(actor).parent / "runtime"
     settings = {
-        "model": "gpt-6-astra", "model_provider": "openai", "model_reasoning_effort": "xhigh",
+        "model": "gpt-6-astra", "model_provider": "openai", "model_reasoning_effort": effort,
         "forced_login_method": "chatgpt", "approval_policy": "never",
         "default_permissions": PERMISSIONS, "permissions." + PERMISSIONS + ".filesystem": files,
         "permissions." + PERMISSIONS + ".network.enabled": False,
@@ -91,13 +91,13 @@ def launch_settings(actor, public, audit):
     return settings
 
 
-def verify_configuration(config, actor, public, audit):
+def verify_configuration(config, actor, public, audit, effort):
     """Fail before a turn if inherited user/project config expands capabilities.
 
     --strict-config validates config syntax; it does not ignore user config.
     Do not record the raw effective config: it may contain private credentials.
     """
-    wanted = launch_settings(actor, public, audit)
+    wanted = launch_settings(actor, public, audit, effort)
     for key, expected in wanted.items():
         if key.startswith("permissions.") or key == "mcp_servers":
             continue
@@ -153,9 +153,9 @@ def _inherited_mcp_names(config):
     return tuple(sorted(names)), tuple(sorted(enabled))
 
 
-def _launch(executable, actor, public, audit, *, disabled_mcp_names=()):
+def _launch(executable, actor, public, audit, effort, *, disabled_mcp_names=()):
     argv = [str(executable), "app-server", "--stdio", "--strict-config"]
-    for key, value in launch_settings(actor, public, audit).items():
+    for key, value in launch_settings(actor, public, audit, effort).items():
         argv += ["-c", key + "=" + _toml(value)]
     # The pinned CLI's dotted override-key parser is not a TOML key parser.
     # Put names inside one TOML inline-table VALUE, with a plain top-level key.
@@ -312,13 +312,14 @@ class PersistentRuntime:
         from AgentPolicies.gpt6_astra.tools.codex_app_server import StdioAppServer
         from AgentPolicies.gpt6_astra.tools.codex_runtime import _environment, _inspect_runtime
         executable, readiness = _inspect_runtime()
+        effort = self.config["reasoning_effort"]
         # Native Codex internals are private temporary state, not report assets.
         (self.actor.parent / "runtime").mkdir(mode=0o700, exist_ok=True)
         # RPC/error diagnostics are not image exports. Default video-only media
         # must not erase them; explicit non-media reduction still uses scratch.
         transport_dir = (self.audit / "transport" if self.recording.retain_unknown_artifacts
                          else self.actor.parent / "runtime" / "transport")
-        self.transport = StdioAppServer(_launch(executable, self.actor, self.public, self.audit),
+        self.transport = StdioAppServer(_launch(executable, self.actor, self.public, self.audit, effort),
             transport_dir, cwd=self.actor, env=_environment())
 
         def read_configuration():
@@ -346,19 +347,19 @@ class PersistentRuntime:
                 "transport_diagnostics": self.transport.diagnostics()}, category="tool_traces")
             isolated_dir = transport_dir.with_name("transport-isolated")
             isolated_dir.mkdir(mode=0o700, exist_ok=False)
-            self.transport = StdioAppServer(_launch(executable, self.actor, self.public, self.audit,
+            self.transport = StdioAppServer(_launch(executable, self.actor, self.public, self.audit, effort,
                 disabled_mcp_names=inherited_names), isolated_dir, cwd=self.actor, env=_environment())
             effective = read_configuration()
             final_names, _ = _inherited_mcp_names(effective)
             if not set(final_names) <= set(inherited_names):
                 raise PolicyError("inherited MCP configuration changed during child isolation")
-        isolation = verify_configuration(effective, self.actor, self.public, self.audit)
+        isolation = verify_configuration(effective, self.actor, self.public, self.audit, effort)
         del effective
         if enabled_names:
             isolation.update(configuration_bootstrap_restarts=1, disabled_inherited_mcp_count=len(inherited_names))
         answer = self.transport.request("thread/start", {
             "cwd": str(self.actor), "model": self.config["model"], "modelProvider": self.config["provider"],
-            "config": {"model_reasoning_effort": self.config["reasoning_effort"]},
+            "config": {"model_reasoning_effort": effort},
             "developerInstructions": self.prompt, "dynamicTools": [self._tool_spec()], "ephemeral": ephemeral,
             "allowProviderModelFallback": False, "approvalPolicy": "never", "permissions": PERMISSIONS,
             "runtimeWorkspaceRoots": [str(self.actor)]}, 30)
@@ -366,7 +367,7 @@ class PersistentRuntime:
         # The exact API shape is verified by the pinned CLI's generated schema.
         active_id = active.get("id") if isinstance(active, dict) else active
         if (answer.get("model") != self.config["model"] or answer.get("modelProvider") != "openai"
-                or answer.get("reasoningEffort") != "xhigh" or active_id != PERMISSIONS
+                or answer.get("reasoningEffort") != effort or active_id != PERMISSIONS
                 or answer.get("approvalPolicy") != "never" or answer.get("cwd") != str(self.actor)):
             raise PolicyError("app-server did not accept the declared Direct identity/permissions")
         self.thread_id = answer["thread"]["id"]
@@ -375,7 +376,7 @@ class PersistentRuntime:
             "reported_model": answer["model"], "reported_effort": answer["reasoningEffort"],
             "permission_profile": active_id, "provider_identity_verified": False,
             "runtime": readiness, "configuration_receipt": isolation,
-            "launch_settings": launch_settings(self.actor, self.public, self.audit)}, category="tool_traces")
+            "launch_settings": launch_settings(self.actor, self.public, self.audit, effort)}, category="tool_traces")
         if not ephemeral:
             self._record("model_io", {"event": "session_instructions", "text": self.prompt,
                                       "tools": [self._tool_spec()]})
@@ -788,8 +789,9 @@ class PersistentRuntime:
                 or type(context.max_steps) is not int or context.max_steps <= 0
                 or type(context.max_policy_calls) is not int or context.max_policy_calls <= 0
                 or (context.replan_interval is not None and (type(context.replan_interval) is not int
-                    or context.replan_interval < self.config["max_chunk_length"]))):
-            errors.append("persistent method requires feedback, positive horizon/call cap and an unshortened method prefix")
+                    or context.replan_interval <= 0))):
+            errors.append("persistent method requires feedback, positive horizon/call cap and, if declared, "
+                          "a positive execution prefix")
         return errors
 
     def _tool_name(self):

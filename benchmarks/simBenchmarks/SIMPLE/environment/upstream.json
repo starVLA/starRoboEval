@@ -2,10 +2,12 @@
   "upstream": "https://github.com/physical-superintelligence-lab/SIMPLE",
   "project": "https://psi-lab.ai/SIMPLE/index.html",
   "revision": "5e3d6f84e85343e34e9bca8d157f0d7813231185",
-  "actual_git_root_required": "/mnt/workspace/users/jinhuiye/SIMPLE-5e3d6f8",
   "native_tree_is_clean": false,
   "existing_native_python_patch_sha256": "9199aab9a19f2449b71404109c7e0b6a52c799fe28cbb7fed60a8900a182979c",
   "native_python_inventory_sha256": "47b331b6b240734520765c8ccf54f2e83e07715dfaed6692fcee3686ed338109",
+  "native_python_relative_inventory_sha256": "fd3f545fe46fab26a218d7ee68d5ccb093f5fe4f425d869ebddbc9a964d46fe4",
+  "native_python_inventory_format": "relative-path-v1",
+  "native_python_inventory_file_count": 596,
   "hssd_scene_config_sha256": "66163d09858e5c402e42eb9399e0add7aa4110ef1c10c402df5d3d03c9dce353",
   "hssd_repair_manifest_sha256": "9e27ce8e52c0db0857af5cb6da4d6d6b66797ba0b2b8fac0b6e004d902e119af",
   "released_task_inventory_sha256": "3b8bb4a7af4b4fecd2410be539bf75152542d38c499e7ad062a265b7d6aae669",
@@ -23,12 +25,9 @@
     "G1WholebodyXMoveBendPickTeleop-v0": "e0467ce60e1b4dddd97e62fc1790cc644e937c469861e3d9acda91f43fdaeaf0",
     "G1WholebodyXMovePickTeleop-v0": "9d00683983dbdc967551bcc792ec32cd25df4b3e705f577458feb5810b1930e3"
   },
-  "python": "/mnt/workspace/users/jinhuiye/SIMPLE-5e3d6f8/.venv/bin/python",
+  "python_relative_default": ".venv/bin/python",
   "versions": {"python": "3.10.21", "isaacsim": "4.5.0.0", "mujoco": "3.3.6", "torch": "2.7.0+cu128", "numpy": "1.26.4"},
-  "eval_metadata_root": "/mnt/workspace/users/jinhuiye/SIMPLE/data/evals/simple-eval",
-  "wbc_reference_root": "/mnt/workspace/users/jinhuiye/starVLA-WBC",
-  "wbc_reference_revision_at_preflight": "b9eab5be0d6f23c118ec24f3466a47619766e9a0",
-  "alignment_reference": "project_readmes/SIMPLE_INPUT_ALIGNMENT_20260907.md",
+  "eval_metadata_layout": "<eval_root>/simple-eval/<task>/dr-level-0/meta/episodes.jsonl",
   "controllers": {
     "AMO": {
       "src/simple/robots/policy/amo_jit.pt": "6d867ed2dd2261d0f02a5e81d2b7f92802be30f3d36570fb7c4b18707649ef3f",

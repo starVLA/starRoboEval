@@ -106,18 +106,27 @@ For the 12 service-bound tasks, native reference horizons are **400, 800, 1,000
 or 1,200 controls**. Native scoring consumes the step's reward/`_success` result without an
 extra scorer query: some predicates, including faucet behavior, are stateful.
 
-The current service has these integration limits:
+By default, `budget_mode="horizon"` uses the selected task's metadata horizon
+for all 12 service bindings. A method chooses its decision frequency and action
+groups in its own driver; this mode does not accept service-side
+`max_policy_calls` or `replan_interval` values. Every public `step` still executes
+one native control. Native success or termination can end before the horizon.
 
-| Selection | Actual control cap | Required configuration |
+| Budget selection | Actual control cap | Configuration |
 | --- | ---: | --- |
-| All 12 tasks, `budget_mode="decisions"` | 1,000 | `max_policy_calls=200`, `replan_interval=5` |
-| The two default-scope tasks, `budget_mode="horizon"` | Task's native reference horizon | The same 200/5 settings are still required |
+| `budget_mode="horizon"` (default) | Task's native reference horizon | No service-side call/prefix limits |
+| `budget_mode="decisions"` | 1,000 | Fixed `max_policy_calls=200`, `replan_interval=5` |
 
-The 1,000-control cap extends 400/800-control tasks and shortens the 1,200-control
-task. It is not interchangeable with each task's native horizon. Call/prefix
-settings are current adapter restrictions, not native SIMPLE requirements on
-agent reasoning. Shorter action groups may execute fewer than five controls;
-actual decisions cannot be derived by dividing controls by five.
+The default contract uses `native-horizon-<N>/v3`. The explicit decisions
+selection retains `decision-200-prefix-5/v2` and defaults its two fixed settings
+when omitted. Its 1,000-control cap extends 400/800-control tasks and shortens the
+1,200-control task; it is not the native-horizon protocol. These track-specific
+settings are not native SIMPLE requirements on reasoning. Actual decisions
+cannot be inferred from controls by dividing by a prefix length.
+
+Here, native reference horizon means the task metadata value, not a universal
+setting shared by every upstream evaluation script. External evaluators may
+select a different execution cap; report that cap separately.
 
 ## Scoring and result statistics
 

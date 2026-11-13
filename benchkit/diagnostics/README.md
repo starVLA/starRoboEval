@@ -12,9 +12,8 @@ move the robot or simulator, so only run it as an explicitly authorized
 diagnostic with valid actions and environment safety checks. It is not a task
 capability score or a named-model baseline.
 
-Shared diagnostics are included in new `harness_source/` snapshots. Old frozen
-campaigns and their recorded source inventories retain their original bytes;
-there is no `AgentPolicies.diagnostics` compatibility shim in the current source.
+Old recorded source inventories remain data with their original bytes; there is
+no `AgentPolicies.diagnostics` compatibility shim in the current source.
 
 `robot_state_hold.py` is an explicit one-control SIM-only sensor/target wiring
 check. The operator must first confirm that the identically named public sensor
@@ -34,9 +33,3 @@ Historical CPU test fixtures for this package are no longer included in the
 active source tree and can be recovered from Git history. The diagnostic tools
 described here remain available; their presence is not evidence of a passed
 native evaluation.
-
-`simpler_mailbox.py` retains the fixed seven-zero-action mailbox-v2 diagnostic
-formerly under SimplerEnv's environment directory. It is an explicitly selected
-historical transport fixture, not a model or a general robot-safe action. It
-requires matching v2 / decision-budget settings; it does not support the current
-v3 mailbox by implication. Do not use it on real hardware or count it as a score.

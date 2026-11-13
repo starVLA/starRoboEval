@@ -17,6 +17,33 @@ from typing import Any, Mapping
 from benchkit.errors import CompatibilityError, ProtocolError
 
 
+def worker_environment(benchmark, artifact_dir: Path, repo: Path,
+    environ: Mapping[str, str] | None = None) -> dict[str, str]:
+    """Build worker settings; toolchain location is an operator input, not a pin."""
+    source = benchmark.simple_root
+    env = dict(os.environ if environ is None else environ)
+    for name in ("CUDA_VISIBLE_DEVICES", "MAX_EPISODE_STEPS", "SUCCESS_CRITERIA"):
+        env.pop(name, None)
+    env.update({
+        "PYTHONPATH": os.pathsep.join(map(str, (repo, source / "src", source / "third_party/curobo/src",
+            source / "third_party", source / "third_party/unitree_sdk2_python"))),
+        "PYTHONNOUSERSITE": "1", "PYTHONDONTWRITEBYTECODE": "1", "PYTHONUNBUFFERED": "1",
+        "PYTHONFAULTHANDLER": "1", "SIMPLE_ISAAC_GPU_ID": str(benchmark.gpu_id),
+        "MUJOCO_GL": "egl", "PYOPENGL_PLATFORM": "egl", "SIMPLE_DISABLE_TUI": "1",
+        "OMNI_KIT_ACCEPT_EULA": "YES", "ACCEPT_EULA": "Y",
+        "SIMPLE_ISAAC_CPU_THREADS": "8", "OMP_NUM_THREADS": "2", "MKL_NUM_THREADS": "2",
+        "GIT_OPTIONAL_LOCKS": "0", "MODIFIED_POLICY_SWITCH_BEHAVIOR": "0",
+        "TORCH_EXTENSIONS_DIR": str(artifact_dir / "cache/torch_extensions"),
+        "XDG_CACHE_HOME": str(artifact_dir / "cache"),
+    })
+    if benchmark.cuda_root is not None:
+        env["CUDA_HOME"] = str(benchmark.cuda_root)
+        for name, suffix in (("CPATH", "include"), ("LD_LIBRARY_PATH", "lib")):
+            path = str(benchmark.cuda_root / "targets/x86_64-linux" / suffix)
+            env[name] = os.pathsep.join(filter(None, (path, env.get(name, ""))))
+    return env
+
+
 class NativeWorkerClient:
     def __init__(self, benchmark, episode) -> None:
         self.benchmark, self.episode = benchmark, episode
@@ -54,27 +81,10 @@ class NativeWorkerClient:
         repo = Path(__file__).resolve().parents[4]
         worker = repo / "benchmarks/simBenchmarks/SIMPLE/environment/native_worker.py"
         source = self.benchmark.simple_root
-        python = source / ".venv/bin/python"
+        python = self.benchmark.python_executable
         if not python.is_file() or not worker.is_file():
-            raise CompatibilityError("missing pinned SIMPLE .venv or RSI native worker")
-        env = os.environ.copy()
-        for name in ("CUDA_VISIBLE_DEVICES", "MAX_EPISODE_STEPS", "SUCCESS_CRITERIA"):
-            env.pop(name, None)
-        env.update({
-            "PYTHONPATH": ":".join(map(str, (repo, source / "src", source / "third_party/curobo/src",
-                source / "third_party", source / "third_party/unitree_sdk2_python"))),
-            "PYTHONNOUSERSITE": "1", "PYTHONDONTWRITEBYTECODE": "1", "PYTHONUNBUFFERED": "1",
-            "PYTHONFAULTHANDLER": "1", "SIMPLE_ISAAC_GPU_ID": str(self.benchmark.gpu_id),
-            "MUJOCO_GL": "egl", "PYOPENGL_PLATFORM": "egl", "SIMPLE_DISABLE_TUI": "1",
-            "OMNI_KIT_ACCEPT_EULA": "YES", "ACCEPT_EULA": "Y",
-            "SIMPLE_ISAAC_CPU_THREADS": "8", "OMP_NUM_THREADS": "2", "MKL_NUM_THREADS": "2",
-            "GIT_OPTIONAL_LOCKS": "0", "MODIFIED_POLICY_SWITCH_BEHAVIOR": "0",
-            "CUDA_HOME": "/opt/conda/envs/ai",
-            "CPATH": "/opt/conda/envs/ai/targets/x86_64-linux/include",
-            "LD_LIBRARY_PATH": "/opt/conda/envs/ai/targets/x86_64-linux/lib:" + env.get("LD_LIBRARY_PATH", ""),
-            "TORCH_EXTENSIONS_DIR": str(self.artifact_dir / "cache/torch_extensions"),
-            "XDG_CACHE_HOME": str(self.artifact_dir / "cache"),
-        })
+            raise CompatibilityError("missing configured SIMPLE interpreter or RSI native worker")
+        env = worker_environment(self.benchmark, self.artifact_dir, repo)
         self.log = (self.artifact_dir / "native_worker.log").open("x")
         self.process = subprocess.Popen(
             [str(python), str(worker)], cwd=source, env=env, stdin=subprocess.PIPE,

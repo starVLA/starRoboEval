@@ -133,6 +133,7 @@ class BenchmarkService:
     """
 
     def __init__(self, adapter, *, root: Path, seed: int, limit: int | None = None,
+                 select: tuple[str, ...] | None = None,
                  source: dict | None = None, parameters: dict | None = None,
                  excluded_artifact_directories: tuple[str, ...] = (), capture_source: bool = False,
                  supplemental_sources: tuple[str, ...] = (), retain_frame_images: bool = False):
@@ -140,6 +141,10 @@ class BenchmarkService:
             raise ValueError("retain_frame_images must be a boolean")
         if type(seed) is not int or (limit is not None and (type(limit) is not int or limit <= 0)):
             raise ValueError("seed must be integer; limit must be positive or None")
+        if select is not None and (limit is not None or not isinstance(select, tuple) or not select or
+                                   len(set(select)) != len(select) or
+                                   any(not isinstance(x, str) or not x for x in select)):
+            raise ValueError("select must be a nonempty tuple of unique episode IDs, without limit")
         required_prefix = getattr(adapter, "required_replan_interval", None)
         if required_prefix is not None and (type(required_prefix) is not int or required_prefix <= 0):
             raise ValueError("required_replan_interval must be a positive integer")
@@ -151,7 +156,7 @@ class BenchmarkService:
         self.root.mkdir(parents=True, exist_ok=False)
         if capture_source:
             from benchkit.source_snapshot import capture_harness_source, installed_source_root
-            source = capture_harness_source(self.root, scope="service")
+            source = capture_harness_source(self.root)
             extras = []
             for relative in supplemental_sources:
                 relative = relative_path(relative)
@@ -169,6 +174,17 @@ class BenchmarkService:
                       "limitations": "Deployment file snapshot, not loaded-memory, dependency or asset attestation"}
         self.excluded = tuple(relative_path(p) for p in excluded_artifact_directories)
         self.episodes = list(adapter.episodes(seed, limit))
+        selection = None
+        if select is not None:
+            # Explicit case selection from the complete native schedule. The
+            # schedule size is recorded; a missing ID fails instead of shrinking.
+            inventory = {episode.id: episode for episode in self.episodes}
+            if len(inventory) != len(self.episodes):
+                raise ValueError("duplicate episode IDs")
+            if any(identity not in inventory for identity in select):
+                raise ValueError("selected episode ID is not in the native schedule")
+            selection = {"episode_ids": list(select), "schedule_size": len(self.episodes)}
+            self.episodes = [inventory[identity] for identity in select]
         if not self.episodes or len(self.episodes) > 10000:
             raise ValueError("service schedule needs 1..10000 episodes")
         self.schedule = {episode.id: episode for episode in self.episodes}
@@ -193,6 +209,8 @@ class BenchmarkService:
         })
         if required_prefix is not None:
             self.description["budget"]["required_replan_interval"] = required_prefix
+        if selection is not None:
+            self.description["selection"] = selection
         dumps(self.description)
         atomic_write_json(self.root / "service.json", self.description, overwrite=False)
 
@@ -273,6 +291,8 @@ class BenchmarkService:
             if type(params["sequence"]) is not int or params["sequence"] != record["sequence"]:
                 raise ServiceError("invalid_sequence")
             expected = "opened" if op == "reset" else "running"
+            if record["state"] == "faulted":
+                raise ServiceError(record["error"])  # The original fault, not a call-order error.
             if record["state"] != expected:
                 raise ServiceError("invalid_session_state")
             action = None

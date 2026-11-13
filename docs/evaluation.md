@@ -5,24 +5,19 @@ Installing this package does not install native simulators or grant asset licens
 
 ## Choose a workflow
 
-Central task scheduling is retained. Choose the path that is actually implemented;
-the two execution paths below are **alternatives**, not consecutive setup steps.
+Choose the path that matches your purpose; the rows below are not consecutive
+setup steps.
 
 | Purpose | Entry point | Current boundary |
 | --- | --- | --- |
 | Service-based evaluation | `rsi-bench serve` → your trusted agent driver → result report | Recommended integration path; native runtime stays behind the benchmark server |
-| Central case scheduling | `python -m benchkit.campaigns prepare/run-case/summarize` | Five registered plans; fixed local-adapter execution, not remote service orchestration |
 | Inspect closed results | `benchkit.reports.basic_result`, optional interaction history | Reads records; never runs, retries or changes a task |
 
 The public service path is: select the protocol/schedule and deployment → start
 the service → connect a method → inspect its results. The actor receives only
 declared observations and robot feedback, never the driver's administrative client.
 Shared `benchkit` communication and output tools are not another per-action process.
-
-[Central scheduling](#central-case-scheduling) remains available for its existing
-frozen execution path. It has not yet been integrated with remote server
-`prepare/run-case`. Do not substitute it for a service-based run while claiming
-the same isolation or provenance.
+Central multi-service scheduling is not implemented in this version.
 
 ## Select and launch a service
 
@@ -65,12 +60,8 @@ the operator's server configuration. Use `rsi-bench serve --benchmark robodojo`;
 the delegated benchmark-owned wrapper remains
 `benchmarks.simBenchmarks.RoboDojo.server`, with its adapter in `bench_server/`.
 
-The current campaign CLI has benchmark-specific default cases and selected
-`--task-scope` selections.
-Inspect the benchmark's declared plan module and generated manifest for the exact
-denominator. SimplerEnv, LIBERO, SIMPLE, RoboCasa365 and RoboCasa Tabletop keep the plan at
-`bench_server/protocol/plan.py`; their old `evaluation` packages are removed.
-Native planned repetitions are samples, not retries triggered by failure.
+Inspect the service's declared schedule and the run manifest for the exact
+denominator. Native planned repetitions are samples, not retries triggered by failure.
 
 If development budgets differ from native conditions, label that track explicitly.
 Do not treat different sample distributions or execution budgets as identical conditions.
@@ -90,11 +81,6 @@ credentials, inference settings and voluntary-stop behavior are documented with
 the selected agent, separately from benchmark installation. Select them before
 the attempt. A method's completion claim never substitutes for native success.
 
-For the mailbox profile, the actor receives only its opaque endpoint and permitted protocol context.
-Do not provide campaign directories, native workers, evaluator state or private
-scoring data. Mailbox-only instructions are not a substitute for enforced process
-isolation or a trusted provider-request meter.
-
 Start the server following the selected benchmark's guide, then connect the
 chosen driver using the declared sensors, action space, schedule and budgets.
 Changing the agent method does not change the benchmark interface. Never copy
@@ -105,7 +91,19 @@ without joining the reference factory registry or using Python `Policy`.
 Keep claims, metrics, finalization and credentials on the trusted side; project
 only protocol-allowed inputs to the actor. See [method integration](agent-methods.md).
 The optional `benchkit run --sim-server` command uses the same agent-side runner,
-not a separate benchmark-control implementation.
+not a separate benchmark-control implementation. It takes a registered `--policy`,
+not a model profile; run a model profile such as `gpt6_astra` with its own driver.
+
+For local diagnostics without a benchmark or request:
+
+```sh
+python -B -m benchkit preflight-policy --model-profile gpt6_astra
+```
+
+It runs a profile's declared runtime preflight, checking dependencies and
+credential presence in the same Python environment, and reports a bounded
+status/error code only. It does not validate provider access, model permissions
+or network/native readiness.
 
 The [Bench Server protocol skill](bench-server-protocol/SKILL.md)
 provides development-time integration steps and a copyable single-case driver
@@ -123,12 +121,16 @@ are versioned method/track behavior; consult the
 No path automatically retries a physical action after an uncertain ACK.
 
 The method chooses a chunk and its trusted driver sends each control separately.
-`--replan-interval 5` in a method example is a configured prefix ceiling, not a
-server requirement to execute five controls per decision. A shorter chunk or
+The chunk limit belongs to the method config, not a server requirement to execute
+a fixed number of controls per decision. A shorter chunk or
 native end can execute fewer. Native physics substeps and the total execution
-budget remain benchmark-owned. Existing decision-coupled tracks and any declared
-`required_replan_interval` still require matching configuration; do not silently
-override them when selecting a different method.
+budget remain benchmark-owned. The reference driver stops the remaining chunk
+when the next acknowledged observation changes the public instruction and
+replans from that observation; it never uses private scores for this decision.
+Existing decision-coupled tracks and any older service's declared
+`required_replan_interval` still require matching configuration. Current SIMPLE
+defaults to task-horizon budgeting, and current CALVIN/DOMINO protocols do not
+require prefix one. Do not reinterpret a historical record with these new rules.
 
 Model-call recovery is separate from case scheduling and belongs to the method.
 Record such recovery and available usage without inventing executed controls.
@@ -175,9 +177,9 @@ python -B -m benchkit.reports.interaction_history \
 The destination must be new and outside the source run. Open its `index.html`
 directly in a browser; `history.json` contains the same structured view.
 The exporter performs no model request, simulation or retry and does not edit
-the original record. It checks closed event/result consistency, not full source
+the original record. It checks closed event/result consistency, not source
 integrity or provider identity. It accepts the generic client-run schema, not an
-arbitrary server/campaign parent directory; unsupported or inconsistent records
+arbitrary server parent directory; unsupported or inconsistent records
 fail explicitly. Redacted/incomplete histories may not satisfy its stronger
 event audit; use the basic result view instead. This is not a publication failure.
 
@@ -222,114 +224,14 @@ becoming successful decisions or controls. Request-attempt counts are not proof
 of completed inference. Record audits check consistency, not provider attestation.
 Do not merge different budgets, asset tracks or model identities into one score.
 
-## Central case scheduling
-
-This case-level coordinator is retained, not just a historical reader. It assembles
-benchmark-owned plans, performs declared preflight, claims a case permanently,
-launches its frozen local entrypoint and summarizes status. SimplerEnv, LIBERO,
-SIMPLE, RoboCasa365 and RoboCasa Tabletop currently have registered plans.
-
-The operator supplies the case index and device. There is no automatic resource
-allocator, remote bench-server binding or interrupted-service reconciliation.
-Future extensions must preserve selected conditions, all failed/error attempts
-and no replay after uncertain execution. A fresh directory or run ID does not
-authorize another attempt. Agent methods still own their decision loops.
-
-These commands use internal source freezing and the reference profile registry.
-Neither is a prerequisite for protocol-first participation or basic result
-publication. Do not run the example commands below as additional steps of a
-service-based evaluation.
-
-### Prepare and inspect
-
-From the repository root, the following prepares the SimplerEnv task plan without
-starting an environment or making a model request:
-
-```sh
-python -B -m benchkit.campaigns prepare \
-  --benchmark simpler_env \
-  --model-profile anonymous_code_agent \
-  --prompt-file AgentPolicies/anonymous_code_agent/prompts/control_guidance.txt \
-  --mailbox-root /absolute/stable/policy-endpoints \
-  --output-dir AgentPolicies/anonymous_code_agent/results/simpler_env/raw/my-selected-run/campaign
-```
-
-Replace placeholder paths with writable locations. Use a new output directory.
-The endpoint root must be independent of task, date, seed and model identity.
-Campaign preparation freezes cases, budgets, source inventories, effective prompt
-and future endpoint addresses; it does not prove the native environment is ready.
-
-The current `gpt6_astra` client (`codex-native/v2`) uses the service driver
-`python -m AgentPolicies.gpt6_astra.run`, not this local campaign preparation path.
-`campaigns prepare` rejects that method before creating outputs: the retained
-local path does not satisfy its horizon/feedback contract. Use the
-[current client command](../AgentPolicies/gpt6_astra/README.md#single-task-integration-example)
-and a fresh path under `AgentPolicies/gpt6_astra/results/<benchmark>/` for an
-explicitly selected service run.
-
-Historical direct-profile campaigns retain their captured local implementation,
-method and preflight declaration. Where declared, `run-case` checks the frozen
-model's dependencies and credential presence in the same Python environment
-before the permanent case claim. Failure leaves the case unattempted, with no
-outcome or policy call. This does not validate provider access, model permissions
-or network/native readiness. Do not select the current method to reinterpret or
-restart one of those frozen campaigns.
-
-For local diagnostics without a benchmark or request:
-
-```sh
-python -B -m benchkit preflight-policy --model-profile gpt6_astra
-```
-
-The command reports a bounded status/error code only; it does not make the
-current client compatible with local campaign preparation. The retained campaign
-preflight, where declared by the frozen package, discards child output, times out
-after 60 seconds and rechecks the frozen plan/source before its atomic claim.
-Direct `benchkit run` also checks before constructing the benchmark. Runtime state
-can still change afterward; post-claim errors remain permanent attempts.
-Historical packages without a captured `runtime_preflight` declaration retain
-their original behavior and do not acquire this check retroactively.
-
-Before running, inspect `campaign.json`: selected tasks/states, planned cases,
-seed, action/observation conditions, control prefix, policy-call limits and policy
-parameters. Changing a frozen plan requires a new run identity, not an edit.
-Use the benchmark's separate no-policy diagnostics to verify environment readiness.
-Such diagnostics are not capability attempts.
-
-### Execute an unattempted case
-
-Only after environment readiness and actor setup:
-
-```sh
-python -B -m benchkit.campaigns run-case \
-  --output-dir AgentPolicies/anonymous_code_agent/results/simpler_env/raw/my-selected-run/campaign \
-  --case-index 0 --device-index 0
-```
-
-The command claims that case once and runs its frozen entrypoint. A failure or
-timeout does not authorize another claim. Run additional preselected indices
-explicitly; preparation alone is not coverage. Concurrency must use separate
-case identities, native processes and actor contexts.
-
-The runner may execute several controls from an action chunk before the next
-policy call; the service still returns an observation after each acknowledged
-control. Record policy calls, executed action decisions, controls and native
-physics ticks separately. Ordinary policy stop does not award success; the native
-benchmark remains the scorer.
-
-For retained campaign summaries:
-
-```sh
-python -B -m benchkit.campaigns summarize \
-  --output-dir AgentPolicies/anonymous_code_agent/results/simpler_env/raw/my-selected-run/campaign
-```
-
 ### Internal integrity tools
 
-For internal integrity and maintenance, keep `manifest.json`, lifecycle status, episode results/events, source indices and
-referenced artifacts. Use the generic offline tools under `benchkit/audits/` and
-`benchkit/reports/`; benchmark-specific auditors may require their matching
-source/schema version. A consistency check is not a native replay.
+For internal integrity and maintenance, keep `manifest.json`, lifecycle status,
+episode results/events and referenced artifacts. The manifest records the git
+revision, dirty flag, model profile and effective configuration. Use the generic
+offline tools under `benchkit/audits/` and `benchkit/reports/`; the closed-run
+audit checks record consistency, not source files. A consistency check is not a
+native replay.
 
 ## Storage and portability
 
@@ -342,7 +244,7 @@ installation recovery does not authorize repeating a claimed task.
 
 Maintain reports and indices under the selected model's `results/<benchmark>/`.
 Keep raw runs and media outside Git. Export video directories with task IDs and
-short descriptions, not opaque case numbers alone. Do not rename frozen evidence
+short descriptions, not opaque case numbers alone. Do not rename original evidence
 to improve presentation; use explicit hash-bound indices or copies.
 
 Repository-based editable installation is the documented workflow. When installing

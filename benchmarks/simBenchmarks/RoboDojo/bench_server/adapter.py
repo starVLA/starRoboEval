@@ -289,7 +289,15 @@ class DirectEEFBenchmarkAdapter:
              "native_horizon": self.native_horizon,
              "runtime_manifest_sha256": self.runtime_manifest_sha256,
              "panel": self.panel, "panel_id": self.panel_name,
-             "official_full_protocol": self.panel == "full",
+             # A matching case count does not reproduce the upstream evaluator's
+             # replacement of unstable layouts. Describe selection facts instead
+             # of treating the catalog's panel name as a parity certificate.
+             "case_selection_schema": "robodojo.fixed-layout-selection/v2",
+             "configured_layout_count": len(self.layout_ids),
+             "native_reference_episode_count": self.task_spec["upstream_configured_episodes"],
+             "selection_kind": "fixed_catalog_layouts",
+             "invalid_case_handling": "retain_error_without_replacement",
+             "official_full_protocol": False,
              "robot_feedback_schema": self.robot_feedback,
              "control_alignment": CONTROL_ALIGNMENT,
              "target_quaternion_tolerance": TARGET_QUATERNION_TOLERANCE}) for i in self.layout_ids)

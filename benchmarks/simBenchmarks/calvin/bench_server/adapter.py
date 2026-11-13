@@ -17,7 +17,7 @@ SHAPES = {"rgb_static": (200, 200, 3), "rgb_gripper": (84, 84, 3)}
 SUBTASK_HORIZON = 360
 SEQUENCE_LENGTH = 5
 NATIVE_HORIZON = SUBTASK_HORIZON * SEQUENCE_LENGTH
-PROTOCOL = "calvin-fa03f01/debug-sequence0/rgb-relative7/prefix1/fast-v1"
+PROTOCOL = "calvin-fa03f01/debug-sequence0/rgb-relative7/agent-grouping-v2"
 
 
 def policy_observation(raw: Any, step: int, instruction: str) -> Observation:
@@ -83,7 +83,7 @@ class CalvinEpisode:
             provenance.update({"protocol_version": PROTOCOL, "evaluation_mode": "fast", "track": "debug-sequence0",
                                "native_subtask_horizon": SUBTASK_HORIZON, "native_horizon": NATIVE_HORIZON,
                                "physics_hz": 240, "control_hz": 30, "physics_ticks_per_control": 8,
-                               "interface_required_replan_interval": 1,
+                               "action_grouping": "agent_owned",
                                "policy_memory": "one sequence-level policy; no per-subtask Policy.reset hook; not native model-reset parity",
                                "observation": {"cameras": list(CAMERAS), "shapes": SHAPES,
                                                "image_transform": "none; exact native RGB copies", "state": None},
@@ -185,7 +185,8 @@ class CalvinEpisode:
                     self.subtask_index += 1
                     self.subtask_controls = 0
                     # Native evaluator takes a new private baseline, not a scene
-                    # reset. Prefix=1 guarantees the next action sees new language.
+                    # reset. The ACK exposes only the new public instruction;
+                    # each agent driver owns its reaction and replanning policy.
                     self.start_info = self.native.env.get_info()
                     self._log("subtask_start", index=self.subtask_index,
                               task=self.benchmark.sequence["tasks"][self.subtask_index],
@@ -301,7 +302,6 @@ class CalvinBenchmarkAdapter:
     # Sequence upper bound; the native 360-control per-subtask limit still
     # terminates unsuccessful subtasks earlier.
     environment_step_cap = NATIVE_HORIZON
-    required_replan_interval = 1
 
     def __init__(self, source_root: str, dataset_root: str, track: str = "debug-sequence0",
                  evaluation_mode: str = "fast"):

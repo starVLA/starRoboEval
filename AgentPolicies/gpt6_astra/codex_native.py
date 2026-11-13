@@ -8,58 +8,42 @@ from __future__ import annotations
 from collections import deque
 import hashlib
 import json
-import math
 import os
 import sys
 import uuid
 
 from benchkit.contracts import ActionChunk, PolicyDecision, PolicyDescriptor
+from benchkit.model_profiles import validate_configuration
 from benchkit.validation import validate_action_vector
 from AgentPolicies.gpt6_astra.tools.json_io import _invalid_constant, _strict_object
 from AgentPolicies.gpt6_astra.tools.persistent_runtime import (
     ROOT, TRANSPORT, PersistentRuntime, _bad, _json, _write,
 )
-from AgentPolicies.gpt6_astra.tools.public_observation import image_edge, public_state, public_images
+from AgentPolicies.gpt6_astra.tools.public_observation import public_state, public_images
 from AgentPolicies.gpt6_astra.tools.stagnation_review import RepeatedCommandReview
 
 METHOD = "codex-native/v2"
-METHODS = (METHOD,)
 
 
 class CodexNativePolicy(PersistentRuntime):
     METHOD = METHOD
 
     def __init__(self, *, identity, prompt=None, timeout_s=None, max_chunk_length=None,
-                 min_action_decisions_before_give_up=None, image_max_edge=None, safety_stop=None,
+                 image_max_edge=None, safety_stop=None,
                  allow_task_completion=None, stagnation_review=None, stagnation_window=None):
         payload = (ROOT / "configs/codex_native_config.json").read_bytes()
         self.config = json.loads(payload, object_pairs_hook=_strict_object, parse_constant=_invalid_constant)
-        if (self.config["control_method"] != self.METHOD or self.config["transport"] != TRANSPORT
-                or self.config["model"] != "gpt-6-astra" or self.config["provider"] != "openai"
-                or self.config["reasoning_effort"] != "xhigh" or self.config["ordinary_give_up"] is not False
-                or type(self.config["safety_stop"]) is not bool):
-            raise ValueError("unsupported Codex native preset identity")
-        if (min_action_decisions_before_give_up not in (None, 0)
-                or isinstance(min_action_decisions_before_give_up, bool)):
-            raise ValueError("Codex native disables ordinary give-up; no mandatory persistence floor")
         for key, value in (("timeout_s", timeout_s), ("max_chunk_length", max_chunk_length),
                            ("image_max_edge", image_max_edge), ("safety_stop", safety_stop),
                            ("allow_task_completion", allow_task_completion),
                            ("stagnation_review", stagnation_review), ("stagnation_window", stagnation_window)):
             if value is not None:
                 self.config[key] = value
-        if type(self.config["safety_stop"]) is not bool:
-            raise ValueError("Codex native safety_stop must be a boolean")
-        if type(self.config["allow_task_completion"]) is not bool:
-            raise ValueError("Codex native allow_task_completion must be a boolean")
-        # Validate the opt-in advisory before any actor/runtime starts.
-        RepeatedCommandReview(self.config["stagnation_review"], self.config["stagnation_window"])
-        if (type(self.config["timeout_s"]) not in (int, float)
-                or not math.isfinite(self.config["timeout_s"]) or not 0 < self.config["timeout_s"] <= 900):
-            raise ValueError("Codex native timeout must be finite and in (0,900]")
-        if type(self.config["max_chunk_length"]) is not int or not 1 <= self.config["max_chunk_length"] <= 32:
-            raise ValueError("Codex native chunks must contain 1..32 controls")
-        image_edge(self.config["image_max_edge"])
+        # The policy's own schema is the single source of identity and ranges,
+        # checked before any actor/runtime starts.
+        schema = json.loads((ROOT / "configs/configuration.schema.json").read_bytes(),
+                            object_pairs_hook=_strict_object, parse_constant=_invalid_constant)
+        validate_configuration("gpt6_astra", self.config, schema)
         self._prompt_base = ((ROOT / "configs/codex_native_prompt.txt").read_text()
                              if prompt is None else prompt)
         if not isinstance(self._prompt_base, str) or not self._prompt_base.strip() or len(self._prompt_base) > 32000:
@@ -91,7 +75,7 @@ class CodexNativePolicy(PersistentRuntime):
             'allow_task_completion=false: task_complete is not available in this configuration. '
         )
         safety = (
-            'safety_stop=true: an explained voluntary safety stop is also permitted with '
+            'safety_stop=true: an explained voluntary safety stop is permitted with '
             'actions=[] and stop_reason="safety_stop". '
             if self.config["safety_stop"] else
             'safety_stop=false: the safety_stop reason is disabled. '
@@ -117,6 +101,12 @@ class CodexNativePolicy(PersistentRuntime):
                     ('An explained safety_stop with actions=[] is also permitted. ' if self.config["safety_stop"] else ''))
         return ("Submit direct native action vectors or an explained safety stop. "
                 if self.config["safety_stop"] else "Submit direct native action vectors; voluntary stops are disabled. ")
+
+    def _chunk_limit(self):
+        # A driver/service execution prefix narrows what one episode may offer.
+        prefix = self.context.replan_interval if self.context is not None else None
+        ceiling = self.config["max_chunk_length"]
+        return ceiling if prefix is None else min(ceiling, prefix)
 
     def _clear_native(self):
         self.initial_robot_state = None
@@ -171,7 +161,7 @@ class CodexNativePolicy(PersistentRuntime):
                 "properties": {
                     "request_id": {"type": "string", "minLength": 1, "maxLength": 64},
                     "actions": {"type": "array", "minItems": 0 if stop_reasons else 1,
-                                "maxItems": self.config["max_chunk_length"], "items": vector},
+                                "maxItems": self._chunk_limit(), "items": vector},
                     "reason": {"type": "string", "minLength": 1, "maxLength": 1024},
                     "stop_reason": {"type": ["string", "null"] if stop_reasons else "null",
                                     "enum": [None, *stop_reasons]},
@@ -191,11 +181,11 @@ class CodexNativePolicy(PersistentRuntime):
         if not isinstance(reason, str) or not reason.strip() or len(reason) > 1024:
             _bad("invalid_length", "note")
         actions = arguments["actions"]
-        if type(actions) is not list or len(actions) > self.config["max_chunk_length"]:
+        if type(actions) is not list or len(actions) > self._chunk_limit():
             _bad("invalid_length", "action")
         stop = arguments["stop_reason"]
         if stop not in (None, *self._stop_reasons()) or (stop is None) != bool(actions):
-            _bad("invalid_stop", "safety_stop")
+            _bad("invalid_stop", "stop_reason")
         if any(type(action) is not list for action in actions):
             _bad("invalid_type", "action")
         vectors = [validate_action_vector(self.context.action_spec, action) for action in actions]
@@ -251,7 +241,7 @@ class CodexNativePolicy(PersistentRuntime):
             "step_id": self.controls, "remaining_controls": self.control_limit - self.controls,
             "executed_decisions": self.decisions, "action_submissions": self.issued,
             "max_action_submissions": self.context.max_policy_calls,
-            "max_chunk_length": self.config["max_chunk_length"], "previous_execution": self.feedback,
+            "max_chunk_length": self._chunk_limit(), "previous_execution": self.feedback,
             "recent_executions": list(self.execution_memory),
             "feedback_projection": self.config["feedback_projection"],
             "raw_control_feedback_forwarded": False, "workspace_context": self.workspace,
@@ -274,12 +264,15 @@ class CodexNativePolicy(PersistentRuntime):
             self._clear_native()
 
 
-def create_policy(*, config, identity, control_method=None, **parameters):
+def create_policy(*, config, identity, **parameters):
     """Create the single active method; retired identities are never aliases."""
-    if (control_method or config.get("control_method")) != METHOD:
+    if config.get("control_method") != METHOD:
         raise ValueError("unknown or retired model control method")
+    if "stagnation_window" in parameters:
+        # Choosing a review window turns the review on.
+        if parameters.setdefault("stagnation_review", True) is not True:
+            raise ValueError("stagnation_window conflicts with a disabled stagnation_review")
     for key in ("timeout_s", "max_chunk_length", "image_max_edge", "safety_stop",
-                "min_action_decisions_before_give_up", "allow_task_completion",
-                "stagnation_review", "stagnation_window"):
+                "allow_task_completion", "stagnation_review", "stagnation_window"):
         parameters.setdefault(key, config[key])
     return CodexNativePolicy(identity=identity, **parameters)

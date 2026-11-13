@@ -86,7 +86,7 @@ class RuntimeCheckablePolicy(Policy, Protocol):
     No model request, task context, simulator, action generation or usage event
     is allowed. Check local dependencies/credential presence only; release any
     temporary clients. Success returns None; failures use PolicyPreflightError.
-    A profile opts in through its captured runtime_preflight declaration.
+    A profile opts in through its declared runtime_preflight setting.
     """
 
     def preflight_runtime(self) -> None: ...

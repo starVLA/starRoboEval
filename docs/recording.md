@@ -44,6 +44,8 @@ retains the server identity, session, relative media paths and integrity metadat
 in its artifact receipt; a reference is not a downloaded or independently
 verified local copy. Keep the server result directory on durable storage. Reports
 and exports must not assume a video exists in `client/.../sim_server_files/`.
+`benchkit.reports.export_videos` copies local videos and otherwise lists these
+server references with `video_status: retained_on_server`.
 
 Native adapters may need PNG files during execution. They remain available until
 native finalization and close. The shared service then drops eligible temporary
@@ -64,7 +66,7 @@ If local image copies are also wanted, use client `--record-images
 copy; it does not remove the server original. Model-side public-image history is
 also optional to retain; live images remain available to the actor regardless.
 
-These defaults apply to newly launched sources. Frozen runs, existing server
+These defaults apply to newly launched sources. Historical runs, existing server
 inventories and historical media are not rewritten or cleaned retroactively.
 Older servers may still retain their frames; a new client's media references
 do not silently change an older server's retention policy.
@@ -141,5 +143,6 @@ For sufficiently complete event records, the separate
 `python -m benchkit.reports.interaction_history` exporter provides a trajectory
 timeline. It currently does not merge `agent_interactions.jsonl` or copy media.
 Redacted/missing events may not satisfy its stronger audit: the basic result
-remains usable. Existing RoboDojo full-evidence publication and hash/source
+remains usable. The panel publication (`benchkit.reports.publication`) checks
+videos against the paired server record and needs no client copy. Hash/source
 audits retain their narrower requirements; they are not global publication gates.

@@ -30,12 +30,14 @@ class ReachEpisode:
         self.target = 0.0
         self.done = False
         self._reward = 0.0
+        self._step = 0
 
     def reset(self) -> Observation:
         randomizer = random.Random(self.spec.seed)
         self.target = randomizer.uniform(-0.8, 0.8)
         self.position = -0.8 if self.target >= 0 else 0.8
         self.done = False
+        self._step = 0
         return self._observation(0)
 
     def _observation(self, step: int) -> Observation:
@@ -50,11 +52,12 @@ class ReachEpisode:
         if self.done:
             raise RuntimeError("cannot step a completed episode")
         self.position = action[0]
+        self._step += 1
         distance = abs(self.target - self.position)
         self.done = distance <= 0.05
         self._reward = max(0.0, 1.0 - distance)
         return Transition(
-            observation=self._observation(1),
+            observation=self._observation(self._step),
             reward=self._reward,
             terminated=self.done,
             info={"distance": distance},

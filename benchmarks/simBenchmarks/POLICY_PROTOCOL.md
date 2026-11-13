@@ -106,8 +106,8 @@ A stop response only ends policy execution. It never awards success; the native
 benchmark scorer remains authoritative.
 
 Persistence and voluntary give-up preferences also belong to the policy. A
-model may opt into a declared minimum-action-decision rule through its strategy
-configuration; another model is not required to adopt it. The neutral
+model may declare them in its own strategy configuration; another model is not
+required to adopt them. The neutral
 optional agent-side runner records actual executed decisions/control steps and enforces
 public resource limits, but does not select a model's persistence preference.
 No persistence setting overrides native termination, hard limits or safety.
@@ -125,14 +125,14 @@ budget across otherwise different methods. Distinguish:
 - action chunk length and executed replan prefix;
 - timeout, retry, and invalid-response handling.
 
-Legacy one-attempt campaigns do not retry infrastructure or policy errors.
+One-attempt runs do not retry infrastructure or policy errors.
 The explicit `invalid_action_handling=feedback` extension instead rejects a
 confirmed invalid action without executing it, then returns a bounded public
 issue at the next normal, counted `Policy.act` call. No new sensor capture,
 hidden inference, internal retry, replacement control or reset occurs. Every
 call retains usage and consumes the declared finite call budget. A previously
 ACKed valid prefix remains executed. Native/transport uncertainty and forbidden
-tools remain terminal, not recoverable input errors. Old frozen attempts keep
+tools remain terminal, not recoverable input errors. Old attempts keep
 their original outcome and handling. See the [service extension](SERVER_PROTOCOL.md#pre-execution-action-rejection-extension).
 
 Task, layout/initial-state and seed selection belong to the benchmark's sample

@@ -68,6 +68,14 @@ arbitrary layout subsets. The launch seed is fixed at 20260907; native startup
 and evaluation use seed 0. Stored layout IDs, not changes to these fixed seeds,
 select the reset data.
 
+Case metadata describes the configured layout count, native reference episode
+count, fixed-catalog selection and retention of invalid cases without
+replacement under `robodojo.fixed-layout-selection/v2`. The actual selected
+denominator is the returned schedule length, not the configured panel size.
+`official_full_protocol` is false for both selections: matching 50 cases does
+not reproduce the upstream evaluator's sampling and replacement behavior.
+This metadata does not change the robot interface or native scoring.
+
 The machine-readable definition is [bench_server/protocol/task_catalog.json](bench_server/protocol/task_catalog.json),
 validated by [bench_server/protocol/task_catalog.py](bench_server/protocol/task_catalog.py). It is benchmark
 protocol data, including the binding to the pinned layout inventory. It contains

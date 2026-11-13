@@ -1,0 +1,10 @@
+{
+  "dataset_path": "/absolute/R2R_VLNCE_v1-3_preprocessed/val_unseen/val_unseen.json.gz",
+  "gt_path": "/absolute/R2R_VLNCE_v1-3_preprocessed/val_unseen/val_unseen_gt.json.gz",
+  "scenes_dir": "/absolute/scene_data",
+  "episode_ids": ["1"],
+  "split": "val_unseen",
+  "python_executable": "/absolute/habitat033/bin/python",
+  "gpu_id": 0,
+  "worker_timeout": 120
+}

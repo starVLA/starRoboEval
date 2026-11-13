@@ -20,7 +20,7 @@
 <rect x="730" y="190" width="1020" height="112" rx="16" fill="#edf4ff" stroke="#9bbce2"/>
 <text x="755" y="228" class="h">统一启动入口 · 选择后委托</text>
 <text x="755" y="266" class="m">rsi-bench serve --benchmark &lt;id&gt; ...</text>
-<text x="1270" y="231" class="s">13 个开发态服务路由</text>
+<text x="1270" y="231" class="s">14 个开发态服务路由</text>
 <text x="1270" y="268" class="s">不代表环境已安装或原生完整验收</text>
 <path class="w" d="M970 302V340"/>
 

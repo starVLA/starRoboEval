@@ -45,8 +45,7 @@ gpt6-astra-codex = ["numpy", "Pillow"]
 where = ["."]
 include = [
     "benchkit", "benchkit.*",
-    "AgentPolicies", "AgentPolicies.anonymous_code_agent", "AgentPolicies.gpt6_astra", "AgentPolicies.opus",
-    "AgentPolicies.anonymous_code_agent.tools",
+    "AgentPolicies", "AgentPolicies.gpt6_astra",
     "AgentPolicies.gpt6_astra.tools",
     "benchmarks", "benchmarks.simBenchmarks",
     "benchmarks.simBenchmarks.SimplerEnv", "benchmarks.simBenchmarks.SimplerEnv.environment",
@@ -73,6 +72,8 @@ include = [
     "benchmarks.simBenchmarks.Robotwin.bench_server",
     "benchmarks.simBenchmarks.VLA-Arena.bench_server", "benchmarks.simBenchmarks.VLA-Arena.bench_server.protocol",
     "benchmarks.simBenchmarks.calvin.bench_server", "benchmarks.simBenchmarks.calvin.bench_server.protocol",
+    "benchmarks.simBenchmarks.VLN-CE", "benchmarks.simBenchmarks.VLN-CE.bench_server",
+    "benchmarks.simBenchmarks.VLN-CE.environment",
 ]
 exclude = [
     "*.checks", "*.checks.*", "benchkit.artifact_checks",
@@ -103,9 +104,7 @@ exclude = [
 "benchmarks.simBenchmarks.Robotwin.environment" = ["native_snapshot.json", "runtime_snapshot.json", "oidn_2_3_3_snapshot.json"]
 "benchmarks.simBenchmarks.calvin.bench_server.protocol" = ["frozen_sequence.json", "eval_sequences.json"]
 "benchmarks.simBenchmarks.calvin.environment" = ["runtime_snapshot.json", "requirements-rgb-setup.txt"]
-"AgentPolicies.anonymous_code_agent" = ["profile.json", "config.json", "dependencies.json", "prompt.txt", "prompts/*.txt"]
 "AgentPolicies.gpt6_astra" = ["configs/*.json", "configs/*.txt"]
-"AgentPolicies.opus" = ["profile.json", "config.json", "dependencies.json", "prompt.txt"]
 
 [tool.ruff]
 line-length = 121

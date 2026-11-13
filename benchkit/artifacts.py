@@ -58,7 +58,7 @@ def append_jsonl(path: Path, payload: Mapping[str, JsonValue]) -> None:
 
 def _git_diff_digest(repository: Path, scope: str, *, max_bytes: int = 32 * 1024 * 1024,
                      timeout_s: float = 15.0) -> dict[str, JsonValue]:
-    """Hash a bounded package-scoped diff stream without retaining patch text."""
+    """Hash a bounded scoped diff stream without retaining patch text."""
     command = ["git", "-C", str(repository), "diff", "--no-ext-diff", "--no-textconv",
                "HEAD", "--binary", "--", scope]
     digest = hashlib.sha256()
@@ -72,13 +72,13 @@ def _git_diff_digest(repository: Path, scope: str, *, max_bytes: int = 32 * 1024
                 while True:
                     remaining = deadline - time.monotonic()
                     if remaining <= 0 or not selector.select(remaining):
-                        raise TimeoutError("evaluation package Git diff exceeded its time limit")
+                        raise TimeoutError("Git diff exceeded its time limit")
                     chunk = os.read(process.stdout.fileno(), 65536)
                     if not chunk:
                         break
                     byte_count += len(chunk)
                     if byte_count > max_bytes:
-                        raise ValueError("evaluation package Git diff exceeded its byte limit")
+                        raise ValueError("Git diff exceeded its byte limit")
                     digest.update(chunk)
             return_code = process.wait(timeout=max(0.001, deadline - time.monotonic()))
             if return_code:
@@ -92,12 +92,11 @@ def _git_diff_digest(repository: Path, scope: str, *, max_bytes: int = 32 * 1024
             "format": "git diff --no-ext-diff --no-textconv HEAD --binary -- <scope>"}
 
 
-def git_provenance(repository: Path | None, *, evaluation_root: Path | None = None) -> dict[str, JsonValue]:
-    """Collect a revision and dirty flag without mutating Git state."""
-    evaluation_root = Path(evaluation_root) if evaluation_root is not None else Path(__file__).parent
-    location = Path(repository) if repository is not None else evaluation_root
+def git_provenance(repository: Path | None) -> dict[str, JsonValue]:
+    """Collect a revision, dirty flag and whole-checkout diff digest without mutating Git state."""
+    location = Path(repository) if repository is not None else Path(__file__).parent
     unavailable: dict[str, JsonValue] = {
-        "status": "unavailable", "scope": "installed harness package",
+        "status": "unavailable", "scope": ".",
         "sha256": None, "includes_untracked_files": False,
     }
     try:
@@ -126,20 +125,16 @@ def git_provenance(repository: Path | None, *, evaluation_root: Path | None = No
         )
     except (OSError, subprocess.SubprocessError):
         return {"revision": None, "dirty": None,
-                "evaluation_package_diff": {**unavailable, "reason": "git_checkout_unavailable"}}
+                "diff": {**unavailable, "reason": "git_checkout_unavailable"}}
+    # Tracked changes anywhere in the checkout: harness, drivers, policies and prompts.
     try:
-        scope = evaluation_root.resolve().relative_to(root).as_posix()
-    except ValueError:
-        scoped_diff = {**unavailable, "reason": "installed_package_outside_requested_repository"}
-    else:
-        try:
-            scoped_diff = _git_diff_digest(root, scope)
-        except (OSError, subprocess.SubprocessError, TimeoutError, ValueError) as exc:
-            scoped_diff = {**unavailable, "scope": scope, "reason": type(exc).__name__}
-    return {"revision": revision, "dirty": dirty, "evaluation_package_diff": scoped_diff}
+        diff = _git_diff_digest(root, ".")
+    except (OSError, subprocess.SubprocessError, TimeoutError, ValueError) as exc:
+        diff = {**unavailable, "reason": type(exc).__name__}
+    return {"revision": revision, "dirty": dirty, "diff": diff}
 
 
-def runtime_provenance(repository: Path | None = None, *, evaluation_root: Path | None = None) -> dict[str, JsonValue]:
+def runtime_provenance(repository: Path | None = None) -> dict[str, JsonValue]:
     """Collect the minimum environment identity needed to interpret a run."""
     return ensure_jsonable(
         {
@@ -147,6 +142,6 @@ def runtime_provenance(repository: Path | None = None, *, evaluation_root: Path 
             "platform": platform.platform(),
             "python": sys.version.split()[0],
             "executable": sys.executable,
-            "git": git_provenance(repository, evaluation_root=evaluation_root),
+            "git": git_provenance(repository),
         }
     )

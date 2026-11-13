@@ -176,8 +176,7 @@ and [apple VA](https://github.com/allenai/SimplerEnv/blob/c701ea271b16b80616d6fe
 [bench_server/protocol/task_catalog.json](task_catalog.json) is an ordered JSON
 array with `id`, `family`, `robot`, and `native_horizon` fields. It contains the
 15 marked aliases. A service selects one alias and an episode count; episode
-index `i` uses reset seed `seed + i`. The separate campaign plan selects one
-seeded episode for each canonical task. Neither automatically enumerates the
+index `i` uses reset seed `seed + i`. It does not automatically enumerate the
 960-episode VM or 1,992-episode Google VA matrix. State the chosen tasks, seeds,
 number of attempts and reference-condition coverage separately. A layout ID,
 an appearance variant and a reset seed are not interchangeable sample labels.

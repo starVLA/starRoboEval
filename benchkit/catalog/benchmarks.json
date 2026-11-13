@@ -8,7 +8,8 @@
       "protocol": "benchmarks/simBenchmarks/Behavior/EVALUATION_PROTOCOL.md",
       "migration_status": "development_adapter",
       "priority": "planned",
-      "tags": ["long-horizon", "household", "mobile-manipulation"]
+      "tags": ["long-horizon", "household", "mobile-manipulation"],
+      "step_success_field": null
     },
     {
       "id": "domino",
@@ -17,7 +18,8 @@
       "protocol": "benchmarks/simBenchmarks/DOMINO/EVALUATION_PROTOCOL.md",
       "migration_status": "development_adapter",
       "priority": "planned",
-      "tags": ["dynamic", "manipulation"]
+      "tags": ["dynamic", "manipulation"],
+      "step_success_field": "native_success"
     },
     {
       "id": "libero",
@@ -26,7 +28,8 @@
       "protocol": "benchmarks/simBenchmarks/LIBERO/EVALUATION_PROTOCOL.md",
       "migration_status": "development_adapter",
       "priority": "mvp",
-      "tags": ["manipulation", "long-horizon", "mujoco"]
+      "tags": ["manipulation", "long-horizon", "mujoco"],
+      "step_success_field": "native_success"
     },
     {
       "id": "libero_plus",
@@ -35,7 +38,8 @@
       "protocol": "benchmarks/simBenchmarks/LIBERO-plus/EVALUATION_PROTOCOL.md",
       "migration_status": "development_adapter",
       "priority": "planned",
-      "tags": ["manipulation", "generalization", "mujoco"]
+      "tags": ["manipulation", "generalization", "mujoco"],
+      "step_success_field": "native_success"
     },
     {
       "id": "metaworld",
@@ -44,7 +48,8 @@
       "protocol": "benchmarks/simBenchmarks/MetaWorld/EVALUATION_PROTOCOL.md",
       "migration_status": "development_adapter",
       "priority": "planned",
-      "tags": ["manipulation", "multi-task", "mujoco"]
+      "tags": ["manipulation", "multi-task", "mujoco"],
+      "step_success_field": "native_success"
     },
     {
       "id": "robodojo",
@@ -53,16 +58,18 @@
       "protocol": "benchmarks/simBenchmarks/RoboDojo/EVALUATION_PROTOCOL.md",
       "migration_status": "development_adapter",
       "priority": "planned",
-      "tags": ["bimanual", "manipulation", "isaac-sim"]
+      "tags": ["bimanual", "manipulation", "isaac-sim"],
+      "step_success_field": "native_success"
     },
     {
-      "id": "robocasa_365",
+      "id": "robocasa365",
       "display_name": "RoboCasa365",
       "directory": "benchmarks/simBenchmarks/Robocasa_365",
       "protocol": "benchmarks/simBenchmarks/Robocasa_365/EVALUATION_PROTOCOL.md",
       "migration_status": "development_adapter",
       "priority": "planned",
-      "tags": ["kitchen", "mobile-manipulation", "mujoco"]
+      "tags": ["kitchen", "mobile-manipulation", "mujoco"],
+      "step_success_field": "native_success"
     },
     {
       "id": "robocasa_tabletop",
@@ -71,7 +78,8 @@
       "protocol": "benchmarks/simBenchmarks/Robocasa_tabletop/EVALUATION_PROTOCOL.md",
       "migration_status": "development_adapter",
       "priority": "planned",
-      "tags": ["tabletop", "manipulation", "mujoco"]
+      "tags": ["tabletop", "manipulation", "mujoco"],
+      "step_success_field": "native_success"
     },
     {
       "id": "robotwin",
@@ -80,7 +88,8 @@
       "protocol": "benchmarks/simBenchmarks/Robotwin/EVALUATION_PROTOCOL.md",
       "migration_status": "development_adapter",
       "priority": "planned",
-      "tags": ["bimanual", "manipulation"]
+      "tags": ["bimanual", "manipulation"],
+      "step_success_field": "native_success"
     },
     {
       "id": "simple_humanoid",
@@ -89,7 +98,8 @@
       "protocol": "benchmarks/simBenchmarks/SIMPLE/EVALUATION_PROTOCOL.md",
       "migration_status": "development_adapter",
       "priority": "pilot",
-      "tags": ["humanoid", "whole-body", "isaac-sim", "mujoco"]
+      "tags": ["humanoid", "whole-body", "isaac-sim", "mujoco"],
+      "step_success_field": "native_success"
     },
     {
       "id": "simpler_env",
@@ -98,7 +108,8 @@
       "protocol": "benchmarks/simBenchmarks/SimplerEnv/EVALUATION_PROTOCOL.md",
       "migration_status": "development_adapter",
       "priority": "mvp",
-      "tags": ["real-to-sim", "manipulation", "maniskill"]
+      "tags": ["real-to-sim", "manipulation", "maniskill"],
+      "step_success_field": "success"
     },
     {
       "id": "vla_arena",
@@ -107,16 +118,18 @@
       "protocol": "benchmarks/simBenchmarks/VLA-Arena/EVALUATION_PROTOCOL.md",
       "migration_status": "development_adapter",
       "priority": "planned",
-      "tags": ["safety", "generalization", "manipulation"]
+      "tags": ["safety", "generalization", "manipulation"],
+      "step_success_field": "native_success"
     },
     {
       "id": "vln_ce",
       "display_name": "VLN-CE",
       "directory": "benchmarks/simBenchmarks/VLN-CE",
       "protocol": "benchmarks/simBenchmarks/VLN-CE/EVALUATION_PROTOCOL.md",
-      "migration_status": "protocol_draft",
-      "priority": "deferred_licensed_assets",
-      "tags": ["navigation", "habitat", "long-horizon"]
+      "migration_status": "development_adapter",
+      "priority": "planned",
+      "tags": ["navigation", "habitat", "long-horizon"],
+      "step_success_field": "success"
     },
     {
       "id": "calvin",
@@ -125,7 +138,8 @@
       "protocol": "benchmarks/simBenchmarks/calvin/EVALUATION_PROTOCOL.md",
       "migration_status": "development_adapter",
       "priority": "planned",
-      "tags": ["manipulation", "language", "long-horizon"]
+      "tags": ["manipulation", "language", "long-horizon"],
+      "step_success_field": null
     }
   ]
 }

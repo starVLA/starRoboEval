@@ -47,26 +47,19 @@ def build_parser() -> argparse.ArgumentParser:
 
     run_parser = subparsers.add_parser("run", help="run one benchmark-policy evaluation cell")
     run_parser.add_argument("--benchmark", required=True)
-    policy_selection = run_parser.add_mutually_exclusive_group(required=True)
-    policy_selection.add_argument("--policy")
-    policy_selection.add_argument("--model-profile", help="select a frozen model-folder policy profile")
+    run_parser.add_argument("--policy", required=True)
     run_parser.add_argument("--benchmark-args", type=_json_object, default={})
     run_parser.add_argument("--sim-server", help="evaluator-only http://127.0.0.1:port SIM endpoint")
     run_parser.add_argument("--sim-server-token-env", default="RSI_SIM_SERVER_TOKEN")
     run_parser.add_argument("--sim-server-timeout", type=float, default=1200.0)
     run_parser.add_argument("--policy-args", type=_json_object, default={})
-    run_parser.add_argument("--output-dir", type=Path,
-                            help="defaults to the selected model's results/<benchmark>/raw directory")
+    run_parser.add_argument("--output-dir", type=Path, default=Path("results/rsi"))
     run_parser.add_argument("--seed", type=int, default=0)
     run_parser.add_argument("--episodes", type=int)
     run_parser.add_argument("--max-steps", type=int, default=500)
     run_parser.add_argument("--max-policy-calls", type=int)
     run_parser.add_argument("--replan-interval", type=int)
     run_parser.add_argument("--budget-mode", choices=("horizon", "decisions"), default="horizon")
-    run_parser.add_argument(
-        "--policy-min-action-decisions-before-give-up", type=int,
-        help="opt-in persistence preference of the selected policy, not a benchmark budget",
-    )
     run_parser.add_argument("--run-id")
     run_parser.add_argument("--fail-fast", action="store_true")
 
@@ -88,17 +81,8 @@ def _print_catalog(as_json: bool) -> None:
 
 
 def _run(args: argparse.Namespace) -> Path:
-    profile = getattr(args, "model_profile", None)
-    if profile is None and str(getattr(args, "policy", "")).strip().lower() == "mailbox":
-        # Compatibility spelling, not a provenance bypass: the executable
-        # anonymous policy still gets its own exact model-source bundle.
-        profile = "anonymous_code_agent"
-    output_dir = args.output_dir
-    if output_dir is None:
-        output_dir = (_repository_root() / "AgentPolicies" / profile / "results" / args.benchmark / "raw"
-                      if profile else Path("results/rsi"))
     request = RunRequest(
-        output_dir=output_dir,
+        output_dir=args.output_dir,
         seed=args.seed,
         episode_limit=args.episodes,
         max_steps=args.max_steps,
@@ -109,22 +93,7 @@ def _run(args: argparse.Namespace) -> Path:
         repository=_repository_root(),
         budget_mode=args.budget_mode,
     )
-    policy_args = dict(args.policy_args)
-    minimum = getattr(args, "policy_min_action_decisions_before_give_up", None)
-    if minimum is not None:
-        key = "min_action_decisions_before_give_up"
-        if key in policy_args:
-            raise ValueError("policy persistence rule must be set once: use the flag or --policy-args")
-        policy_args[key] = minimum
-    if profile:
-        from benchkit.model_profiles import create_policy as create_profile_policy, load_profile, preflight_profile
-
-        if load_profile(profile).get("runtime_preflight"):
-            policy = preflight_profile(profile, **policy_args)
-        else:
-            policy = create_profile_policy(profile, **policy_args)
-    else:
-        policy = create_policy(args.policy, policy_args)
+    policy = create_policy(args.policy, dict(args.policy_args))
     if getattr(args, "sim_server", None):
         from benchkit.sim_server.client import SimServerBenchmarkAdapter
 

@@ -33,7 +33,7 @@
     $('task-tabs').replaceChildren(...data.tasks.map((item, index) => {
       const button = node('button', 'task-tab'); button.type = 'button'; button.setAttribute('aria-pressed', String(index === taskIndex));
       button.append(node('span', 'task-tab-title', show(item.title || item.task || item.id)));
-      const meta = node('span', 'task-tab-meta'); meta.append(node('strong', '', `Q ${qValue(item)}`), node('span', '', `${count(item.counters?.action_decisions)} 次决策 · ${count(item.counters?.controls)} 控制`));
+      const meta = node('span', 'task-tab-meta'); meta.append(node('strong', '', `分数 ${qValue(item)}`), node('span', '', `${count(item.counters?.action_decisions)} 次决策 · ${count(item.counters?.controls)} 控制`));
       button.append(meta); button.addEventListener('click', () => selectTask(index)); return button;
     }));
   }
@@ -42,7 +42,7 @@
     steps = calls.map(stepFor); searchText = calls.map((call, i) => `${callName(call, i)} ${note(call)}`.toLocaleLowerCase());
     $('note-search').value = ''; filtered = calls.map((_, i) => i);
     renderTabs(); text('task-title', task.title || task.task || task.id); text('task-id', task.task || task.id);
-    $('task-outcome').replaceChildren(badge(statusLabel(task.status)), badge(task.success === true ? '原生成功' : task.success === false ? '未成功' : '成功状态未记录'), badge(`Q ${qValue(task)} · 事后`, true));
+    $('task-outcome').replaceChildren(badge(statusLabel(task.status)), badge(task.success === true ? '原生成功' : task.success === false ? '未成功' : '成功状态未记录'), badge(`分数 ${qValue(task)} · 事后`, true));
     $('decision-slider').max = String(Math.max(0, calls.length - 1)); $('decision-slider').disabled = calls.length === 0;
     renderVideos(); renderCheckpoints(); renderSource(); selectCall(0, true);
   }
@@ -167,9 +167,9 @@
     if (!rows.length) { const row = node('tr'), cell = node('td', '', '未记录状态'); cell.colSpan = 2; row.append(cell); $(target).append(row); }
   }
   function renderSource() {
-    const entries = [['原始 run_id', task.run_id], ['任务 ID', task.task || task.id], ['Benchmark', task.benchmark], ['协议', task.protocol], ['方法', task.method], ['请求 / 声明模型', task.model], ['模型身份依据', '运行记录中的请求或声明；不构成提供方身份认证。'], ['种子', task.seed], ['状态', statusLabel(task.status)], ['策略调用 / 动作决策 / 控制', `${count(task.counters?.policy_calls)} / ${count(task.counters?.action_decisions)} / ${count(task.counters?.controls)}`], ['原生任务进度 Q（事后）', qValue(task)], ['评分来源', task.score?.source], ['输入相机', list(task.contracts?.observation?.cameras).join(' · ')]];
+    const entries = [['原始 run_id', task.run_id], ['任务 ID', task.task || task.id], ['Benchmark', task.benchmark], ['协议', task.protocol], ['方法', task.method], ['方法版本', task.method_version], ['请求 / 声明模型', task.model], ['模型身份依据', '运行记录中的请求或声明；不构成提供方身份认证。'], ['种子', task.seed], ['状态', statusLabel(task.status)], ['策略调用 / 动作决策 / 控制', `${count(task.counters?.policy_calls)} / ${count(task.counters?.action_decisions)} / ${count(task.counters?.controls)}`], [task.score?.label || '原生 benchmark 分数（事后）', task.score?.scale ? `${qValue(task)}（${task.score.scale}）` : qValue(task)], ['评分来源', task.score?.source], ['输入相机', list(task.contracts?.observation?.cameras).join(' · ')]];
     // Show curated public termination labels; unknown codes must remain enum-shaped.
-    const reasons = {success: '原生任务成功', budget_exhausted: '执行预算耗尽', control_budget_exhausted: '控制预算耗尽', max_steps: '步数上限', time_limit: '时间上限', policy_stop: '策略请求停止', error: '异常结束', native_termination: '原生环境终止', 'environment:terminated': '原生环境终止', 'environment:truncated': '原生环境截断', 'runner:policy_call_limit': '策略调用次数上限', 'runner:horizon': '执行控制步数上限', 'runner:control_limit': '执行控制数量上限', 'policy:give_up': '策略主动放弃', 'policy:stop': '策略请求停止', 'policy:safety_stop': '策略请求安全停止'};
+    const reasons = {success: '原生任务成功', budget_exhausted: '执行预算耗尽', control_budget_exhausted: '控制预算耗尽', max_steps: '步数上限', time_limit: '时间上限', policy_stop: '策略请求停止', error: '异常结束', native_termination: '原生环境终止', 'environment:terminated': '原生环境终止', 'environment:truncated': '原生环境截断', 'runner:policy_call_limit': '策略调用次数上限', 'runner:step_limit': '执行控制步数上限', 'policy:give_up': '策略主动放弃', 'policy:stop': '策略请求停止', 'policy:safety_stop': '策略请求安全停止', 'policy:task_complete': '策略声明任务完成'};
     const reason = task.termination_reason;
     const publicCode = typeof reason === 'string' && /^(environment|runner|policy):[a-z][a-z0-9_]{0,79}$/.test(reason);
     entries.push(['终止原因', reasons[reason] ? `${reasons[reason]} · ${reason}` : publicCode ? reason : reason ? '已记录（详见原始评测产物）' : '未记录']);

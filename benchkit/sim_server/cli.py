@@ -5,7 +5,7 @@ import argparse
 from importlib import import_module
 
 
-# These are executable service entrypoints, not the legacy adapter/campaign
+# These are executable service entrypoints, not the in-process adapter
 # registry. Keep task selection, native semantics and launch options in benchmarks.
 SERVICE_MODULES = {
     "behavior": "benchmarks.simBenchmarks.Behavior.server",
@@ -21,8 +21,8 @@ SERVICE_MODULES = {
     "simple_humanoid": "benchmarks.simBenchmarks.SIMPLE.server",
     "simpler_env": "benchmarks.simBenchmarks.SimplerEnv.server",
     "vla_arena": "benchmarks.simBenchmarks.VLA-Arena.server",
+    "vln_ce": "benchmarks.simBenchmarks.VLN-CE.server",
 }
-ALIASES = {"robocasa_365": "robocasa365"}
 
 
 class _SingleBenchmark(argparse.Action):
@@ -43,19 +43,24 @@ def main(argv=None) -> int:
         description="Select a service and pass its launch arguments unchanged.",
         epilog="Use serve --benchmark ID --help for the selected service's launch arguments. "
                "Native environments and assets must be prepared separately.")
-    serve.add_argument("--benchmark", choices=tuple(SERVICE_MODULES) + tuple(ALIASES),
+    serve.add_argument("--benchmark", choices=tuple(SERVICE_MODULES),
                        action=_SingleBenchmark, help="exact service ID (required except for generic help)")
+    commands.add_parser("gateway", add_help=False, allow_abbrev=False,
+                        help="bench host: serve catalog cases as per-case services (see gateway --help)")
+    commands.add_parser("remote-run", add_help=False, allow_abbrev=False,
+                        help="agent host: run catalog cases through a forwarded gateway (see remote-run --help)")
     args, remaining = parser.parse_known_args(argv)
+    if args.command in ("gateway", "remote-run"):
+        module = "gateway" if args.command == "gateway" else "remote_run"
+        return import_module("benchkit.sim_server." + module).main(remaining)
     if args.command == "list":
         if remaining:
             parser.error("unrecognized arguments: " + " ".join(remaining))
         print("Development services; listing does not verify native readiness or full-suite support.")
         print("Documentation paths are repository-relative; installed wheels may omit these documents.")
         for identity, module in SERVICE_MODULES.items():
-            aliases = [alias for alias, target in ALIASES.items() if target == identity]
-            suffix = f" (alias: {', '.join(aliases)})" if aliases else ""
             guide = module.rsplit(".", 1)[0].replace(".", "/") + "/README.md"
-            print(f"{identity}{suffix}\t{guide}")
+            print(f"{identity}\t{guide}")
         return 0
 
     # parse_known_args preserves benchmark-owned arguments. Do not let an
@@ -69,10 +74,9 @@ def main(argv=None) -> int:
             serve.print_help()
             return 0
         serve.error("the following argument is required: --benchmark")
-    identity = ALIASES.get(args.benchmark, args.benchmark)
     # Selected help follows the same path: the existing launcher prints its
     # actual options before token validation, construction or output creation.
-    return import_module(SERVICE_MODULES[identity]).main(remaining)
+    return import_module(SERVICE_MODULES[args.benchmark]).main(remaining)
 
 
 if __name__ == "__main__":

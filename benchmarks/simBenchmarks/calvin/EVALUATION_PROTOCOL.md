@@ -79,6 +79,16 @@ that chooses a smaller external limit must distinguish that stop from a native
 timeout. Partial completion does not make the whole five-subtask sequence a
 success.
 
+The current `agent-grouping-v2` interface imposes no action-prefix length.
+An agent may issue successive controls from one decision. It receives the
+current public instruction after every acknowledged control, including a new
+instruction when a subtask completes. Its driver owns action grouping and when
+to request another decision; the service does not require a model call at that
+boundary. Future instructions and private subtask scores are not actor inputs.
+Controller timing, the 360-control subtask limit, native checks and sequence
+selection are unchanged. Report the returned protocol identity; older records
+retain their captured prefix-one conditions.
+
 ## Scoring and result statistics
 
 The native outputs are:
@@ -100,9 +110,6 @@ Optional interaction and video recording uses the
 - Only the fixed sequence and initial state above are selectable.
 - The runtime uses the official `calvin_debug_dataset` setup configuration and
   omits tactile rendering. Its equivalence to D-validation setup is not established.
-- The service requires observation/decision after every control
-  (`required_replan_interval=1`). This integration restriction is not a native
-  requirement on agent reasoning or action grouping.
 - The seven-input `[-1,1]` bounds are service validation. The native controller
   itself does not clip the first six inputs to that range.
 - Native evaluation invokes a model-state reset per subtask; the current

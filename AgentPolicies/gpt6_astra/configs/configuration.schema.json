@@ -1,7 +1,6 @@
 {
-  "schema_version": "starvla-rsi.configuration-schema/v1",
+  "schema_version": "starvla-rsi.configuration-schema/v2",
   "profile_id": "gpt6_astra",
-  "execution": "direct",
   "runtime_preflight": true,
   "fields": {
     "schema_version": {
@@ -29,8 +28,7 @@
       "const": "openai"
     },
     "reasoning_effort": {
-      "type": "string",
-      "const": "xhigh"
+      "type": "string"
     },
     "history": {
       "type": "string",
@@ -63,15 +61,6 @@
       "type": "integer",
       "minimum": 2,
       "maximum": 32
-    },
-    "policy_stop_rule_version": {
-      "type": "string",
-      "const": "minimum-action-decisions/v2"
-    },
-    "min_action_decisions_before_give_up": {
-      "type": "integer",
-      "minimum": 0,
-      "maximum": 0
     },
     "max_image_pixels": {
       "type": "integer",
@@ -119,12 +108,10 @@
     "prompt",
     "timeout_s",
     "max_chunk_length",
-    "control_method",
     "image_max_edge",
     "safety_stop",
     "stagnation_review",
     "allow_task_completion",
-    "stagnation_window",
-    "min_action_decisions_before_give_up"
+    "stagnation_window"
   ]
 }

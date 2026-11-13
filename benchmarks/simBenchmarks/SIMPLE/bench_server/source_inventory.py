@@ -1,14 +1,9 @@
-"""Service-owned source inputs; independent of legacy campaign selection."""
+"""Service-owned source inputs captured beside the shared service runtime."""
 
-# Legacy campaign snapshots already capture the Python package and catalog.
-# Their supplement must contain only inputs outside that common source bundle.
-CAMPAIGN_SUPPLEMENTAL_FILES = (
+SUPPLEMENTAL_FILES = (
     "benchmarks/simBenchmarks/SIMPLE/environment/native_worker.py",
     "benchmarks/simBenchmarks/SIMPLE/environment/upstream.json",
     "benchmarks/simBenchmarks/SIMPLE/bench_server/protocol/POLICY_GUIDE.md",
-)
-
-SUPPLEMENTAL_FILES = CAMPAIGN_SUPPLEMENTAL_FILES + (
     "benchmarks/simBenchmarks/SIMPLE/__init__.py",
     "benchmarks/simBenchmarks/SIMPLE/server.py",
     "benchmarks/simBenchmarks/SIMPLE/bench_server/__init__.py",

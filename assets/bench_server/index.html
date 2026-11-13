@@ -468,7 +468,7 @@
           <p>AgentPolicies/&lt;agent&gt; → 受信任 driver → 已声明的服务契约 → 选定后端</p>
           <div class="arch-footer">
             <div class="lane public"><b>SIM 后端 · 已有实现</b><br>benchmarks/simBenchmarks/&lt;benchmark&gt;<br>adapter → 原生运行（可选私有 worker）→ 仿真机器人</div>
-            <div class="lane hidden"><b>REAL 后端 · 待接入验证</b><br>benchmarks/realRobots/&lt;robot&gt;<br>硬件 adapter → 安全控制器 / SDK → 真实机器人</div>
+            <div class="lane hidden"><b>REAL 后端 · 待接入验证</b><br>尚未接入<br>硬件 adapter → 安全控制器 / SDK → 真实机器人</div>
           </div>
           <p class="small" style="color:#c9d1e2">当前 SIM 两端复用 benchkit/sim_server 通信库，硬件接入仍需验证。benchkit 保留中央任务组织、记录与报告能力；调度组织案例，不替 agent 做动作决策，也不是每次控制必经的中间进程。</p>
         </div>
@@ -488,7 +488,7 @@
         </div>
         <div class="split" style="margin-top:16px">
           <aside class="callout"><h3>怎么理解“可配置的接口”</h3><p>启动时选择已实现、版本化的能力配置，模型按声明的观测 / 动作规格接入。端口、资产路径等属于部署配置；增加传感器、改变动作语义或控制时序，需要新协议及验证，不能随意加 JSON 字段。这里描述的是设计方向，不是新增了通用配置开关。</p></aside>
-          <aside class="callout warning"><h3>当前实现到哪里了</h3><p>RoboDojo 已通过服务提供 RGB、机器人状态、EEF 动作与 robot-only ACK；它不是纯 RGB 接口。<code>benchmarks/realRobots/</code> 当前保留硬件接入参考，尚无统一可运行的硬件 adapter / server。接口可复用是目标，不是安全认证、迁移成功或分数可比的证据。</p></aside>
+          <aside class="callout warning"><h3>当前实现到哪里了</h3><p>RoboDojo 已通过服务提供 RGB、机器人状态、EEF 动作与 robot-only ACK；它不是纯 RGB 接口。仓库当前没有真机后端。接口可复用是目标，不是安全认证、迁移成功或分数可比的证据。</p></aside>
         </div>
         <p class="small">保留原生 benchmark track，不为“统一”静默删改历史观测或评分。若另建 real-compatible track，应明确标记它与原生条件的差异，并单独报告结果。</p>
       </div>
@@ -526,8 +526,7 @@
           <article class="callout">
             <h3>真实机器人 · 正在拓展</h3>
             <p>围绕声明的观测、动作与反馈契约，持续拓展真实机器人的评测接入，让评测服务从仿真延伸到真实世界。</p>
-            <p>已有硬件接口与部署参考；具体硬件服务仍需实现与验证。</p>
-            <p><a href="../../benchmarks/realRobots/README.md">查看真机接入进展 ↗</a></p>
+            <p>具体硬件服务仍需实现与验证。</p>
           </article>
         </div>
 
@@ -536,7 +535,7 @@ rsi-bench serve --benchmark robodojo --help
 # 源码运行：python -m benchkit.sim_server.cli ...</code></pre>
         <p class="small">13 个仿真 Benchmark 已完成开发态服务集成，各自的任务覆盖与原生验收进度见<a href="../../benchmarks/simBenchmarks/SERVICE_SUPPORT.md">支持矩阵</a>。统一入口委托所选服务启动，任务、观测、动作和预算仍各自定义。</p>
         <p class="small">模型 Actor 与持有服务凭据的 trusted driver 分开；决策循环归 agent，原生接口与评分归服务。统一入口只负责启动选择，不增加中央决策层或长驻调度进程。</p>
-        <p class="small">本版保留 <code>benchkit/campaigns</code> 的固定计划、案例领取、启动与进度汇总；当前覆盖 5 个计划，运行冻结的本地 adapter，尚未整合远程 bench server 调度。不要把这两条运行路径当作同一流程的连续步骤。插件平台、更完整的调度与统一 CLI、跨 benchmark 总榜是后续目标。</p>
+        <p class="small">本版不提供中央案例调度：服务声明 schedule，trusted driver 领取并执行案例，重跑时跳过已有 <code>completion.json</code> 的 case。插件平台、中央调度与统一 CLI、跨 benchmark 总榜是后续目标。</p>
         <div class="architecture" role="img" aria-label="Agent 与所选 benchmark 服务两个控制端；原生环境位于服务边界内">
           <div class="arch-labels">
             <article class="arch-card">
@@ -572,7 +571,7 @@ rsi-bench serve --benchmark robodojo --help
         <div class="ownership" style="margin-top:16px">
           <article class="owner">
             <div class="owner-head"><b>benchmarks/</b></div>
-            <div class="owner-body"><ul><li>simBenchmarks：仿真服务、协议与原生评分</li><li>realRobots：未来硬件接口与安全接入</li><li>各自声明传感器、动作与任务 catalog</li></ul><div class="not">不拥有模型 prompt、策略偏好或模型结果。</div></div>
+            <div class="owner-body"><ul><li>simBenchmarks：仿真服务、协议与原生评分</li><li>各自声明传感器、动作与任务 catalog</li></ul><div class="not">不拥有模型 prompt、策略偏好或模型结果。</div></div>
           </article>
           <article class="owner">
             <div class="owner-head"><b>AgentPolicies/&lt;agent&gt;/</b></div>
@@ -580,7 +579,7 @@ rsi-bench serve --benchmark robodojo --help
           </article>
           <article class="owner">
             <div class="owner-head"><b>benchkit/</b></div>
-            <div class="owner-body"><ul><li>sim_server：选择、通信与会话机制</li><li>campaigns：固定计划与案例调度</li><li>交互记录、计数与结果报告</li><li>内部完整性校验与审计</li></ul><div class="not">不替模型选择动作，不重定义原生成功。</div></div>
+            <div class="owner-body"><ul><li>sim_server：选择、通信与会话机制</li><li>交互记录、计数与结果报告</li><li>闭合记录一致性审计</li></ul><div class="not">不替模型选择动作，不重定义原生成功。</div></div>
           </article>
         </div>
       </div>
@@ -741,13 +740,12 @@ rsi-bench serve --benchmark robodojo \
   --sim-server http://127.0.0.1:8765 \
   --benchmark robodojo \
   --seed 20260907 --episodes 5 \
-  --max-steps 1100 --max-policy-calls 240 \
-  --replan-interval 5 --budget-mode horizon \
+  --max-policy-calls 240 \
   --output-dir AgentPolicies/gpt6_astra/results/robodojo/raw/my-new-run/client \
   --run-id DATE-classify_objects-object-sorting-native-panel5-my-new-run</code></pre>
           </div>
         </div>
-        <p class="small">示例中的 <code>240</code> 次调用预算和 <code>--replan-interval 5</code> 属于这次模型运行配置，不是所有 benchmark 的要求。自选步长、软限位和主动放弃规则归模型侧；服务不额外裁剪或添加原生接口没有的关节限位。硬件自身的安全机制不在此列。</p>
+        <p class="small">示例中的 <code>240</code> 次调用预算属于这次模型运行配置，不是所有 benchmark 的要求；不传 <code>--max-steps</code> 时取服务公布的 horizon。自选步长、软限位和主动放弃规则归模型侧；服务不额外裁剪或添加原生接口没有的关节限位。硬件自身的安全机制不在此列。</p>
         <p class="small">从各自的仓库根目录运行，并为每轮更换 <code>my-new-run</code>。两端可在不同节点；同名相对目录不意味着共享磁盘。server 输出必须位于持久化存储，因为默认视频原件只保存在那里。</p>
         <div class="callout warning" style="margin-top:16px">
           <h3>新目录、完整 schedule、一次尝试</h3>
@@ -780,7 +778,7 @@ rsi-bench serve --benchmark robodojo \
         <p>直接打开生成的 <code>index.html</code>，同时得到 <code>history.json</code>。只读原记录，不启动模型或 SIM，不重跑；目标必须是源 run 以外的新目录。这里的计划 / 未尝试数只覆盖 client manifest 选定的样本，不能据此声称完整 server panel 或原生 suite 分母。</p>
         <div class="split">
           <aside class="callout warning"><h3>保存开关的实际范围</h3><p><code>--recording-mode minimal</code> 关闭可选客户端过程保存，不控制 server 录像。server 的 <code>--retain-frame-images</code> 决定是否额外保留图片；client 的 <code>--copy-server-media</code> 决定是否下载所选媒体。运行中的输入仍完整交给 agent；时间线不复制媒体，没有交互历史时也能发布基础结果。</p></aside>
-          <aside class="callout"><h3>公开复现信息，内部完整性支撑</h3><p>协议、上游 Git revision、环境 / 控制器和资产来源可以作为有用的复现依据，但只能展示已记录且允许公开的字段。源码冻结和内容指纹继续用于内部一致性检查，不要求用户先做完整源码审计才能查看交互。</p></aside>
+          <aside class="callout"><h3>公开复现信息，内部完整性支撑</h3><p>协议、上游 Git revision、环境 / 控制器和资产来源可以作为有用的复现依据，但只能展示已记录且允许公开的字段。每次运行记录 git revision、dirty 标记、模型 profile 与生效配置；闭合记录审计只检查记录一致性，查看交互无需源码审计。</p></aside>
         </div>
         <p class="small">方法身份与配置是声明，结果校验不证明 provider 身份或物理执行。默认记录并不意味着所有 provider 已支持完整会话。参见 <a href="../../docs/recording.md">记录能力与局限</a>；发布前仍需检查方法配置、任务文本与 note 中的敏感内容。</p>
       </div>
@@ -831,9 +829,9 @@ rsi-bench serve --benchmark robodojo \
 ├── reports/interaction_history.py # 交互时间线 HTML / JSON
 ├── reports/basic_result.py   # 不要求交互日志的基础结果
 ├── methods.py + recording.py # 方法声明与可选记录
-├── campaigns/ + catalog/     # 中央案例调度 / benchmark 声明
+├── catalog/                  # benchmark 声明
 ├── diagnostics/              # 非能力评测的基础设施检查
-├── source_snapshot.py        # 内部源码完整性支撑
+├── source_snapshot.py        # 服务端部署源码快照
 ├── artifacts.py              # 记录与产物工具
 └── audits/ + reports/        # 闭合记录审计与报告</div>
         <p class="small"><code>bench_server/protocol/task_catalog.json</code> 是评测协议数据：声明任务、seed、horizon 和 panel。<code>server.example.json</code> 选择部署参数；<code>environment/</code> 管理原生环境及资产。目录迁移保持现有协议身份和历史结果。</p>
@@ -847,7 +845,7 @@ rsi-bench serve --benchmark robodojo \
             <tr><td>同接口的新任务</td><td>benchmark 协议数据 + 原生接入</td><td>例如 RoboDojo 的 <code>bench_server/protocol/task_catalog.json</code>；声明固定 panel、horizon、seed，扩展原生绑定，复用同一个 server。</td></tr>
             <tr><td>新观测或动作语义</td><td>benchmark 新协议版本</td><td>版本化 contract 与对应实现；不能只改 JSON selector。</td></tr>
             <tr><td>新 benchmark</td><td><code>benchmarks/simBenchmarks/&lt;name&gt;</code></td><td>实现自己的 adapter/server/protocol，复用通用 transport。</td></tr>
-            <tr><td>真实机器人后端</td><td><code>benchmarks/realRobots/&lt;robot&gt;</code></td><td>按声明能力实现硬件接口、安全与评分；先验证 mock / replay，再经授权进行真机测试。不能直接复用仿真暂停与复位假设。</td></tr>
+            <tr><td>真实机器人后端</td><td>待定</td><td>按声明能力实现硬件接口、安全与评分；先验证 mock / replay，再经授权进行真机测试。不能直接复用仿真暂停与复位假设。</td></tr>
             <tr><td>新报告或审计</td><td><code>benchkit</code></td><td>只读取闭合记录；不得补动作、重跑或改评分。</td></tr>
           </tbody>
         </table>
@@ -893,7 +891,7 @@ rsi-bench serve --benchmark robodojo \
               <tr><td>RoboDojo</td><td>服务协议 Direct v2；classify_objects 提供 fast 5 / full 50 layouts 的固定计划。</td><td>当前开放物体分类任务；更多 Dojo 任务与参考成绩的对齐仍待拓展。</td></tr>
               <tr><td>SimplerEnv / LIBERO / SIMPLE</td><td>采用统一的服务组织方式，各自保留观测与动作契约。</td><td>分别使用对应机器人的原生控制频率与 horizon；SIMPLE 保留人形控制接口。</td></tr>
               <tr><td>其他已集成仿真服务</td><td>RoboCasa365、RoboCasa Tabletop、MetaWorld、LIBERO-Plus、RoboTwin、DOMINO、BEHAVIOR-1K、VLA-Arena、CALVIN。</td><td>开发态服务已接入，任务支持范围和原生验证进度按 Benchmark 单独记录。</td></tr>
-              <tr><td>VLN-CE / 真实机器人</td><td>VLN-CE 等待已授权的导航资产；真机接入正在拓展，已有硬件接口与部署参考。</td><td>属于后续接入范围；硬件服务仍需实现与验证，未计入已集成的 13 个仿真 Benchmark。</td></tr>
+              <tr><td>VLN-CE / 真实机器人</td><td>VLN-CE 等待已授权的导航资产；真机接入正在拓展。</td><td>属于后续接入范围；硬件服务仍需实现与验证，未计入已集成的 13 个仿真 Benchmark。</td></tr>
             </tbody>
           </table>
         </div>
@@ -1007,7 +1005,6 @@ rsi-bench serve --benchmark robodojo \
           <a class="source-link" href="../../benchmarks/simBenchmarks/RoboDojo/bench_server/protocol/task_catalog.json"><span>bench_server/protocol/task_catalog.json</span><span>评测协议数据</span></a>
           <a class="source-link" href="../../benchmarks/simBenchmarks/RoboDojo/EVALUATION_PROTOCOL.md"><span>EVALUATION_PROTOCOL.md</span><span>评测协议</span></a>
           <a class="source-link" href="../../AgentPolicies/gpt6_astra/README.md"><span>gpt6_astra/README.md</span><span>模型侧控制</span></a>
-          <a class="source-link" href="../../benchmarks/realRobots/README.md"><span>realRobots/README.md</span><span>硬件接入现状与前置条件</span></a>
           <a class="source-link" href="../../docs/architecture.md"><span>docs/architecture.md</span><span>职责与实现边界</span></a>
         </div>
       </div>

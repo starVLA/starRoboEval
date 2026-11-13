@@ -18,7 +18,7 @@ Python Policy／SDK 是可选便利。沿用原生执行预算，推理开销单
 - 固定的机器人运动学、IK 和原生控制器可以执行动作；服务不得根据物体真值选抓点、规划任务或插入另一个策略代替模型。
 - 复用 RoboDojo 的组织方式，不照搬它的 EEF 动作。SIMPLE 是人形机器人；各 benchmark 保留自己的关节、末端、导航或其他原生动作语义。
 
-sim/real 共用的是接口设计原则，不是统一动作维度或现成的硬件后端。需要逐项对齐传感器来源、单位、坐标系、控制周期、观测新鲜度和执行反馈。仿真等待推理时可以暂停推进，真机不能暂停物理世界；硬件看门狗、失联保持、急停、复位授权与评分必须另行实现和验证。当前 [realRobots](../benchmarks/realRobots/README.md) 是接入参考，不是已经验收的统一硬件服务。
+sim/real 共用的是接口设计原则，不是统一动作维度或现成的硬件后端。需要逐项对齐传感器来源、单位、坐标系、控制周期、观测新鲜度和执行反馈。仿真等待推理时可以暂停推进，真机不能暂停物理世界；硬件看门狗、失联保持、急停、复位授权与评分必须另行实现和验证。当前仓库没有真机后端。
 
 ## 2. 按职责放置文件
 
@@ -38,12 +38,12 @@ AgentPolicies/<agent>/             # 模型调用、prompt、记忆、决策循�
 └── results/<benchmark>/           # 该模型的报告与证据索引
 
 benchkit/sim_server/                # 共享传输、会话、序列与 artifact 机制
-benchkit/                           # 公共契约、记录、源码冻结、审计和报告
+benchkit/                           # 公共契约、记录、服务源码快照、审计和报告
 ```
 
 `bench_server/protocol/task_catalog.json` 这类文件是评测协议数据，不是训练数据，也不是资产安装配置。任务不需要各复制一个 server；同一接口的新任务扩展 catalog 和原生绑定即可。并非每个 benchmark 都必须有相同文件名或独立 worker，避免添加空层和兼容转发壳。
 
-模型侧的 trusted driver 持有服务凭据，负责把模型动作提交给服务、保存结果；模型 Actor 只接收公开观测和反馈。`benchkit/sim_server` 是两端复用的通信库，不是第三个决策服务。`benchkit/campaigns` 的中央任务组织能力本版保留，但当前仍执行冻结的本地 adapter，还没有整合远程服务调度。不能再复制一份通信实现到 `benchmarks/simBenchmarks/service/`。
+模型侧的 trusted driver 持有服务凭据，负责把模型动作提交给服务、保存结果；模型 Actor 只接收公开观测和反馈。`benchkit/sim_server` 是两端复用的通信库，不是第三个决策服务。本版没有中央 campaign 调度。不能再复制一份通信实现到 `benchmarks/simBenchmarks/service/`。
 
 当前源码根目录是 `benchmarks/`、`AgentPolicies/`、`benchkit/`，不保留旧入口兼容壳。
 旧部署仍可能看见被 Git 忽略的缓存、视频或历史索引；这不代表旧源码入口仍然有效，
@@ -94,7 +94,7 @@ benchkit/                           # 公共契约、记录、源码冻结、审
 
 根目录 `server.py` 提供 `main(argv=None)` 和惰性的 adapter factory，调用现有的 [shared launcher](../benchkit/sim_server/launch.py)。工厂校验参数白名单，不静默接受拼错的字段。完整命名 panel 使用 `require_complete_schedule=True`，防止 `--episodes` 截断计划。仓库内的协议文件、worker 和版本定义通过源码清单及 `supplemental_sources` 纳入冻结；部署时的原生运行/资产 manifest 另存为评测端私有来源证据。只能排除声明过的运行缓存，不能排除动作、评分或视频证据。
 
-将实际采用的预算公开到 `describe`：`budget_mode`、`environment_step_cap`，以及适用的 `max_policy_calls`、`replan_interval`；协议强制控制前缀时声明 `required_replan_interval`。注明哪些是 benchmark 限定，哪些允许 driver 配置；不能已在内部实施控制上限，对外却只留下未解释的空值。
+将实际采用的预算公开到 `describe`：`budget_mode`、`environment_step_cap`；benchmark 规则限定模型调用次数时公布 `max_policy_calls`。重规划间隔和每次执行几步属于策略，horizon 服务不替策略公布 `replan_interval`（已有 decision-budget 轨道按下文迁移）；只有观测接口确实强制控制前缀时才声明 `required_replan_interval`。注明哪些是 benchmark 限定，哪些允许 driver 配置；不能已在内部实施控制上限，对外却只留下未解释的空值。
 
 ### 动作约束放在哪一端
 
@@ -131,9 +131,9 @@ sequence 和 ACK。原生物理子步、固定插值、终止与总执行预算�
 接入不止新增一个 `server.py`。按本 benchmark 的实际情况核对：
 
 - 在 [统一服务选择器](../benchkit/sim_server/cli.py) 的显式表中登记 canonical ID、module 和仓库文档路径；不把未实现项或硬件占位列为可启动服务。只惰性委托已有 `server.main(argv)`，不能绕过它重新建 factory。
-- 服务通过自身的 `SUPPLEMENTAL_FILES` 声明完整 adapter、协议与 worker 文件；共享服务源码采用 [source snapshot](../benchkit/source_snapshot.py) 的独立 service 范围，不依赖其他 benchmark 或模型文件。若同时支持既有中央 campaign，再更新 [registry](../benchkit/registry.py)、[benchmark plans](../benchkit/campaigns/benchmark_plans.py) 与 evaluation 范围的源码清单；只有服务入口不等于已有 campaign 支持。
+- 服务通过自身的 `SUPPLEMENTAL_FILES` 声明完整 adapter、协议与 worker 文件；共享服务源码采用 [source snapshot](../benchkit/source_snapshot.py) 的独立 service 范围，不依赖其他 benchmark 或模型文件。
 - [pyproject.toml](../pyproject.toml) 纳入所需 Python 包及 JSON 等协议数据；从安装后的包运行，不只在源码目录里碰巧成功。
-- 为本次接入准备可复核的轻量契约验证，覆盖服务约定、公开输入与执行生命周期；按实际运行记录结果。历史统一回归入口和服务约定测试已移出当前源码，可从 Git 历史恢复对应版本。
+- 为本次接入准备可复核的轻量契约验证，覆盖服务约定、公开输入与执行生命周期；按实际运行记录结果。公开最小检查为 `make check` 与 `make smoke`；契约测试是本地工作检查，与生成产物一样不进入公开源码。
 - 更新本 benchmark 的 README、评测协议、部署参数示例和 [SERVICE_SUPPORT.md](../benchmarks/simBenchmarks/SERVICE_SUPPORT.md)；明确实现范围、已验证层级和未解决问题。
 
 先按该 benchmark 的 `environment/` 说明安装环境。数据许可需单独满足；服务可 import 不等于资产、渲染或原生初始化已就绪。检查正确的 Python、依赖路径、GPU/渲染设备和真实画面，避免把黑帧当作正常观测。
@@ -162,8 +162,15 @@ token 要求 32–256 个 URL-safe 字符。先验证启动和 `describe` 无原
 | 模型单例 | 预声明 task/case/seed、协议和预算，通过同一 server 完成一次尝试；保留成功、任务失败或基础设施错误。 | 不代表全 benchmark 的 SR。 |
 | 原生完整矩阵 | 核实任务、变体、种子、horizon、控制器、观测及评分条件，与原生 full schedule 对齐。 | 条件不同的结果不能直接声称复现参考 SR。 |
 
-当前源码不包含原统一回归 runner 及其测试集合。需要历史检查时，从 Git 历史恢复匹配版本，
-并在稳定源码快照上执行；新集成仍需根据实际接口准备独立验证。按实际执行过的检查报告结果，
+运行公开的 catalog 检查与自检：
+
+```sh
+make check smoke PYTHON=python3
+```
+
+使用 Python 3.10 及以上；两者都不启动原生模拟器或调用模型，也不代表任何 benchmark
+已完成原生验收。契约测试只构造合成环境、临时文件及假的服务/策略，作为本地工作检查保留，
+不进入公开源码；新集成根据实际接口准备，并在稳定源码快照上执行。按实际执行过的检查报告结果，
 不能将脚本清理、目录存在或历史通过记录当作当前验收通过。
 
 不要因测试失败静默重跑正式 case。先保存闭合错误和原因，修复后在获准的新轮次中使用新 run ID；旧结果不覆盖。短交互测试也不能混入正式 SR 分母。
@@ -181,9 +188,9 @@ token 要求 32–256 个 URL-safe 字符。先验证启动和 `describe` 无原
 - 公共文档不依赖 `project_readmes/`、个人绝对路径、SSH 别名或未说明的手工补丁。
 - 源码、环境清单、协议和任务计划可追溯；模型身份与实际可核验的调用证据分开，未知项不补造。
 - 发布报告位于 `AgentPolicies/<agent>/results/<benchmark>/`，优先展示任务、策略调用输入、已记录输出、动作与反馈、计数、终止和结果。闭合 client-run 可用 [interaction_history](../benchkit/reports/interaction_history.py) 导出自包含 HTML/JSON；首版不复制媒体或补造原始会话，详见 [运行指南](evaluation.md#inspect-and-report)。
-- 内容哈希、源码冻结和一致性审计作为内部支撑保留，不是用户看交互的前置手工流程。上游 Git revision、环境/控制器与资产来源等有用复现信息可公开，但只采用已记录且明确允许的字段。原始视频、日志和缓存按规则忽略或持久化，不递归发布私有 metadata/info。
+- 服务端源码快照、运行记录的 git revision/dirty 标记与闭合记录一致性审计作为内部支撑保留，不是用户看交互的前置手工流程。上游 Git revision、环境/控制器与资产来源等有用复现信息可公开，但只采用已记录且明确允许的字段。原始视频、日志和缓存按规则忽略或持久化，不递归发布私有 metadata/info。
 - 密钥只留在操作者的安全凭据存储与受信任进程中；不得写入 Git、源码快照、模型输入或 artifact 清单。
 - 任务/布局、调用次数、控制步、终止原因、原生 success 与部分分数分别可查。`40/100` 原生部分分数不是 `40%` 成功率；报告计划、尝试、完成和错误数量，不藏失败样本。
-- 将本次验收的具体协议、范围、结果和剩余阻塞写清楚。“13 个开发态服务入口”不等于“13 个 benchmark 已完整验证”，最新范围查 [支持矩阵](../benchmarks/simBenchmarks/SERVICE_SUPPORT.md)。
+- 将本次验收的具体协议、范围、结果和剩余阻塞写清楚。“14 个开发态服务入口”不等于“14 个 benchmark 已完整验证”，最新范围查 [支持矩阵](../benchmarks/simBenchmarks/SERVICE_SUPPORT.md)。
 
 新增模型通常只改 `AgentPolicies/`；新增任务通常扩展 benchmark 的协议数据和原生绑定；新增动作/观测语义要改协议；新增通用报告才进入 `benchkit/`。保持这些边界，才能继续扩展 benchmark，而不为每个模型复制一套仿真代码。

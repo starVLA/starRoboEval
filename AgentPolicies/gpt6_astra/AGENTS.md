@@ -26,7 +26,7 @@ lookahead. Acknowledgment confirms executed controls, not object manipulation
 success. Success is reported only from the benchmark's native result.
 
 Keep prior versioned methods/results intact while introducing a new method.
-Never patch an active frozen run. New validation attempts must be preselected,
+Never patch an active run. New validation attempts must be preselected,
 separately named and retained on failure. No automatic task retry or uncertain
 action replay. Keep all policy implementation, prompt, configuration and results
 in this model namespace; shared record/source tooling is not a policy planner.

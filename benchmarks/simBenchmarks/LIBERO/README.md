@@ -131,9 +131,10 @@ Import success and a service description alone do not validate rendering.
 
 Copy [server.example.json](server.example.json) to an operator-owned file, or use
 the panel example above. The checked-in example selects LIBERO-10 task 0 at
-state 0 with a **200 × 5 = 1000-control decision track**; it does not use the
-520-control reference horizon. Set `budget_mode: "horizon"` and omit decision
-parameters to use that reference track.
+state 0 with the **520-control reference horizon**. Action grouping and model-call
+limits are agent settings, not part of this server configuration. The separate
+`decisions` track remains available only with a driver that supports its matching
+budget contract; it is not selected by the example.
 
 Set a strong `RSI_SIM_SERVER_TOKEN` privately for the server and trusted driver.
 Launch with the native environment and installation variables above:
@@ -155,7 +156,7 @@ see [agent integration](../../../docs/agent-methods.md) for participant drivers.
 
 `server.py` is the public launcher. `bench_server/adapter.py` implements the
 contract and native score bridge; `bench_server/protocol/` holds the catalog and
-selection plan. `environment/` holds installation and readiness tools. Deployment
+task inventory. `environment/` holds installation and readiness tools. Deployment
 paths, GPU selection and credentials belong to operator configuration.
 
 Keep method implementations under `AgentPolicies/<agent>/` and generated reports

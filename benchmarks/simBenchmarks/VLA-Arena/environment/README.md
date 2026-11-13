@@ -106,7 +106,7 @@ process-owned setup artifacts, not pinned source or model observations.
 ## Launch and verify the service
 
 Copy [server.example.json](../server.example.json) into an operator-owned config,
-set the pinned native path and predeclare L0 task keys. Set a private
+set the pinned native path and predeclare task keys that share one control cap. Set a private
 evaluator-only `RSI_SIM_SERVER_TOKEN`, then launch from the RSI checkout:
 
 ```sh
@@ -128,7 +128,7 @@ or count fixed diagnostic controls as a model score. Model evaluation uses real
 model decisions through the same public interface.
 
 The [protocol](../EVALUATION_PROTOCOL.md) specifies one reset attempt, ten
-setup controls, the 300 policy-control cap, image orientation and separate
-success/cost/safe-success fields. This service selects L0 tasks at initial-state
-index zero; other levels and state indices are not selectable. Results,
+setup controls, the 300 policy-control cap (600 for long-horizon L1/L2), image orientation and separate
+success/cost/safe-success fields. This service selects L0–L2 tasks at
+initial-state index zero; other state indices are not selectable. Results,
 credentials, host paths and case diaries do not belong in this directory.

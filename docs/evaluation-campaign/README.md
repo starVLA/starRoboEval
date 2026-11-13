@@ -98,7 +98,7 @@ python -B -m benchkit.sim_server.cli serve --benchmark simpler_env --help
 当前参考客户端是 [codex_native](../../AgentPolicies/gpt6_astra/README.md)（`codex-native/v2`），入口为
 `python -m AgentPolicies.gpt6_astra.run`。它使用已配置的 Codex 登录；本指南不要求另建 API key。
 模型、推理配置和 CLI 路径按 [profile 说明](../../AgentPolicies/gpt6_astra/README.md) 配置并记录。
-`--method-file` 是方法声明，不会自动把任意声明值变成实际运行配置；必须与有效配置一致。
+`--method-file` 是方法声明，不会自动把任意声明值变成实际运行配置；它经规范化后按声明记录，不与策略有效配置比对。
 也可以接入自己的可信驱动，不强制继承 Python Policy。
 
 ### 4.2 一个可复用的例子：SimplerEnv 单任务五个 seed
@@ -145,10 +145,8 @@ RSI_RUN_ROOT="$PWD/AgentPolicies/gpt6_astra/results/simpler_env/raw/$RSI_RUN_ID"
 
 python -B -m AgentPolicies.gpt6_astra.run \
   --sim-server http://127.0.0.1:8765 --benchmark simpler_env \
-  --control-method codex-native/v2 --no-safety-stop --no-allow-task-completion \
-  --seed 0 --episodes 5 --max-steps 80 \
-  --max-policy-calls 240 --replan-interval 5 \
-  --budget-mode horizon --invalid-action-handling feedback \
+  --seed 0 --episodes 5 \
+  --max-policy-calls 240 \
   --image-max-edge 480 --recording-mode standard \
   --output-dir "$RSI_RUN_ROOT" --run-id client
 ```
@@ -158,14 +156,17 @@ python -B -m AgentPolicies.gpt6_astra.run \
 跨机器时使用受控 SSH 转发，见 [通信协议](../../benchmarks/simBenchmarks/SERVER_PROTOCOL.md)；
 两机同名路径不一定共享存储，分别记录真实位置，结束后只收集闭合的 client 记录。
 
-这里的 240 次调用和最多 5 个动作是**该方法示例的选择**，不是所有 benchmark 的规定。
+这里的 240 次调用是**该示例的选择**，最多 5 个动作来自方法配置的默认值；两者都不是所有 benchmark 的规定。
 一次决策可以输出多个控制动作，由 agent 驱动逐个发送；server 不强制模型每次走五步。
-`--no-safety-stop` 只关闭该策略的仿真自愿提前停止，不关闭原生终止、预算或真实硬件保护。
+自愿停止（`safety_stop`、`task_complete`）默认开启，是否使用由模型决定；`--no-safety-stop`
+只关闭该策略的仿真自愿安全停止，不关闭原生终止、预算或真实硬件保护。
 模型调用、已执行动作决策、控制步和物理子步要分别记录。
 
 换 SimplerEnv 任务时，从 [task catalog](../../benchmarks/simBenchmarks/SimplerEnv/bench_server/protocol/task_catalog.json)
-取任务 ID 和 horizon，同步修改配置、run ID 和 `--max-steps`：罐抓取/移动 80，抽屉开关 113，
-苹果 200，勺子/胡萝卜/堆块 60，茄子 120。不要复制旧 fast campaign 的决策预算当作原生 horizon。
+取任务 ID 和 horizon，同步修改配置和 run ID：罐抓取/移动 80，抽屉开关 113，
+苹果 200，勺子/胡萝卜/堆块 60，茄子 120。不传 `--max-steps` 时取服务公布的 horizon；
+显式传入会覆盖它，manifest 同时记录服务 horizon（未公布时为 null）和是否覆盖。共享 server
+不检查 client 的取值；调小即偏离原生预算，部分 adapter 仍会按自身 horizon 截断。不要复制旧 fast campaign 的决策预算当作原生 horizon。
 换 benchmark 时，重新核实其动作和案例选择接口；不能只替换 `--benchmark`。
 
 ### 4.3 扩展到全部任务
@@ -178,9 +179,8 @@ python -B -m AgentPolicies.gpt6_astra.run \
 4. 评测结束后先收集结果、确认视频/错误记录及进程清理，再释放资源给下一项。
 5. 汇总覆盖表后继续；正常失败不为追求分数重跑。
 
-当前没有可直接调度所有远端服务的统一 `--all --panel5` 命令。
-`benchkit.campaigns` 保留五类 benchmark 的固定 **local-adapter** 调度路径，
-不能将它描述成上述远端服务流程的下一步。详见 [工作流选择](../evaluation.md#choose-a-workflow)。
+当前没有可直接调度所有远端服务的统一 `--all --panel5` 命令，也没有中央 campaign 调度。
+详见 [工作流选择](../evaluation.md#choose-a-workflow)。
 2026-10-06 的 75 例使用了单独的运维托管队列；临时运维脚本不是公开、可移植的全 benchmark 启动器。
 
 ## 5. 什么算完成，什么可以修复后重测

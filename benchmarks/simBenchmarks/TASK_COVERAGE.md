@@ -29,13 +29,11 @@ attempts selected after seeing a failure.
 
 ## Where the schedule lives
 
-Benchmark-owned plans live in `bench_server/protocol/plan.py` where implemented;
-other services select cases through a catalog or adapter. Plans enumerate cases,
-declare task scopes and bind required runtime resources. For its registered
-local execution paths, `benchkit.campaigns` prepares an immutable manifest and
-source package; it is not a remote-server orchestration layer.
+Each service selects cases through its catalog or adapter, which enumerates
+cases, declares task scopes and binds required runtime resources. There is no
+central campaign layer.
 
-Inspect the selected benchmark's protocol and generated cases. A plan's task
+Inspect the selected benchmark's protocol and the service's declared cases. A plan's task
 list, an adapter's default selection and the native benchmark inventory are
 different things. Neither a preselected sample nor a record of completed runs
 defines the benchmark's task count.
@@ -47,9 +45,10 @@ and policy configuration. Preparation is not an attempt. Execution creates a
 permanent claim before starting the native process; a failed or timed-out claim
 remains part of the record and is not silently reused.
 
-Carry-forward is only available for explicitly supported coverage expansions.
-It preserves the original attempt and identity rather than evaluating that case
-again. A new source package is not permission to repeat a completed task.
+A coverage expansion is an independent run: every selected task is a new
+case, and no earlier run's attempt is carried forward. An earlier record
+keeps its original attempt and identity as data. A new source revision is not
+permission to repeat a completed task.
 
 ## Coverage report
 
@@ -61,15 +60,14 @@ Always state:
 - policy, protocol and infrastructure errors separately;
 - unavailable scores and inference accounting, without replacing unknowns by zero.
 
-Frozen manifests, environment diagnostics and unclaimed cases are not completed
+Prepared manifests, environment diagnostics and unclaimed cases are not completed
 capability evaluations. Keep both completed-episode and all-attempt success
 rates. Do not merge incompatible policy versions, budgets, asset tracks or
 native conditions into a homogeneous score.
 
-Generic report tools are under `benchkit/reports/`: `coverage.py`,
-`task_ledger.py` and `progress.py`. Use each tool's `--help` for its supported
-input schemas. A report must use the source/schema matching the recorded run;
-old frozen evidence is not rewritten to satisfy a newer reporter.
+Generic report tools are under `benchkit/reports/`, for example `panel_sr.py`
+and `basic_result.py`. Use each tool's `--help` for its supported input schemas.
+Old evidence is not rewritten to satisfy a newer reporter.
 
 Maintain each model's task ledger, reports and indices in
 `AgentPolicies/<profile>/results/<benchmark>/`. Raw runs and generated media are

@@ -4,7 +4,7 @@
 
 **具身 Benchmark 服务化：让评测更严谨、更可复现、更易规模化。**
 
-**一个入口，选择你的 Benchmark：已集成 13 个仿真 Benchmark，真实机器人接入正在拓展。** 各仿真服务的任务覆盖与原生验收进度见[支持矩阵](../../benchmarks/simBenchmarks/SERVICE_SUPPORT.md)，真机接入进展见[硬件说明](../../benchmarks/realRobots/README.md)。
+**一个入口，选择你的 Benchmark：已集成 13 个仿真 Benchmark，真实机器人接入正在拓展。** 各仿真服务的任务覆盖与原生验收进度见[支持矩阵](../../benchmarks/simBenchmarks/SERVICE_SUPPORT.md)。
 
 Bench Server 将具身评测封装为独立、可调用的服务，明确 Agent 的环境访问权限，将物体真值、私有场景信息和评分逻辑留在评测端，减少利用仿真特权取得成绩的捷径。服务围绕真实机器人的感知与控制能力定义接口，为 Sim / Real 交互对齐、后续真机接入与规模化评测提供基础。
 
@@ -46,7 +46,7 @@ http://127.0.0.1:18765/assets/bench_server/
 
 - `benchmarks/simBenchmarks/<benchmark>/`：环境、协议、adapter/server 和原生评分。
 - `AgentPolicies/<agent>/`：方法的模型组合、决策、prompt、工具、配置与结果；按服务协议接入，Python SDK 可选。
-- `benchkit/sim_server/`：公共通信和会话库；`benchkit/campaigns/` 保留固定案例调度，当前运行冻结的本地 adapter，不是远程多服务调度器。benchkit 另提供记录、审计与报告，不新增决策服务。
+- `benchkit/sim_server/`：公共通信和会话库。benchkit 另提供记录、审计与报告，不新增决策服务，也不提供中央案例调度。
 - `rsi-bench list / serve --benchmark <id>`：统一选择并委托现有服务，不改变原生契约。
 - `benchkit/reports/interaction_history.py`：闭合 client-run 的交互 HTML / JSON；不复制媒体、不补造缺失输出。内容指纹留作内部支撑，用户主视图是交互与结果。
 - `benchkit/reports/basic_result.py`：无需交互日志的基础结果，保留选定分母、成败、错误和已知用量。

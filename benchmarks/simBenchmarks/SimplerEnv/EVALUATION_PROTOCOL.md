@@ -20,9 +20,8 @@ conditions explicitly; prepackaged seeded resets do not enumerate them. Report
 selected tasks, seeds and attempts separately from coverage of reference visual
 conditions.
 
-Policy-specific persistence settings, including a minimum number of action
-decisions before give-up, belong to the selected policy's configuration and
-source bundle. They must not become benchmark task or sampling requirements.
+Policy-specific persistence and give-up settings belong to the selected
+policy's configuration. They must not become benchmark task or sampling requirements.
 
 ## Task families and service selection
 
@@ -138,7 +137,7 @@ internal retries as unknown; neither mode turns service or CLI receipts into
 provider metering or identity attestation. Explicit launch parameters appear in
 the service description; resolved `interaction_mode` is also retained in episode
 budget metadata, native provenance and metrics. Keep results from the two
-interaction modes distinct; this selection does not rewrite frozen old runs.
+interaction modes distinct; this selection does not rewrite old runs.
 
 ### Conditions shared by both modes
 

@@ -405,7 +405,7 @@ def _build_history(run_dir):
                 _object(event.get("observation"), "recorded observation")
             if event.get("event") in ("error", "artifact_error"):
                 _object(event.get("error"), "recorded error")
-        audit_episode(result, events, protocol, policy)
+        audit_episode(result, events, protocol)
         episodes.append(_episode(result, events, contracts))
     completed = sum(row["status"] == "completed" for row in results)
     require(status["status"] == ("completed" if completed == len(results) else "completed_with_errors"),

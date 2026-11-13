@@ -16,7 +16,6 @@ _BENCHMARKS: dict[str, Factory[BenchmarkAdapter]] = {}
 _POLICIES: dict[str, Factory[Policy]] = {}
 _BUILTINS_LOADED = False
 _POLICY_MODULES = {
-    "mailbox": "AgentPolicies.anonymous_code_agent.mailbox",
     "constant": "benchkit.diagnostics.constant",
 }
 
@@ -69,8 +68,6 @@ def load_builtins() -> None:
         import_module("benchmarks.simBenchmarks.LIBERO-plus.bench_server.adapter")
         import_module("benchmarks.simBenchmarks.VLA-Arena.bench_server.adapter")
 
-        # Preserve the catalog's original stable ID as a CLI alias.
-        _register(_BENCHMARKS, "robocasa_365", benchmarks.simBenchmarks.Robocasa_365.bench_server.adapter.make_robocasa365)
         _register(_BENCHMARKS, "simple_humanoid", benchmarks.simBenchmarks.SIMPLE.bench_server.adapter.make_simple_humanoid)
 
         _BUILTINS_LOADED = True

@@ -22,13 +22,13 @@ service alone owns native environments. See the [SIM service protocol](../benchm
 
 Current source roots are `benchmarks/`, `AgentPolicies/` and `benchkit/`.
 See [package migration](package-migration.md) for new launch paths and the
-unchanged treatment of frozen packages, historical results and ignored local files.
+treatment of historical results and ignored local files.
 
 ![Select a benchmark service; inspect agent interactions beside the control path](assets/architecture.svg)
 
 ## One entrypoint, benchmark-specific capabilities
 
-`rsi-bench list` shows the 13 implemented development service routes.
+`rsi-bench list` shows the 14 implemented development service routes.
 `rsi-bench serve --benchmark <id> ...` selects one and delegates to its existing
 `server.main(argv)`. The source-checkout equivalent is
 `python -m benchkit.sim_server.cli`. The selector is a launch convenience, not a
@@ -39,7 +39,7 @@ The old `python -m benchkit.sim_server` remains a synthetic diagnostic only.
 RoboDojo, SimplerEnv, LIBERO and SIMPLE share communication mechanisms, not a
 single action space. In particular, SIMPLE's humanoid contract is not EEF16.
 The selected adapter owns sensors, action semantics, task panel and scoring.
-VLN-CE and hardware are not listed as available service routes. An implemented
+VLN-CE provides an R2R RGB navigation service; hardware is not listed as an available service route. An implemented
 route does not prove asset readiness or full native validation.
 
 `EvaluationRunner` is not the server layer. The reusable runner lives on the
@@ -53,23 +53,18 @@ this control path.
 | --- | --- | --- |
 | `AgentPolicies/<profile>/` | Policy factory, model configuration, prompts, decisions, trusted evaluation entrypoint and results | Native simulator handles or task/scoring definitions; oracle information in model requests |
 | `benchmarks/simBenchmarks/<benchmark>/` | Native environment, task inventory, observation/action mapping, scoring and sample-selection plans | Model prompts, task-solving heuristics or model-specific persistence requirements |
-| `benchkit/` | Service selection, shared transport, central case scheduling, records/reports and internal integrity tools | Native task semantics or model inference/robot decisions |
+| `benchkit/` | Service selection, shared transport, case leasing, records/reports and record-consistency audits | Native task semantics or model inference/robot decisions |
 
-Real-robot integrations belong under `benchmarks/realRobots/`. Existing SDK and
-hardware bridge references do not enable unattended robot execution.
+No real-robot backend is integrated; future hardware adapters need their own
+safety, timing and scoring validation.
 
-### Central scheduling stays; agent decisions stay local to the method
+### Case sequencing stays outside agent decisions
 
-`benchkit/campaigns/` retains central task organization in this version: assemble a
-benchmark-provided fixed plan, freeze it, claim an unattempted case, launch it and
-summarize progress. An operator selects the case and device. It is not an
-additional per-action intermediary between the agent and benchmark server.
-
-The current campaign commands cover five registered plans and launch their
-frozen **local adapter** path. They do not yet schedule the thirteen remote
-service routes. Server selection (`rsi-bench`) and campaign execution are two
-distinct entrypoints, not sequential steps of one integrated remote workflow.
-See the [workflow choices](evaluation.md#choose-a-workflow).
+The benchmark service declares its schedule; the trusted driver claims each case
+and runs it. `benchkit/sim_server/remote_run.py` leases gateway cases and skips
+cases that already have a per-case `completion.json`. It is not an additional
+per-action intermediary between the agent and benchmark server. See the
+[workflow choices](evaluation.md#choose-a-workflow).
 
 Resource-aware multi-service scheduling and restart reconciliation are future
 extensions. Keep benchmark schedules and permanent attempt claims authoritative;
@@ -110,10 +105,9 @@ and uses the reusable loop in `AgentPolicies/gpt6_astra/tools/runner.py`. It has
 native fallback. This trusted driver is distinct from the model actor: the
 administrative client includes schedules, metrics and result export, and must
 not be passed to an untrusted policy process. The legacy standalone CLI also
-supports `--sim-server`. Existing frozen campaigns still
-use their original in-process/worker path; remote campaign source/schedule binding
-is not implemented. Service deployment source and client source are recorded
-separately, without claiming loaded-memory, asset or provider attestation.
+supports `--sim-server`. The service records its deployment source snapshot; the
+client records its git revision and dirty flag, without claiming loaded-memory,
+asset or provider attestation.
 
 Unit conversion, fixed joint order, protocol-defined interpolation and native
 low-level control belong to the adapter. Object localization from images,
@@ -123,16 +117,11 @@ task-skill services are outside this repository's direct-control scope. Native
 low-level control and protocol-fixed conversions must not plan the task for
 the model or silently expand its available observations.
 
-For SimplerEnv, LIBERO, SIMPLE, RoboCasa365 and RoboCasa Tabletop,
-`bench_server/protocol/plan.py` holds benchmark-specific campaign selection and
-required runtime resources. No active `evaluation/` package remains in these
-services. Standalone services may instead
-declare their fixed schedule in the adapter; a service does not imply a frozen
-campaign plan exists. RoboDojo's server instead reads the immutable schedule from
+Services declare their fixed schedule in the adapter or its protocol data.
+RoboDojo's server reads the immutable schedule from
 `bench_server/protocol/task_catalog.json`: `classify_objects` has selections of
 5 or 50 layouts. Both attempt each selected layout once; neither
-covers every RoboDojo task. The shared campaign assembler registers plans without
-implementing their task semantics. Supported task and case selection remains benchmark-specific.
+covers every RoboDojo task. Supported task and case selection remains benchmark-specific.
 
 ### Policy interface
 
@@ -142,7 +131,7 @@ chunk or stop. It has no direct reset/step API. Model behavior, prompt construct
 and optional voluntary-stop preferences are versioned under the selected profile.
 One call may involve multiple declared general-purpose model components. Their
 usage is separate from decision-call/control counters. The method and accounting
-versions are explicit; old frozen one-request records keep their original audit.
+versions are explicit; old one-request records remain data.
 
 The method owns action chunk length, how many controls to execute from a decision
 (including repeated targets), and when to replan. The trusted agent driver sends
@@ -156,9 +145,14 @@ interpolation remain benchmark-owned, not method-adjustable repeats.
 This ownership rule does not mean every existing track is already decoupled.
 Legacy `budget_mode=decisions` tracks still bind call/prefix settings to a total
 execution cap, and the reference runner checks agreement with the adapter.
-Existing `required_replan_interval` observation-interface declarations also
-remain enforced. Those contracts need explicit migration before changing them;
-this clarification changes no adapter version, native budget or policy preset.
+SIMPLE defaults to a new task-horizon protocol without method call/prefix caps;
+its explicitly selected decisions protocol keeps its prior identity. CALVIN and
+DOMINO's current protocols no longer require prefix one. The reference agent
+driver discards an unexecuted chunk suffix when an acknowledged observation
+contains a changed instruction, then asks its policy again. This uses public
+language, not hidden subtask state. Shared tooling still enforces a
+`required_replan_interval` when connecting to an older service that declares it.
+Historical records keep their original contracts.
 
 Input validity belongs to the declared benchmark interface; optional motion and
 gripper preferences belong to the model profile. A declared `feedback` mode can
@@ -169,41 +163,36 @@ rejections are counted separately from executed decisions and controls, with a
 finite call budget. A lost acknowledgment or uncertain native execution remains
 an error, never an invitation to replay. See [action validation](../benchmarks/simBenchmarks/RoboDojo/ACTION_VALIDATION.md).
 
-For example, requiring 50 executed action decisions before ordinary give-up is
-an optional policy setting. It does not change success, the native horizon or
-another model's behavior. The runner supplies non-privileged execution counters;
-the policy validates its preference. Native termination, hard limits, errors and
-declared safety stops can still end earlier.
+A persistence or give-up preference is optional policy behavior. It does not
+change success, the native horizon or another model's behavior. The runner
+supplies non-privileged execution counters; the policy applies its own
+preference. Native termination, hard limits, errors and declared safety stops
+can still end earlier.
 
-The mailbox implementation lives in `AgentPolicies/anonymous_code_agent/`. Its endpoint
-allocator is a preparation tool, not benchmark code.
-`AgentPolicies/gpt6_astra/tools/stop_rules.py` supplies reusable opt-in stop rules
-for GPT and the anonymous mailbox; each profile declares its own preferences. Shared fixed-action fixtures live under
+Shared fixed-action fixtures live under
 `benchkit/diagnostics/`: implementing the `Policy` interface does not make an
 infrastructure diagnostic a participant model.
 
 ### Reusable execution and output tools
 
 `benchkit/contracts.py` and `interfaces.py` define the public types.
-`registry.py` and `campaigns/benchmark_plans.py` explicitly assemble extensions.
+`registry.py` explicitly assembles extensions.
 `AgentPolicies/gpt6_astra/tools/runner.py` validates compatibility and executes the
-agent's bounded action prefixes for the model driver and general CLI. It uses recording/source tools without moving
+agent's bounded action prefixes for the model driver and general CLI. It uses recording tools without moving
 the decision loop into `benchkit`. Native validation and end conditions remain
 authoritative on the server. `benchkit/sim_server/` is the single shared transport
 implementation, imported directly by both ends; there is no forwarding service
 package under `benchmarks`. Import the optional runner directly from
 `AgentPolicies.gpt6_astra.tools.runner`; the former benchkit runner bridge is removed.
-`benchkit/campaigns/workflow.py` freezes plans and creates permanent attempt claims;
-the public command is `python -m benchkit.campaigns`, not the old singular module.
-`model_profiles.py` validates configured factories and captures bounded model
-sources; it does not implement a provider.
+`model_profiles.py` reads self-describing `configs/profile.json` files, validates
+their configuration and factories, and records the profile ID; it does not
+implement a provider.
 
-Shared serializable DTOs, registry/campaign assembly and factory dispatch helpers
+Shared serializable DTOs, registry assembly and factory dispatch helpers
 remain under `benchkit` for existing integrations. They are grouped into functional
 packages; relocated entrypoints do not retain forwarding shells. New model
-drivers construct their own model; shared declarative validation and capture
-remain output/provenance tools. Frozen historical sources and results keep
-their original paths and semantics.
+drivers construct their own model; shared declarative validation remains an
+output/provenance tool. Historical results keep their original paths and semantics.
 
 Agent profiles own their configuration schema, model connection, prompts,
 memory, image preprocessing and action-generation loop. Shared tools can read
@@ -223,16 +212,14 @@ sensors or action semantics; changing the robot interface does not imply a
 particular model implementation. Record the conditions actually used for each
 result rather than inferring them from a method or benchmark name.
 
-A profile can declare `runtime_preflight: true` in its captured configuration
-schema. Its optional `preflight_runtime()` capability checks local dependencies
-and credential presence without a benchmark, model request or action. The benchkit
-dispatches this model-owned check in the frozen runtime before claiming a case;
-it does not contain provider-specific readiness logic. Packages without the
-declaration retain their historical behavior. Auditors read the declaration as
-data and never execute the hook.
+A profile can declare `runtime_preflight: true` in its configuration schema.
+Its optional `preflight_runtime()` capability checks local dependencies and
+credential presence without a benchmark, model request or action.
+`benchkit preflight-policy --model-profile <id>` dispatches this model-owned
+check; benchkit does not contain provider-specific readiness logic.
 
 `benchkit/diagnostics/` contains explicitly non-capability fixed-action diagnostics.
-They are included in benchkit source snapshots. Their recorded native metrics
+Their recorded native metrics
 validate infrastructure and must not be interpreted as model capability scores.
 Benchmark-specific asset, renderer and control readiness tools remain
 under that benchmark's `environment/` directory.
@@ -243,20 +230,20 @@ records, not native replay, model identity or process isolation.
 
 ## Execution and records
 
-The existing campaign/reference workflow below includes internal source freezing
-and its verification gates. Those steps are not protocol-first participation or
-basic-report admission requirements for an independent driver.
+The reference workflow below is not a protocol-first participation or
+basic-report admission requirement for an independent driver.
 
-1. Resolve a benchmark plan and compatible policy configuration.
-2. Freeze selected cases, budgets, effective prompt and declared source files.
-3. Validate the frozen package; run any declared local runtime preflight, recheck
-   frozen source and plan, then atomically claim a previously unattempted case.
+1. Resolve the service schedule and a compatible policy configuration.
+2. Record the git revision, dirty flag, diff digest, model profile, effective
+   configuration and preset/prompt digests in the run manifest.
+3. Run any declared local runtime preflight, then claim a scheduled case; a
+   rerun skips cases that already have a per-case `completion.json`.
 4. Deliver an allowed observation, accept one policy decision and execute its
    bounded prefix. Repeat until native end, policy stop, error or a hard limit.
 5. Close the environment and retain native outcome, errors, counters and available
    usage; retain interactions and media according to the selected recording options.
 6. Show closed outcomes and optional interaction history under the selected method's
-   results; run internal source/evidence audits separately when needed.
+   results; run the closed-run record audit separately when needed.
 
 One call is not necessarily one action decision, control or physics tick. Stop
 responses consume a call but execute no action. An action decision counts after
@@ -266,7 +253,7 @@ at least one control executes. Adapter-specific physics substeps remain separate
 
 [`reports/basic_result.py`](../benchkit/reports/basic_result.py) produces a compact
 HTML/JSON result from the closed manifest, status, episode results and summary.
-No events, videos, source snapshot or full hash audit is required. It shows the
+No events, videos, source snapshot or hash audit is required. It shows the
 selected denominator, failures/errors, method/model composition and measured
 usage. This checks supplied records, not native execution or provider identity.
 There is no cross-benchmark aggregate leaderboard in this version.
@@ -275,8 +262,8 @@ Detailed recording is optional and enabled by default. The reference driver
 supports `standard`/`minimal` and granular retention switches; see
 [recording scope and limitations](recording.md). Disabling them does not change
 live agent input, native execution, score or publication eligibility. Client
-retention does not turn off native-server capture. Internal source/configuration
-snapshots remain separate from runtime interaction recording.
+retention does not turn off native-server capture. Service source snapshots and
+recorded configuration remain separate from runtime interaction recording.
 
 The default permanent visual record is the native camera video retained on the server,
 when the adapter produces it; shared transport does not synthesize missing videos.
@@ -316,24 +303,22 @@ or evidence checks.
 
 ## Internal source and result integrity
 
-Hashes are content fingerprints supporting maintenance and record consistency,
-not the public product's main feature. Interaction export validates closed
-event/result consistency without requiring every frozen source file. Existing
-full source/model audits remain independent and unchanged.
+A client run records which version and configuration produced its score:
+`manifest.runtime.git` holds the revision, dirty flag and a `diff` digest of
+tracked changes across the whole checkout; `manifest.policy.parameters` holds
+the model profile ID, effective configuration and `preset_sha256`/`prompt_sha256`. [`audits/closed_run.py`](../benchkit/audits/closed_run.py)
+checks record consistency: episode count and order, per-episode events and
+counters, summary sums and usage sums, with null meaning unknown. It does not
+verify source files. Interaction export validates closed event/result consistency.
 
-Output-tool, service and explicitly named trusted-driver sources are captured separately from explicitly
-allowed model files and the effective prompt. Neighboring results and credentials
-must never be recursively included in model snapshots.
-
-New server deployments use a narrower, explicitly declared shared-service scope
-plus the selected benchmark's supplemental files. They do not capture every
-registered benchmark or require GPT driver files. The reference agent runner
-and central campaign workflow retain their existing broader evaluation scope;
-minimal interaction recording does not disable that capture. The inventory's
-scope is explicit. A source inventory describes the bytes captured for that
-run, not today's checkout. Keep existing inventories and results unchanged;
-use the corresponding source and schema when reading an older record. See
-[package migration notes](package-migration.md) when locating older packages.
+The client no longer copies harness or model source into run directories. Each
+server deployment captures its own shared-service source snapshot
+(`harness_source/` in the service root, limited to `SERVICE_SOURCE_FILES`) plus
+the selected benchmark's supplemental files. It does not capture every
+registered benchmark or require GPT driver files. A source inventory describes
+the bytes captured for that deployment, not today's checkout. Keep existing
+records and results unchanged as data; live code does not read their source
+bundles. See [package migration notes](package-migration.md).
 
 Model results use `AgentPolicies/<profile>/results/<benchmark>/`; the entire
 result tree stays local and Git-ignored, including reports, indices and media.
@@ -343,10 +328,10 @@ model's scores.
 
 ## Current limits
 
-Long-term goals include automatic plugin discovery, expanded central scheduling,
+Long-term goals include automatic plugin discovery, central scheduling,
 a comprehensive unified CLI and cross-benchmark leaderboards. They are not all
-implemented here. The current version retains case scheduling and the service
-selector while stabilizing contracts and the public usage path. Future aggregate
+implemented here. The current version provides the service selector and case
+leasing while stabilizing contracts and the public usage path. Future aggregate
 rankings require explicit coverage, comparability, normalization and missing/error
 denominators; per-benchmark results remain available.
 
@@ -354,11 +339,9 @@ The [service support matrix](../benchmarks/simBenchmarks/SERVICE_SUPPORT.md)
 distinguishes implemented adapters from protocol drafts and their remaining
 native acceptance gates. Installation and portability constraints differ by
 benchmark and are documented at each entrypoint. Broader native task/reset
-selection and unified hardware adapters are incomplete. GPT6Astra's direct
-profile is offline-tested; Opus remains unconfigured. The external mailbox does
-not enforce provider request metering or OS isolation. Direct provider receipts
-are not independent metering/identity attestation, and mailbox-specific artifact
-audits do not establish parity for all retained historical artifacts.
+selection and unified hardware adapters are incomplete. GPT6Astra is the only
+configured profile. Direct provider receipts are not independent
+metering/identity attestation. OS-level isolation is planned for a later version.
 
 See [evaluation workflow](evaluation.md) and the
 [policy protocol](../benchmarks/simBenchmarks/POLICY_PROTOCOL.md) before comparing results.

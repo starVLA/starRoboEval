@@ -1,1 +1,0 @@
-Unconfigured profile. A verified provider/model identity, one-call adapter and evaluated prompt are required before use.

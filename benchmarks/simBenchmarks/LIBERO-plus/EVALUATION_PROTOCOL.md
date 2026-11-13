@@ -138,5 +138,4 @@ further controls and close failures remain visible on repeated cleanup calls.
 Results, indices and video exports belong under
 `AgentPolicies/<profile>/results/libero_plus/`, not in this benchmark directory.
 Unknown method/provider identity remains explicit in reports.
-Use the standalone server for the declared variant list. The separate campaign
-commands do not schedule this remote service. See the [shared service protocol](../SERVER_PROTOCOL.md).
+Use the standalone server for the declared variant list. See the [shared service protocol](../SERVER_PROTOCOL.md).

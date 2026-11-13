@@ -23,12 +23,11 @@ model <- allowed observation <- trusted driver -- HTTP --> server.py -> native S
   `environment/` contains native workers, assets and installation tools. The
   [RoboDojo directory guide](RoboDojo/README.md#directory-responsibilities) maps
   these packages without changing the common wire protocol.
-  Benchmark-owned task selection lives in `bench_server/protocol/plan.py`
-  where a separate plan module is needed.
+  Benchmark-owned task selection lives in the adapter or its protocol data.
 - `benchkit/sim_server/` supplies transport, strict serialization,
   session lifecycle and artifact transfer. An agent supplies its own decision
   loop or uses optional reference utilities. `benchkit` supplies record,
-  source-capture and reporting tools, not a separate required control service.
+  service source-capture and reporting tools, not a separate required control service.
 - `AgentPolicies/<profile>/` contains the model policy/configuration and its results.
   A profile can represent a complete multi-model agent method. The wire protocol
   is the integration boundary; Python `Policy` and the reference runner are
@@ -61,12 +60,13 @@ target is a new control at the next sequence, not a retry after an uncertain ACK
 The number of native physics substeps, control timing and protocol-fixed
 interpolation inside one action are not policy-owned repeat settings.
 
-Existing tracks are not all decoupled: legacy `budget_mode=decisions` contracts
-still couple `max_policy_calls` and `replan_interval` to an execution cap, with
-adapter/client agreement checks. The `required_replan_interval` observation
-contracts described below also remain enforced. These are retained constraints
-pending explicit migration, not a universal server-owned decision loop. This
-clarification does not change those tracks, native budgets or policy presets.
+Existing tracks are not all decoupled: explicitly selected `budget_mode=decisions`
+contracts still couple `max_policy_calls` and `replan_interval` to an execution
+cap, with adapter/client agreement checks. SIMPLE now defaults to a task-horizon
+protocol without these method caps. Current CALVIN/DOMINO protocols no longer
+declare `required_replan_interval`. The shared field remains readable for older
+services; it is not a requirement to impose on new integrations. Historical
+records and explicitly selected older contracts are not reinterpreted.
 
 Process separation makes deployment ownership explicit; it is not an OS security
 sandbox. Run an untrusted policy separately without evaluator credentials or
@@ -115,16 +115,16 @@ rsi-bench serve --benchmark simpler_env \
   --output-dir /absolute/AgentPolicies/my_profile/results/simpler_env/raw/my-run/server
 ```
 
-The selector includes all 13 implemented service routes; `rsi-bench list` shows
-canonical IDs and repository-relative setup guides. Only the explicit alias
-`robocasa_365` maps to `robocasa365`. Per-benchmark module entrypoints, such as
+The selector includes all 14 implemented service routes; `rsi-bench list` shows
+canonical IDs and repository-relative setup guides. Per-benchmark module entrypoints, such as
 `python -B -m benchmarks.simBenchmarks.SimplerEnv.server`, remain valid. Neither
 route changes the existing benchmark contract or implies native parity.
 
 Schedule selection is benchmark-owned. RoboDojo requires a complete named
 `panel` from [its protocol catalog](RoboDojo/bench_server/protocol/task_catalog.json) and rejects
 server-side `--episodes` truncation: `classify_objects` offers fixed selections
-of 5 or 50 layouts, each attempted once. See its
+of 5 or 50 layouts, each attempted once. Through the gateway, its panels are the
+whole named selection and `remote-run` refuses case-file or limit subsets. See its
 [launch example](RoboDojo/README.md#start-the-benchmark-server).
 
 The server binds **only `127.0.0.1`**. For another node use an authenticated SSH
@@ -199,7 +199,7 @@ A rejected input returns `error.code=invalid_action`, a closed `rejection` issue
 call occurs. The session stays running. Only a negotiated, correlated receipt
 permits a corrected command at the same sequence; old code-only errors and lost
 replies remain fail-closed. Older strict clients may reject the new description;
-use a matching frozen client/service pair.
+use a matching pinned client/service pair.
 
 An agent driver can select `invalid_action_handling=feedback` and return the
 issue at the next counted policy call with the last acknowledged observation.
@@ -242,29 +242,30 @@ other benchmarks without that channel. Model notes, preview images and target se
 remain under `AgentPolicies/<profile>/`; native RGB and evaluator-private records are
 not replaced by model-side previews.
 
-A benchmark may declare a positive integer `required_replan_interval` in its
-description's budget object. This is an observation-interface requirement:
-the evaluator must configure that action-prefix length before opening an
-episode. For example, a changing-language interface can require prefix 1 so an
-old action chunk never crosses an unseen instruction boundary. The runner
-rejects a mismatch before policy calls or native initialization and records the
-requirement in its manifest. It does not silently change the prefix, impose a
-model-call count, extend the native horizon or implement a persistence strategy.
-Benchmarks without this optional field retain their existing behavior. Use a
-matching updated client; older strict clients reject the new field rather than
-silently ignore the requirement.
+Older services may declare a positive integer `required_replan_interval` in
+their description's budget object. Matching clients continue to reject a
+mismatched prefix before claiming an episode; do not silently override an old
+declared contract. New integrations should leave decision cadence to the agent.
+The wire always acknowledges one control at a time, so an agent can inspect
+each returned public instruction while executing a multi-control chunk.
 
-The evaluator manifest records server deployment provenance separately from its
-own local source snapshot. New service launches capture an explicit shared-service
-source scope plus only the selected benchmark's declared runtime supplements;
-they do not require reference-model drivers or other benchmarks' source files.
-The reference agent runner and retained campaign path still use the broader
-evaluation capture. Existing frozen inventories are not rewritten or reinterpreted.
-Neither source inventory proves loaded-memory,
-asset/dependency parity or provider identity. Old frozen campaigns remain on
-their original path: **server-mode `campaign prepare/run-case` is not integrated**.
-Use the standalone remote runner with a predeclared service schedule; do not
-describe it as an integrated remote campaign workflow.
+The reference agent driver records `instruction_change_handling=replan-after-ack/v1`
+in its result manifest: after a changed public instruction it stops the
+unexecuted suffix and requests another decision. Native end and exhausted
+budgets still take precedence. This is agent-side behavior, not a new RPC,
+sensor or server-side policy. Its record audit permits that partial prefix only
+when the declared behavior and recorded public instruction change justify it.
+The current auditor rejects a record without the declaration.
+
+The client manifest records server deployment provenance separately from its
+own git revision and dirty flag; the client captures no source files. New service
+launches capture an explicit shared-service source scope (`harness_source/` in
+the service root) plus only the selected benchmark's declared runtime
+supplements; they do not require reference-model drivers or other benchmarks'
+source files. Existing inventories are not rewritten or reinterpreted. Neither
+record proves loaded-memory, asset/dependency parity or provider identity.
+Use the standalone remote runner with a predeclared service schedule; there is
+no central campaign workflow.
 
 Run services from a stable, versioned source snapshot and do not edit it during
 operation. V1 records launch-time source bytes but does not recheck later worker
@@ -291,7 +292,7 @@ native CUDA build outputs. The exclusion is recorded in the
 session receipts and the captured benchmark launcher. Observations, actions, native logs, metrics, source
 provenance and videos are not excluded. Canonical server videos remain retained;
 artifact downloads never delete or relocate them. Changed export declarations
-apply only to new launches, never to frozen historical inventories or results.
+apply only to new launches, never to historical inventories or results.
 
 New clients can select optional **client retention** through
 `RecordingOptions` before an episode starts. They still call `finish` once and
