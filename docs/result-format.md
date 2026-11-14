@@ -45,7 +45,7 @@ Required fields and their meanings:
 | `policy` | At least a declared `name`; legacy `kind`, `model`, `provider`, `version` may also be present |
 | `action_spec` | Service-declared `mode`, positive `size`, `names`, optional `low`/`high`, `control_hz`, `frame`, `rotation`, `gripper` |
 | `observation_spec` | Service-declared `cameras`, `state_names`, `modalities`, `privileged: false`, optional `control_feedback_schema` |
-| `protocol` | Selected `episode_ids`, positive `max_steps`, `max_policy_calls` (positive integer or null), `replan_interval` (positive integer or null), `fail_fast` (boolean); retain actual budget/track declarations. A horizon run may add the service's `service_environment_step_cap` (positive integer or null) and `max_steps_overridden` (boolean: no service cap, or `max_steps` differs from it) |
+| `protocol` | Selected `episode_ids`, positive `max_steps`, `max_policy_calls` (positive integer or null), `replan_interval` (positive integer or null), `fail_fast` (boolean); retain actual budget/track declarations. A horizon run may add the service's `service_environment_step_cap` (positive integer or null) and `max_steps_overridden` (boolean: no service cap, or `max_steps` differs from it), and likewise `service_max_policy_calls` (positive integer or null) and `max_policy_calls_overridden` (boolean: `max_policy_calls` differs from it) |
 
 Optional public method declaration:
 
@@ -73,15 +73,16 @@ settings. Do not include credentials, private paths or sensitive prompt content.
 Credential-named fields and absolute paths are rejected, but validation is not
 general secret detection: review before publication.
 
-The reference runner projects old `PolicyDescriptor` identity when no method
-file is supplied, using `method_origin: legacy_policy_projection`. Arbitrary
-legacy parameters are not copied. The report labels that configuration as not
+The reference runner projects `PolicyDescriptor` identity when no method file
+is supplied, using `method_origin: policy_descriptor_projection`. Arbitrary
+policy parameters are not copied. The report labels that configuration as not
 supplied, rather than claiming an empty object is a complete method definition.
 
 For multi-call method accounting, the reference runner records
-`protocol.usage_accounting_version: starvla-rsi.method-usage/v1`. This separates
+`protocol.usage_accounting_version: starvla-rsi.method-usage/v2`. This separates
 robot decision-loop calls from model inference requests; it does not change a
-benchmark's native execution budget.
+benchmark's native execution budget. Version 2 adds episode usage reconciliation
+with a policy-reported total, described below.
 
 ## Episode result
 
@@ -103,6 +104,8 @@ One synthetic example, with no inference usage claimed:
   "reward_sum": 0.0,
   "usage": {"calls": null, "input_tokens": null, "output_tokens": null,
             "cached_input_tokens": null, "estimated_cost_usd": null, "latency_s": null},
+  "usage_reported_complete": null,
+  "usage_inconsistent_fields": null,
   "metrics": {"success": false, "score": 40},
   "artifacts": {},
   "error": null
@@ -126,6 +129,32 @@ ticks are not added to `environment_steps`, and an unacknowledged in-flight
 control must not be silently counted as either a confirmed action or zero motion.
 Unknown usage fields remain null. Failed calls retain known accounting; do not
 infer cost, tokens or component identity from missing evidence.
+
+A policy may also report its own cumulative episode usage through the optional
+`episode_usage()` hook, which returns `EpisodeUsage(total, complete)` and is read
+once after `end_episode`. Per-call records stay as measured; the episode `usage`
+is reconciled field by field from the per-call sum S and the reported total T:
+
+- T unknown keeps S; S unknown with T known takes T.
+- T ≥ S takes T. The difference is usage that no single call reported, such as
+  tokens a provider reports only after the next call.
+- T < S contradicts the measured calls. The field becomes null and is listed in
+  `inconsistent_fields`; it is never clamped to either side.
+
+The runner then writes one `usage_reconciliation` event, the last before
+`episode_end`, with `policy_call_sum` (S), `reported_total` (T),
+`reported_complete`, per-field `adjustment` (T − S, null when either side is
+unknown or the field is inconsistent), `inconsistent_fields` and the final
+`usage`, which equals the result's `usage`. `reported_complete: false` means
+the policy knows its total omits some usage, for example a final response whose
+tokens were never reported; the episode total then excludes it. A hook that
+raises or returns another type counts as an unknown total with
+`reported_complete: false` and the warning `episode_usage_unavailable`; it does
+not change the outcome. The result repeats the event's `reported_complete` and
+`inconsistent_fields` as `usage_reported_complete` and `usage_inconsistent_fields`.
+Without the hook both are null, there is no such event, and `usage` is the
+per-call sum. Per-call usage therefore need not add up to episode usage, and
+`component_usage` is not reconciled.
 
 Optional `component_usage` maps declared model component IDs to the same six
 usage fields. Missing components/fields are unknown, never zero or a share of
@@ -155,9 +184,11 @@ deleted or retried.
 
 `summary.json` repeats `run_id`, `benchmark` (name), `policy` (name), and totals
 for `attempted`, `completed`, `errors`, `successes`, `policy_calls`,
-`rejected_actions`, and the six-field aggregate `usage` object. Optional
-`component_usage` must agree with episode totals. Unknown propagates when
-summing usage. When both are known, cached input tokens cannot exceed input
+`rejected_actions`, and the six-field aggregate `usage` object.
+`usage_incomplete_episodes` counts episodes with `usage_reported_complete: false`
+or a nonempty `usage_inconsistent_fields`; while it is above zero the usage
+totals are not final. Optional `component_usage` must agree with episode totals.
+Unknown propagates when summing usage. When both are known, cached input tokens cannot exceed input
 tokens. Optional `success_rate`, `attempt_success_rate`, `selected_success_rate`
 and `completion_rate` must agree with the recorded counts; boolean rates are invalid.
 

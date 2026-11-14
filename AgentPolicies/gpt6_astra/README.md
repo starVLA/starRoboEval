@@ -1,10 +1,14 @@
-# codex_native: a Bench Server validation client
+# Native GPT-6-Astra Policy
 
-This profile provides **`codex_native` (`codex-native/v2`)**, a client for validating
-Bench Server integration, observation/action contracts and result recording.
-It selects numeric actions through a conversation that persists within each episode.
-The Benchmark service owns native control, task conditions and scoring;
-interface compatibility alone does not establish native benchmark performance.
+This profile is the **Native GPT-6-Astra Policy**: GPT-6-Astra controls the robot
+directly, with one generic setup and one prompt shared by every benchmark. It is
+the baseline for what the model does before anything is tailored to a benchmark.
+In code, the profile is `gpt6_astra`, the control method is `codex-native/v2`
+(implemented in `codex_native.py`) and records name the policy
+`gpt6-astra-codex-native`.
+
+The model chooses numeric actions through one conversation per episode. The
+benchmark service owns native control, task conditions and scoring.
 
 ## File layout
 
@@ -21,7 +25,7 @@ gpt6_astra/
 │   ├── runner.py                  # Reusable execution loop and accounting
 │   ├── persistent_runtime.py      # Conversation, execution feedback and recovery
 │   ├── public_observation.py      # Public observations and image processing
-│   ├── stagnation_review.py       # Optional acknowledged-command reminder, not a task solver
+│   ├── stagnation_review.py       # Optional repeated-command reminder
 │   ├── json_io.py                 # Structured data handling
 │   ├── codex_app_server.py        # App-server communication
 │   └── codex_runtime.py           # CLI installation, version and login checks
@@ -33,20 +37,25 @@ gpt6_astra/
 The general CLI also reuses `tools/runner.py`; stopping preferences remain
 specific to each profile.
 
-## Configuration
+## Baseline configuration
 
-Edit the [method parameters](configs/codex_native_config.json) and
-[prompt](configs/codex_native_prompt.txt). There is one method and one default
-configuration; its schema bounds every override. `run.py` exposes `--image-max-edge`,
+The baseline is the checked-in [configuration](configs/codex_native_config.json)
+and [prompt](configs/codex_native_prompt.txt), used unchanged on every benchmark.
+It requests `gpt-6-astra` / `xhigh` over `codex-app-server/v1`, with a chunk limit
+of 5, a 900-second call timeout and image previews with a longest side of 480
+pixels; original PNGs remain available. `reasoning_effort` is passed to Codex as
+configured; Codex decides which values it accepts. Voluntary `safety_stop` and
+`task_complete` are enabled, and the model decides whether to use them. The
+stagnation review is disabled. Nothing in this setup is tuned to a benchmark or
+its failure modes.
+
+The schema bounds every override. `run.py` exposes `--image-max-edge`,
 `--safety-stop`, `--allow-task-completion` and `--stagnation-*`; other settings,
-including the chunk limit, change only by editing the configuration. Effective settings are
-recorded in results. Defaults request `gpt-6-astra` / `xhigh` over
-`codex-app-server/v1`, with a chunk limit of 5, a 900-second call timeout and image
-previews with a longest side of 480 pixels. `reasoning_effort` is passed to Codex
-as configured; Codex decides which values it accepts. Voluntary `safety_stop` and
-`task_complete` are enabled; the model decides whether to use them.
-Original PNGs remain available.
-Each run separately declares a finite call cap and the service's execution budget.
+including the chunk limit, change only by editing the configuration. A run that
+changes any of these, or the prompt, is a different method: report it as its own
+entry, not as the Native GPT-6-Astra Policy. Effective settings are recorded in
+results. Each run separately declares a finite call cap and the service's
+execution budget.
 
 ## Installation
 
@@ -57,14 +66,14 @@ pip install -e '.[gpt6-astra-codex]'
 python -B -m benchkit preflight-policy --model-profile gpt6_astra
 ```
 
-Preflight starts neither model inference nor simulation, and does not prove model
-access or native environment readiness. The client uses Codex login through
-app-server and requires the existing ChatGPT login in this source version;
-there is no API-key runtime profile or SDK fallback in this checkout.
+Preflight checks the CLI version, login and configuration without starting model
+inference or a simulation. The policy uses the existing ChatGPT login through the
+Codex app-server.
 
 ## Single-task integration example
 
-Start the service following the selected Benchmark's README, then connect:
+Start the service with `rsi-bench serve --benchmark BENCHMARK_ID ...`, following
+the selected Benchmark's README, then connect:
 
 ```sh
 python -B -m AgentPolicies.gpt6_astra.run \
@@ -72,39 +81,30 @@ python -B -m AgentPolicies.gpt6_astra.run \
   --seed SEED --episodes 1 \
   --max-policy-calls DECLARED_CALL_CAP \
   --output-dir AgentPolicies/gpt6_astra/results/BENCHMARK_ID/raw \
-  --run-id DATE-TASK-short-description-native-v2-once
+  --run-id DATE-TASK-short-description
 ```
 
-Replace the uppercase placeholders and confirm the complete task schedule, seed,
-episode count and advertised horizon before running. `--max-steps` defaults to the
-service's advertised horizon; an explicit value overrides it, and the manifest
-records the service horizon (null if none) and whether the value was overridden.
-The shared server does not check the client's value. A smaller override departs
-from the native budget; some adapters still truncate at their own horizon. The method is
-always `codex-native/v2`; the chunk limit comes from the method config.
-By default the driver executes the whole chunk; a service-declared
-`required_replan_interval` becomes the executed prefix and narrows the chunk the
-method offers. Supply the token to the trusted
-driver through `RSI_SIM_SERVER_TOKEN`, never through model inputs.
+Replace the uppercase placeholders. `--max-steps` and `--max-policy-calls` default
+to the service's advertised horizon and call allowance; use the defaults for
+reported runs. An explicit value overrides them, and the manifest records both
+the service value and the override. The driver executes the whole chunk unless
+the service declares a `required_replan_interval`, which then caps the chunk.
+Pass the service token through `RSI_SIM_SERVER_TOKEN`; it stays in the driver
+and never reaches the model.
 
-This client requires a service configured with `budget_mode: "horizon"`, not a
-decision-coupled execution track. For the checked-in LIBERO server example,
-use `--benchmark libero --seed 20260907 --episodes 1` (advertised horizon 520) and
-choose the method's call cap.
+The driver requires a service with `budget_mode: "horizon"`. For the checked-in
+LIBERO server example, use `--benchmark libero --seed 20260907 --episodes 1`
+(advertised horizon 520).
 
-Startup separates local configuration from service discovery and runtime readiness:
+Startup runs in this order and stops at the first failure, before any case is
+claimed:
 
-1. Validate the local policy configuration against its schema and check source origins.
-   A failure stops before contacting the benchmark or starting a runtime probe. A
-   `--method-file` is normalized and recorded as declared, not compared with the policy.
+1. Validate the local configuration against its schema. A `--method-file` is
+   normalized and recorded.
 2. Read the server's `describe` response and check interface, schedule and budget
-   compatibility. This does not claim or initialize an episode.
-3. Probe the local CLI and its temporary configuration session. This may create
-   subprocesses and temporary files, but does not start model inference.
-4. Only after those checks, enter the evaluation runner and claim the selected case.
-
-A failed readiness check leaves the case unclaimed. These are this driver's
-startup stages, not extra requirements imposed by the benchmark on other agents.
+   compatibility.
+3. Probe the local Codex CLI and its configuration, without model inference.
+4. Enter the evaluation runner and claim the selected case.
 
 ## Inputs and execution boundaries
 
@@ -112,66 +112,74 @@ The model receives public task text, RGB images, declared robot state and action
 semantics, remaining control budget and acknowledged execution feedback. It gets
 no administrative client, credentials, layout/seed metadata, private scores,
 simulator handles or reset tools. The driver does not forward arbitrary
-`control_feedback` payloads; the model does not read arbitrary Benchmark files.
-Notes remain within the episode.
-Local permission checks are not OS isolation; see the [development boundary](AGENTS.md).
+`control_feedback` payloads.
 
-`robot_act` submits numeric action vectors. The method chooses chunks (configurable
-from 1–32) and repetitions; the service executes each control separately. Invalid
-actions execute nothing and return correction feedback on the next counted call.
-Acknowledged prefixes retain their actual counts; uncertain controls are never
-replayed. The client does not repair actions, solve tasks through fallbacks or
-automatically generate return trajectories. Native termination and budgets always apply.
+The model works in its own episode workspace: it can run code in a scratch
+directory, view the received images and keep notes, and the workspace lasts only
+for this episode. Its Codex session has network access and web search
+disabled, no MCP servers, no inherited shell environment, project documents,
+hooks or memories, and file access limited to that workspace and the received
+observations. The effective Codex configuration is checked before the first turn;
+any extra capability stops the run. See the [development boundary](AGENTS.md).
 
-The reference runner checks the public instruction in every acknowledged
-observation. If it changes, the remaining actions from that decision are not
-executed; the next policy call receives the new instruction and observation.
-This uses no private subtask status or score, and does not reset policy memory.
-Unchanged language permits the method's selected multi-control prefix. New run
-manifests record `instruction_change_handling: "replan-after-ack/v1"`; this is
-reference-driver behavior, not a server-imposed inference frequency.
+`robot_act` submits numeric action vectors. The model chooses how many controls
+to send (up to the configured chunk limit, 1–32) and how often to repeat them;
+the service executes each control separately. An invalid action executes nothing
+and comes back as correction feedback on the next call. Acknowledged prefixes
+keep their actual counts, and uncertain controls are never replayed. Native
+termination and budgets always apply.
 
-Voluntary `safety_stop` is enabled by default; ordinary give-up is not available.
-`--no-safety-stop` disables safety stops for one run. When disabled,
-an empty-action safety stop is rejected with correction feedback. When enabled, an explained
-stop ends the attempt without awarding success. This does not disable hardware protection.
+The runner checks the public instruction in every acknowledged observation. If
+it changes, the rest of that decision's actions are skipped and the next call
+receives the new instruction and observation. Manifests record
+`instruction_change_handling: "replan-after-ack/v1"`.
 
-Model-declared completion (`actions=[]` with `stop_reason="task_complete"`) is also
-enabled by default; `--no-allow-task-completion` disables it for one run.
-An enabled declaration ends normally without another control or verification
-cycle. It records the model's judgment, never native success: the benchmark still
-reports its own score and outcome, even when these disagree with the declaration.
+Voluntary `safety_stop` is enabled by default; `--no-safety-stop` disables it for
+one run, and an empty-action safety stop is then rejected with correction
+feedback. An explained safety stop ends the attempt without success. Ordinary
+give-up is not available.
 
-`--stagnation-review` enables an advisory after repeated acknowledged constant
-commands (`--stagnation-window 4`, configurable from 2 to 32 decisions; giving
-a window also enables the review).
-This is disabled by default and does not infer a stall, enforce a motion change,
-stop the episode or query hidden scores. Repeated velocity commands may be useful.
-Only acknowledged prefixes count; rejected or uncertain actions do not create
-new evidence. The optional completion operation does not depend on this reminder.
+Model-declared completion (`actions=[]` with `stop_reason="task_complete"`) is
+enabled by default; `--no-allow-task-completion` disables it for one run. A
+declaration ends the episode without another control. The benchmark still scores
+the episode with its own evaluator, and the declaration is recorded separately.
+
+`--stagnation-review` (disabled by default) adds a reminder to the observation
+after repeated acknowledged constant commands. `--stagnation-window` sets how
+many decisions trigger it (2–32, default 4) and also enables the review. The
+reminder takes no action and ends nothing; only acknowledged prefixes count.
 
 ## Recovery and results
 
-Model-call recovery stays in the same conversation; it cannot reset a task, switch
-models or replay robot actions. Capacity recovery requires an explicitly failed,
-closed turn with `serverOverloaded`; an error notification alone is insufficient.
-Recovery is bounded, and exhaustion remains an infrastructure error, not native
-failure. Native termination cancels the model without an unmetered final continuation.
-Explicitly retrying network notifications keep the current turn pending; they do
-not authorize another action or a new task. Inherited MCP services are checked
-and disabled before any inference, with the effective configuration verified.
+Model-call recovery stays in the same conversation and never resets the task,
+switches models or replays robot actions. A capacity error is retried only after
+Codex closes the turn as failed with `serverOverloaded`; a network error that
+Codex marks as retrying keeps the turn open. Recovery is bounded; when it is
+exhausted, the episode ends with an infrastructure error, not a policy failure.
+When the episode ends, the model's pending turn is interrupted, not continued.
 
-This flattened client preserves the local Direct v4 completion/review options
-while exposing only `codex-native/v2`. Each run manifest records the git
-revision, dirty flag, profile ID and effective configuration; no model source is
-copied into the run. Historical bounded Native, Direct and Planned methods keep
-their original names and results as data; no old entrypoint forwards to this method.
+Each run manifest records the git revision, dirty flag, profile ID and effective
+configuration; no model source is copied into the run.
 
 Write results under `results/<benchmark>/`, with the canonical task ID and a short
 description in run names. Calls, recovery attempts, executed action decisions and
-controls are recorded separately; unknown usage or cost stays unknown. Interaction
-and media recording default to enabled and may be disabled without changing inputs,
-execution or scoring. Essential results, denominators and errors remain available;
-failed runs are not overwritten. The entire `results/` tree is local and Git-ignored.
-See [recording options](../../docs/recording.md). Historical scores retain their
-original method identities; offline checks prove neither native success nor provider identity.
+controls are recorded separately. Interaction and media recording default to
+enabled and may be disabled without changing inputs, execution or scoring.
+Essential results, denominators and errors remain available; failed runs are not
+overwritten. The entire `results/` tree is local and Git-ignored. See
+[recording options](../../docs/recording.md). For a compact outcome view of a
+closed run, use `python -B -m benchkit.reports.basic_result --run-dir RUN_DIR
+--output-dir REPORT_DIR`.
+
+### Token usage
+
+Codex reports token usage as a running total for the episode's conversation, and
+it reports each response's tokens only after the next tool reply. Per-call usage
+therefore lags one call: the first call is often unknown. At close, the policy
+interrupts the unanswered final tool call, which makes Codex report the last
+response's tokens without another model request. The runner then reconciles the
+per-call sum with this episode total and records one `usage_reconciliation`
+event; the episode's usage is the reconciled total. If the final report does not
+arrive within 10 seconds, the total is kept as seen and marked incomplete
+(`reported_complete: false`). Unknown usage or cost stays unknown. See the
+[result format](../../docs/result-format.md) for the per-field rule.

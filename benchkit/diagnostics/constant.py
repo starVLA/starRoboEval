@@ -6,7 +6,7 @@ from typing import Mapping, Sequence
 
 from benchkit.contracts import (
     ActionChunk, ActionSpec, EpisodeContext, JsonValue, Observation, ObservationSpec,
-    PolicyDecision, PolicyDescriptor,
+    PolicyDecision, PolicyDescriptor, Usage,
 )
 from benchkit.registry import register_policy
 
@@ -33,7 +33,7 @@ class ConstantPolicy:
         pass
 
     def act(self, observation: Observation) -> PolicyDecision:
-        return PolicyDecision(action=self.chunk)
+        return PolicyDecision(action=self.chunk, usage=Usage())
 
     def end_episode(self) -> None:
         pass

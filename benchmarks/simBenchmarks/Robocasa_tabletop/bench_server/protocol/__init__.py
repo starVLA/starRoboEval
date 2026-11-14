@@ -1,1 +1,1 @@
-"""Benchmark-owned evaluation plans; no simulator imports at package import."""
+"""Pinned Tabletop contract and task catalog; no simulator imports at package import."""

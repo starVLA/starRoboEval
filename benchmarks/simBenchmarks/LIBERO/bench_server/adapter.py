@@ -27,9 +27,6 @@ from benchkit.registry import register_benchmark
 
 LIBERO_REVISION = "8f1084e3132a39270c3a13ebe37270a43ece2a01"
 FIRST_PASS_SEED = 20260907
-# Historical public name retained for compatibility. This is the retained
-# StarVLA LIBERO-10 evaluator reference, not a universal official LIBERO limit.
-NATIVE_HORIZON = 520
 SETTLE_STEPS = 10
 CAMERAS = ("agentview", "robot0_eye_in_hand")
 TASK_NAMES = (

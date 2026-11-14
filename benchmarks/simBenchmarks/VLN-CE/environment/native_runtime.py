@@ -40,6 +40,24 @@ def checked_file(path, expected=None):
     return {"path": str(path), "sha256": digest, "bytes": path.stat().st_size}
 
 
+def scene_path(scenes_dir, scene_id):
+    """Map an R2R scene ID under the declared root, as Habitat's R2R loader does.
+
+    Shared by the service adapter and this runtime so both accept the same IDs.
+    """
+    if not isinstance(scene_id, str):
+        raise ValueError("invalid_scene_path")
+    prefix = "data/scene_datasets/"
+    if scene_id.startswith(prefix):
+        scene_id = scene_id[len(prefix):]
+    relative = Path(scene_id)
+    if relative.is_absolute() or ".." in relative.parts or relative.suffix != ".glb":
+        raise ValueError("invalid_scene_path")
+    # Contain the dataset-controlled path lexically: symlinks inside the
+    # operator-owned scene root (e.g. a linked mp3d/ tree) remain usable.
+    return Path(scenes_dir).resolve(strict=True) / relative
+
+
 def load_selected_episode(dataset_path, scenes_dir, episode_id, expected_sha256=None):
     """Read the declared complete split and select exactly the requested ID."""
     source = checked_file(dataset_path, expected_sha256)
@@ -55,20 +73,7 @@ def load_selected_episode(dataset_path, scenes_dir, episode_id, expected_sha256=
     if len(selected) != 1:
         raise ValueError("episode_id_missing_or_ambiguous")
     episode = copy.deepcopy(selected[0])
-    # Match Habitat's native R2R scene-path prefix handling, with an owned root.
-    scene_id = episode["scene_id"]
-    if not isinstance(scene_id, str):
-        raise ValueError("invalid_scene_path")
-    prefix = "data/scene_datasets/"
-    if scene_id.startswith(prefix):
-        scene_id = scene_id[len(prefix):]
-    relative = Path(scene_id)
-    if relative.is_absolute() or ".." in relative.parts:
-        raise ValueError("invalid_scene_path")
-    root = Path(scenes_dir).resolve(strict=True)
-    scene = (root / relative).resolve(strict=True)
-    if root not in scene.parents or scene.suffix != ".glb":
-        raise ValueError("scene_outside_declared_root")
+    scene = scene_path(scenes_dir, episode["scene_id"])
     navmesh = scene.with_suffix(".navmesh")
     assets = {"scene": checked_file(scene), "navmesh": checked_file(navmesh)}
     episode["scene_id"] = str(scene)

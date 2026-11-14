@@ -17,8 +17,8 @@ import re
 import tempfile
 
 from benchkit.audits.closed_run import ClosedFiles, counter, require
-from benchkit.methods import (USAGE_FIELDS, method_from_policy, normalize_method,
-                             normalize_usage, normalize_component_usage, sum_component_usage)
+from benchkit.methods import (USAGE_FIELDS, normalize_method, normalize_usage,
+                             normalize_component_usage, sum_component_usage)
 
 SCHEMA = "starvla-rsi.basic-result/v1"
 MAX_BYTES = 128 * 1024 * 1024
@@ -136,11 +136,7 @@ def _public_contracts(manifest):
 
 
 def _recording(manifest):
-    declaration = manifest.get("recording")
-    if declaration is None:
-        return {"availability": "not_declared", "configuration": None,
-                "publication_requirement": False}
-    value = _object(declaration, "recording")
+    value = _object(manifest.get("recording"), "recording")
     # Only known scalar settings, never paths, arbitrary metadata or receipts.
     allowed = {"mode", "preset", "schema_version", "scope", "source_capture"}
     settings = {key: _text(value[key], "recording " + key) for key in allowed if key in value}
@@ -172,7 +168,7 @@ def _build_result(run_dir, metrics=()):
     benchmark = _object(manifest.get("benchmark"), "benchmark")
     policy = _object(manifest.get("policy"), "policy")
     _text(policy.get("name"), "policy name")
-    method = normalize_method(manifest["method"]) if "method" in manifest else method_from_policy(policy)
+    method = normalize_method(manifest.get("method"))
     public_benchmark = {key: _text(benchmark.get(key), key) for key in (
         "name", "version", "protocol_version", "source_revision")}
     contracts = _public_contracts(manifest)
@@ -197,6 +193,7 @@ def _build_result(run_dir, metrics=()):
         indexed[identifier] = row
     public_rows = []
     component_usage = {row["id"]: dict.fromkeys(USAGE_FIELDS, 0) for row in method["models"]}
+    usage_incomplete = 0
     max_steps = counter(protocol.get("max_steps"), "control budget")
     require(max_steps > 0, "control budget must be positive")
     max_calls = protocol.get("max_policy_calls")
@@ -211,8 +208,8 @@ def _build_result(run_dir, metrics=()):
                 "episode index/schedule/result mismatch")
         seed = episode.get("seed")
         require(type(seed) is int, "invalid episode seed")
-        counts = {key: counter(row.get(key, 0) if key == "rejected_actions" else row.get(key), key)
-                  for key in ("policy_calls", "action_decisions", "environment_steps", "rejected_actions")}
+        counts = {key: counter(row.get(key), key) for key in
+                  ("policy_calls", "action_decisions", "environment_steps", "rejected_actions")}
         require(counts["action_decisions"] <= counts["policy_calls"]
                 and counts["action_decisions"] <= counts["environment_steps"]
                 and counts["rejected_actions"] <= counts["policy_calls"], "inconsistent episode counters")
@@ -245,10 +242,16 @@ def _build_result(run_dir, metrics=()):
                 "invalid episode duration")
         component = normalize_component_usage(row.get("component_usage"), method)
         component_usage = sum_component_usage(component_usage, component, method)
+        reported_complete, inconsistent = row.get("usage_reported_complete"), row.get("usage_inconsistent_fields")
+        require(reported_complete is None and inconsistent is None or type(reported_complete) is bool
+                and type(inconsistent) is list and set(inconsistent) <= set(USAGE_FIELDS),
+                "invalid usage reconciliation summary")
+        usage_incomplete += reported_complete is False or bool(inconsistent)
         public_rows.append({"id": identifier, "task": _text(episode.get("task"), "task"), "seed": seed,
             "status": row["status"], "success": success,
             "termination_reason": _text(row.get("termination_reason"), "termination reason"),
             "counters": counts, "duration_s": duration, "usage": normalize_usage(row.get("usage")),
+            "usage_reported_complete": reported_complete, "usage_inconsistent_fields": inconsistent,
             "component_usage": component, "native_metrics": selected_metrics, "error": public_error,
             "recording": _recording(row)})
     completed = sum(row["status"] == "completed" for row in rows)
@@ -264,15 +267,16 @@ def _build_result(run_dir, metrics=()):
             "summary identity mismatch")
     expected = {"attempted": len(rows), "completed": completed, "errors": len(rows) - completed,
                 "successes": successes, "policy_calls": sum(row["policy_calls"] for row in rows),
-                "rejected_actions": sum(row.get("rejected_actions", 0) for row in rows)}
+                "rejected_actions": sum(row["rejected_actions"] for row in rows)}
     for key, number in expected.items():
-        require(counter(summary.get(key, 0) if key == "rejected_actions" else summary.get(key), key) == number,
-                "summary counter mismatch: " + key)
+        require(counter(summary.get(key), key) == number, "summary counter mismatch: " + key)
     usage = _sum_usage(rows)
     require(_same(normalize_usage(summary.get("usage")), usage), "summary usage mismatch")
-    if "component_usage" in summary:
-        require(_same(normalize_component_usage(summary["component_usage"], method), component_usage),
-                "summary component usage mismatch")
+    require(counter(summary.get("usage_incomplete_episodes"), "incomplete usage episodes") == usage_incomplete,
+            "summary incomplete usage count mismatch")
+    summary_components = _object(summary.get("component_usage"), "summary component usage")
+    require(_same(normalize_component_usage(summary_components, method), component_usage),
+            "summary component usage mismatch")
     outcome = {"scope": "client_selected_schedule", "planned": len(schedule),
                "unattempted": len(schedule) - len(rows), **expected,
                "action_decisions": sum(row["action_decisions"] for row in rows),
@@ -304,32 +308,28 @@ def _build_result(run_dir, metrics=()):
                 "invalid recorded control-horizon override")
         public_protocol.update(service_environment_step_cap=service_cap,
                                max_steps_overridden=protocol["max_steps_overridden"])
-    method_origin = manifest.get("method_origin", "participant_declaration" if "method" in manifest
-                                 else "legacy_policy_projection")
-    require(method_origin in {"participant_declaration", "legacy_policy_projection"}, "invalid method origin")
+    method_origin = manifest.get("method_origin")
+    require(method_origin in {"participant_declaration", "policy_descriptor_projection"}, "invalid method origin")
     report = {"schema_version": SCHEMA, "run_id": _text(manifest.get("run_id"), "run ID"),
               "benchmark": public_benchmark, "method": method,
               "method_origin": method_origin,
               "configuration_availability": "participant_supplied" if method_origin == "participant_declaration"
-                                            else "not_supplied_in_legacy_identity_projection",
+                                            else "not_supplied_in_policy_descriptor_projection",
               "identity_evidence": "participant_declaration_not_provider_attestation",
               "protocol": public_protocol, "contracts": contracts, "recording": _recording(manifest),
-              "outcome": outcome, "usage": usage, "component_usage": component_usage,
+              "outcome": outcome, "usage": usage, "usage_incomplete_episodes": usage_incomplete,
+              "component_usage": component_usage,
               "episodes": public_rows, "selected_native_metrics": metric_keys,
               "record_check": "closed_result_index_and_summary_consistent",
               "limitations": ["Interaction recording is optional and is not a publication requirement.",
                   "No event, source, provider or native execution audit is implied by this presentation.",
                   "The denominator is the client-selected schedule, not necessarily the entire benchmark.",
                   "Missing usage is unknown, not zero; model composition and usage are reported declarations.",
+                  "Usage totals are not final while usage_incomplete_episodes is above zero.",
                   "Native metrics are included only when explicitly selected; no media or raw traces are copied.",
                   "Review public method configuration and text before publishing; key filtering is not secret detection."]}
     files.verify_unchanged()
     return report, files
-
-
-def build_result(run_dir: Path, *, metrics=()):
-    """Read closed results only; interaction/source evidence is never required."""
-    return _build_result(run_dir, metrics)[0]
 
 
 def render_html(report):
@@ -354,7 +354,9 @@ def render_html(report):
              record(report["outcome"]),
              '<h2>Method and resources</h2>',
              '<p>Configuration: ' + esc(report["configuration_availability"]) + '.</p>', record(report["method"]),
-             record({"aggregate_usage": report["usage"], "component_usage": report["component_usage"]}),
+             record({"aggregate_usage": report["usage"],
+                     "usage_incomplete_episodes": report["usage_incomplete_episodes"],
+                     "component_usage": report["component_usage"]}),
              '<h2>Interaction recording</h2><p>Optional; recording availability does not affect publication eligibility.</p>',
              record(report["recording"]), '<h2>Episodes</h2>']
     for episode in report["episodes"]:

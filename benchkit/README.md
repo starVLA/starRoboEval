@@ -53,23 +53,43 @@ bundles. This directory migration does not start evaluations or complete native
 full presets.
 
 For ordinary closed results use `benchkit.reports.basic_result`; it does not
-require events, media or source snapshots. Optional `interaction_history` needs
-sufficient event evidence. See [recording/results](../docs/recording.md). Neither
+require events, media or source snapshots. `interaction_history` reads the
+trajectory ledger that every recording mode writes. See [recording/results](../docs/recording.md). Neither
 report makes Python Policy mandatory or attests native/provider execution.
 
-The specialized `benchkit.reports.publication` turns one already-closed, complete named-model
-panel into a compact public view. It checks the raw summary, status, manifest,
-panel and episode counts, records hashes of those inputs, the profile ID,
-effective configuration, preset/prompt digests and the client git revision,
-dirty flag and diff digest (a 40-hex revision, boolean dirty flag and 64-hex
-`preset_sha256`/`prompt_sha256` are required), exports the episode
-videos (checked against, and taken from, the paired server record when one is
-declared) under descriptive names that keep the camera, and writes only under the model's
-`results/<benchmark>/` directory. It never moves raw evidence or changes a score.
+The specialized `benchkit.reports.publication` turns closed named-model results
+into a compact public view under the model's `results/<benchmark>/` directory.
+`--raw-run` is either one closed client run (optionally a `client/` + `server/`
+pair) or a `remote-run` output directory. For a remote run, the planned cases
+in its `plan.json` are the denominator. A case's outcome is its first attempt:
+the oldest lease whose client run closed a row that is not an infrastructure
+error, with or without a completion record (a policy error exits nonzero).
+Later attempts are listed but not used; leases whose client crashed, never
+started or closed only infrastructure errors are not attempts. Cases without an
+attempt count as missing results. A single run's denominator is its `manifest.protocol.episode_ids`.
+Each client run is audited, its summary checked against its rows, and every
+input file hashed. The manifests must carry the profile ID (equal to the result
+namespace), a 64-hex `preset_sha256`, and a 40-hex client git revision with its
+dirty flag; the rest of the policy parameters is published only as a digest.
+The cases of a remote run must share benchmark, policy, method, protocol and
+client source. A paired server record binds outcomes and videos; a remote run,
+or a single run without its `server/` pair, is bound to the client-held SIM
+receipts only, and server-only videos are listed as hash references. Only a
+complete panel without infrastructure errors is accepted. Usage totals are
+published with `usage_incomplete_episodes`, and each episode keeps
+`usage_reported_complete` and `usage_inconsistent_fields`, so totals are not
+read as final while a policy's own usage report was incomplete or inconsistent.
+`--reference SUCCESSES/EPISODES` adds an operator-declared comparison.
+All checks run before any file is written; it never moves raw evidence or
+changes a score. Re-publishing identical content is a no-op. A publication that
+is not accepted is replaced in full (report and media directory) when the new
+one comes from the same source: the same raw directory name and the same planned
+profile, panel and cases, such as a remote run that has closed more cases since.
+An accepted publication is never replaced.
 
 ```sh
 python -B -m benchkit.reports.publication \
-  --raw-run AgentPolicies/gpt6_astra/results/robodojo/raw/accepted-run \
-  --results-root AgentPolicies/gpt6_astra/results/robodojo \
-  --task-description classify_objects=category-sorting
+  --raw-run records/ \
+  --results-root AgentPolicies/gpt6_astra/results/<benchmark> \
+  --task-description <task>=<short-english-description>
 ```

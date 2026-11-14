@@ -114,6 +114,9 @@ def verify_native_source(root: Path) -> dict:
 
 
 def prepare_native_import(root: Path) -> dict:
+    # Native imports must not leave bytecode caches that the next session's
+    # source inventory would reject; pre-existing caches still fail it.
+    sys.dont_write_bytecode = True
     source = verify_native_source(root)
     for package, expected in PACKAGE_PINS.items():
         try:

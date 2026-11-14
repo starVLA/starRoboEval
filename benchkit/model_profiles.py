@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from contextlib import contextmanager, redirect_stderr, redirect_stdout
 from dataclasses import replace
+import hashlib
 import importlib
 import json
 import math
@@ -118,7 +119,8 @@ def load_profile(profile_id: str) -> dict[str, Any]:
                    or ".." in Path(profile[key]).parts
                    for key in ("config", "configuration_schema", "prompt"))):
         raise ValueError("invalid model profile declaration")
-    config = _json((directory / profile["config"]).read_bytes())
+    config_bytes = (directory / profile["config"]).read_bytes()
+    config = _json(config_bytes)
     configuration = _json((directory / profile["configuration_schema"]).read_bytes())
     prompt = (directory / profile["prompt"]).read_text(encoding="utf-8")
     execution = validate_configuration(profile_id, config, configuration)
@@ -130,7 +132,8 @@ def load_profile(profile_id: str) -> dict[str, Any]:
         raise ValueError("invalid model profile policy identity")
     if not prompt.strip() or len(prompt) > 32768:
         raise ValueError("profile prompt must be nonempty and at most 32768 characters")
-    return {"profile": profile, "config": config, "prompt": prompt, "configuration": configuration, **execution}
+    return {"profile": profile, "config": config, "prompt": prompt, "configuration": configuration,
+            "preset_sha256": hashlib.sha256(config_bytes).hexdigest(), **execution}
 
 
 def validate_policy_parameters(data: dict[str, Any], parameters: dict[str, Any]) -> None:
@@ -144,19 +147,20 @@ def validate_policy_parameters(data: dict[str, Any], parameters: dict[str, Any])
 
 
 def create_policy(profile_id: str, **parameters):
-    """Resolve one profile factory lazily and record the profile ID it came from."""
+    """Resolve one profile factory lazily; record the profile ID and configuration digest.
+
+    The factory receives the loaded configuration, schema, identity and prompt;
+    it does not read the profile files again.
+    """
     data = load_profile(profile_id)
     validate_policy_parameters(data, parameters)
     parameters.setdefault("prompt", data["prompt"])
     module_name, function_name = data["profile"]["factory"].split(":")
     module = importlib.import_module(module_name)
-    # The recorded Git revision describes this checkout only.
-    expected = _ROOT / (module_name.replace(".", "/") + ".py")
-    if Path(module.__file__).absolute() != expected:
-        raise ValueError("model factory was imported outside the selected package")
-    policy = getattr(module, function_name)(config=data["config"], identity=data["profile"]["policy"], **parameters)
+    policy = getattr(module, function_name)(config=data["config"], schema=data["configuration"],
+                                            identity=data["profile"]["policy"], **parameters)
     policy.descriptor = replace(policy.descriptor, parameters={
-        **policy.descriptor.parameters, "model_profile": profile_id,
+        **policy.descriptor.parameters, "model_profile": profile_id, "preset_sha256": data["preset_sha256"],
     })
     return policy
 

@@ -53,8 +53,6 @@ DAMPING = 0.05
 MAX_TRANSLATION_STEP = 0.02
 MAX_ROTATION_STEP = 0.1
 MAX_JOINT_STEP = 0.05
-MAX_TARGET_TRANSLATION = 0.05
-MAX_TARGET_ROTATION = 0.35
 MAX_URDF_BYTES = 8 * 1024 * 1024
 MAX_CHAIN_JOINTS = 64
 
@@ -109,28 +107,6 @@ def _rigid_matrix(value, label="transform"):
         or not np.isclose(np.linalg.det(rotation), 1.0, rtol=0, atol=1e-6)):
         raise ValueError(f"{label} must be a proper rigid transform")
     return result
-
-
-def matrix_pose(value):
-    """Return JSON-safe position/quaternion_wxyz from a proper rigid transform."""
-    matrix = _rigid_matrix(value)
-    quaternion = Rotation.from_matrix(matrix[:3, :3]).as_quat()
-    return {"position": matrix[:3, 3].tolist(),
-            "quaternion_wxyz": quaternion[[3, 0, 1, 2]].tolist()}
-
-
-def validate_target(current_pose7, target_pose7):
-    """Check one decision's Euclidean 5 cm/geodesic .35 rad bound; never clip."""
-    current, target = validate_pose7(current_pose7), validate_pose7(target_pose7)
-    distance = float(np.linalg.norm(target[:3] - current[:3]))
-    before = Rotation.from_quat(current[[4, 5, 6, 3]])
-    after = Rotation.from_quat(target[[4, 5, 6, 3]])
-    angle = float((after * before.inv()).magnitude())
-    if distance > MAX_TARGET_TRANSLATION + 1e-9:
-        raise ValueError("EEF target exceeds 5 cm Euclidean distance")
-    if angle > MAX_TARGET_ROTATION + 1e-9:
-        raise ValueError("EEF target exceeds 0.35 rad")
-    return target
 
 
 def _name(value, label):
@@ -301,8 +277,6 @@ class ArmFK:
     def bounded_target(self, q, limits, root, target, *, execution_mode=STRICT_DLS):
         """One reference DLS update; target choice and real control stay with caller.
 
-        A selected model can validate its decision's 5 cm/.35 rad bound with
-        measured poses; the benchmark does not impose that model preference.
         Recompute after each real ACK. Historical strict mode requires measured
         joints inside native limits and rounds float32 bounds inward. Reference
         mode exactly uses the nonempty limits/inter-step intersection and the

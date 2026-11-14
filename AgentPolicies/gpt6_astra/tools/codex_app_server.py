@@ -34,9 +34,7 @@ import time
 
 TRANSPORT = "codex-app-server-stdio/v1"
 _ENVIRONMENT = ("HOME", "CODEX_HOME", "USER", "LOGNAME", "PATH", "TMPDIR", "TZ",
-                "LANG", "LC_ALL", "HTTPS_PROXY", "HTTP_PROXY", "ALL_PROXY", "NO_PROXY",
-                "https_proxy", "http_proxy", "all_proxy", "no_proxy",
-                "SSL_CERT_FILE", "SSL_CERT_DIR")
+                "LANG", "LC_ALL")
 _METHODS = frozenset({"initialize", "initialized", "thread/start", "thread/read",
     "thread/resume", "thread/started", "thread/status/changed", "thread/tokenUsage/updated",
     "turn/start", "turn/started", "turn/completed", "turn/interrupt", "turn/failed",
@@ -115,7 +113,7 @@ def _duration(value):
 
 
 def child_environment(source=None):
-    """Select CLI/login/network path variables, never evaluator/API credentials.
+    """Select CLI/login path and locale variables, never evaluator/API credentials.
 
     Explicit environments receive the same allowlist. Values are not logged;
     no authentication file, token, keyring or arbitrary environment key is read.

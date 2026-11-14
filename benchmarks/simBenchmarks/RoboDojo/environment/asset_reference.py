@@ -151,7 +151,7 @@ def _verify_reference_assets(document: dict, runtime_assets: Path,
     names = []
     for item in runtime_assets.rglob("*"):
         if item.is_symlink():
-            raise ValueError("runtime asset symlink is outside frozen reference")
+            raise ValueError("runtime asset symlink is outside the pinned reference")
         if item.is_file():
             names.append(item.relative_to(runtime_assets).as_posix())
         elif not item.is_dir():

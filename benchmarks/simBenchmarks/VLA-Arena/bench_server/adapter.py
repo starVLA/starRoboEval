@@ -1,7 +1,6 @@
 """Model-free VLA-Arena RGB / native OSC actions, with private native scoring."""
 from __future__ import annotations
 
-import hashlib
 import importlib
 import json
 import math

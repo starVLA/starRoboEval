@@ -29,20 +29,38 @@ def atomic_write_json(path: Path, payload: Mapping[str, JsonValue], *, overwrite
     """Write one JSON object without exposing a partially written final file."""
     normalized = ensure_jsonable(payload, str(path))
     path.parent.mkdir(parents=True, exist_ok=True)
-    with tempfile.NamedTemporaryFile(
+    handle = tempfile.NamedTemporaryFile(
         "w", encoding="utf-8", dir=path.parent, prefix=f".{path.name}.", delete=False
-    ) as handle:
-        json.dump(normalized, handle, indent=2, sort_keys=True)
-        handle.write("\n")
-        temporary = Path(handle.name)
+    )
+    temporary = Path(handle.name)
     try:
+        with handle:
+            json.dump(normalized, handle, indent=2, sort_keys=True)
+            handle.write("\n")
+            handle.flush()
+            os.fsync(handle.fileno())
         if overwrite:
             os.replace(temporary, path)
         else:
             # Atomic publication without replacing an existing file or symlink.
             os.link(temporary, path)
+        _fsync_directory(path.parent)
     finally:
         temporary.unlink(missing_ok=True)
+
+
+def _fsync_directory(directory: Path) -> None:
+    """Persist a directory entry change where the platform supports it."""
+    try:
+        descriptor = os.open(directory, os.O_RDONLY)
+    except OSError:
+        return
+    try:
+        os.fsync(descriptor)
+    except OSError:
+        pass
+    finally:
+        os.close(descriptor)
 
 
 def append_jsonl(path: Path, payload: Mapping[str, JsonValue]) -> None:

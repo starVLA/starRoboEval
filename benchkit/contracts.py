@@ -7,7 +7,7 @@ from dataclasses import dataclass, field
 from numbers import Real
 from typing import Any, Mapping, Sequence, Union
 
-from benchkit.validation import ValidationIssue
+from benchkit.validation import ValidationIssue, validate_action_vector
 
 JsonScalar = Union[None, bool, int, float, str]
 JsonValue = Union[JsonScalar, list["JsonValue"], dict[str, "JsonValue"]]
@@ -73,23 +73,21 @@ class ActionSpec:
             raise ValueError("control_hz must be finite and positive")
 
     def validate(self, values: Sequence[float]) -> tuple[float, ...]:
-        """Return a normalized action vector or raise on a contract violation."""
-        if len(values) != self.size:
-            raise ValueError(f"expected action size {self.size}, got {len(values)}")
-        normalized: list[float] = []
-        for index, value in enumerate(values):
-            if isinstance(value, bool) or not isinstance(value, Real):
-                raise TypeError(f"action[{index}] must be a real number, not {type(value).__name__}")
-            number = float(value)
-            if not math.isfinite(number):
-                raise ValueError(f"action[{index}] must be finite")
-            if self.low is not None and self.high is not None:
-                if number < self.low[index] or number > self.high[index]:
-                    raise ValueError(
-                        f"action[{index}]={number} outside [{self.low[index]}, {self.high[index]}]"
-                    )
-            normalized.append(number)
-        return tuple(normalized)
+        """Return a normalized action vector or raise TypeError/ValueError.
+
+        Delegates to ``validate_action_vector`` so both entry points share one
+        rule set; this form suits adapters that report plain exceptions.
+        """
+        from benchkit.errors import ActionRejected
+
+        try:
+            return validate_action_vector(self, tuple(values))
+        except ActionRejected as exc:
+            issue = exc.issue
+            details = ", ".join(f"{key}={value}" for key, value in issue.to_dict().items()
+                                if key not in ("code", "field") and value is not None)
+            message = f"action violates its contract: {issue.code}" + (f" ({details})" if details else "")
+            raise (TypeError if issue.code == "invalid_type" else ValueError)(message) from None
 
     def to_dict(self) -> dict[str, JsonValue]:
         return ensure_jsonable(
@@ -316,6 +314,26 @@ class Usage:
 
 
 @dataclass(frozen=True)
+class EpisodeUsage:
+    """A policy's own cumulative usage for one episode, read once after end_episode.
+
+    The runner reconciles it with the sum of per-call usage; per-call records
+    stay as measured. Unknown fields are None (``Usage.unavailable()``).
+    ``complete`` is False when the total is known to omit some provider usage,
+    such as a final response whose usage was never reported.
+    """
+
+    total: Usage
+    complete: bool
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.total, Usage):
+            raise TypeError("episode usage total must be a Usage")
+        if not isinstance(self.complete, bool):
+            raise TypeError("episode usage complete must be a bool")
+
+
+@dataclass(frozen=True)
 class ActionChunk:
     """One policy decision containing one or more native action vectors."""
 
@@ -349,7 +367,8 @@ class PolicyDecision:
     stop_reason: str | None = None
     note: str | None = None
     metadata: Mapping[str, JsonValue] = field(default_factory=dict)
-    usage: Usage = field(default_factory=Usage)
+    # Unreported usage is unknown; policies without provider calls pass Usage().
+    usage: Usage = field(default_factory=Usage.unavailable)
 
     def __post_init__(self) -> None:
         if not isinstance(self.stop, bool):
@@ -362,6 +381,8 @@ class PolicyDecision:
             raise ValueError("decision must contain exactly one of action or stop")
         if self.stop and not self.stop_reason:
             raise ValueError("stop decisions require stop_reason")
+        if not isinstance(self.metadata, Mapping):
+            raise TypeError("decision metadata must be a mapping")
         ensure_jsonable(self.metadata, "policy decision metadata")
 
 
@@ -426,16 +447,10 @@ class ControlAcknowledgement:
     def to_dict(self) -> dict[str, JsonValue]:
         return ensure_jsonable(self.__dict__)
 
-    @classmethod
-    def from_dict(cls, value: dict) -> "ControlAcknowledgement":
-        if type(value) is not dict or set(value) != {"environment_step", "observation_step", "payload"}:
-            raise ValueError("invalid control acknowledgement fields")
-        return cls(**value)
-
 
 def _validate_control_acks(acks, executed_steps: int, environment_steps: int) -> None:
     if acks is None:
-        return  # Historical counter-only receipts retain their exact shape.
+        return  # The benchmark declares no public control channel; counters only.
     if not isinstance(acks, tuple) or len(acks) != executed_steps:
         raise ValueError("control acknowledgements must cover exactly the executed prefix")
     for expected, ack in zip(range(environment_steps - executed_steps + 1, environment_steps + 1), acks):
@@ -521,18 +536,3 @@ class ActionRejectionFeedback:
             "executed_steps": self.executed_steps, "rejected_actions": self.rejected_actions,
             **({"control_acks": [ack.to_dict() for ack in self.control_acks]}
                if self.control_acks is not None else {})}
-
-    @classmethod
-    def from_dict(cls, value: dict) -> "ActionRejectionFeedback":
-        keys = {"schema_version", "issue", "policy_calls", "action_decisions",
-                "environment_steps", "executed_steps", "rejected_actions"}
-        ack_fields = {"control_acks"} if isinstance(value, dict) and "control_acks" in value else set()
-        if (type(value) is not dict or set(value) != keys | ack_fields
-                or value["schema_version"] != "starvla-rsi.action-rejection-feedback/v1"):
-            raise ValueError("invalid action rejection feedback schema")
-        if ack_fields and not isinstance(value["control_acks"], list):
-            raise ValueError("control acknowledgements must be an array")
-        return cls(issue=ValidationIssue.from_dict(value["issue"]),
-                   **({"control_acks": tuple(ControlAcknowledgement.from_dict(ack)
-                       for ack in value["control_acks"])} if ack_fields else {}),
-                   **{key: value[key] for key in keys - {"schema_version", "issue"}})

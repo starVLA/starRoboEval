@@ -40,7 +40,7 @@ binds the provisioned object snapshot.
 
 That inventory describes a reproducible snapshot, not certification of the complete official asset release. The native constructor may warn about an absent category such as `sketchfab/book` and skip a distractor configuration. Retain the warning; do not add/remove categories to conceal it. Every referenced asset in the executed scene must still pass content/dependency checks.
 
-There is not yet a portable all-assets bootstrap/manifest-generation workflow for arbitrary installations. Merely downloading a newer upstream release or copying a subset of objects is insufficient. Adapter defaults also retain site-specific source/inventory locations; relocated deployments must pass `casa_source`, `suite_source` and `object_inventory` explicitly. The supplied inventory and asset root must satisfy the exact pinned contract.
+There is not yet a portable all-assets bootstrap/manifest-generation workflow for arbitrary installations. Merely downloading a newer upstream release or copying a subset of objects is insufficient. The adapter has no default source/inventory locations; every deployment passes `casa_source`, `suite_source` and `object_inventory` explicitly. The supplied inventory and asset root must satisfy the exact pinned contract.
 
 At reset the adapter checks the object inventory's complete names/sizes and hashes the used-scene object content against the inventory. It does not rehash every unused object on every reset. Keep this distinction when reporting asset evidence.
 
@@ -60,7 +60,7 @@ PYTHONHASHSEED=0 python \
 
 It verifies sources/assets, constructs the selected native environment, resets, renders and executes an evaluator-owned measured hold. Its policy-call count is zero. Retain the diagnostic status/errors, compiled control and encoder contract, initial-state hash, delivered images and completely decodable video. A native reset or hold is not a capability attempt or a task success claim.
 
-[verify_adapter.py](verify_adapter.py) separately checks the RSI adapter's reset/render/hold path for supported task indices 0, 1, 2 and 19. Its current CLI uses site-specific adapter source/inventory defaults; unlike the command above it does not expose relocation flags. Use it only with a compatible configured layout, or invoke the adapter with explicit paths in evaluator-owned diagnostic setup.
+[verify_adapter.py](verify_adapter.py) separately checks the RSI adapter's reset/render/hold path for supported task indices 0, 1, 2 and 19. Like the command above, it requires `--casa-source`, `--suite-source` and `--object-inventory`.
 
 ## Before starting the service
 

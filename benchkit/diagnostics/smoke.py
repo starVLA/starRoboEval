@@ -17,6 +17,7 @@ from benchkit.contracts import (
     PolicyDecision,
     PolicyDescriptor,
     Transition,
+    Usage,
 )
 from benchkit.registry import register_benchmark, register_policy
 
@@ -131,6 +132,7 @@ class ScriptedReachPolicy:
         return PolicyDecision(
             action=ActionChunk.from_steps(((target,),)),
             note="Move directly to the target in the mock world.",
+            usage=Usage(),
         )
 
     def end_episode(self) -> None:

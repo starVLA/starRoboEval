@@ -134,7 +134,7 @@ budget remain benchmark-owned. A method's five-control example is not a universa
 benchmark rule. Retained decision-coupled tracks and declared replan requirements
 must still match until explicitly migrated.
 
-Records declare `usage_accounting_version: starvla-rsi.method-usage/v1`:
+Records declare `usage_accounting_version: starvla-rsi.method-usage/v2`:
 one decision may contain several model requests. The current auditor rejects a
 record without that marker; older runs remain data.
 
@@ -145,6 +145,11 @@ not repeatedly accumulated totals. Missing component accounting remains unknown;
 aggregate usage is never divided among models or filled in as zero. Optional
 malformed component accounting produces a warning, not a different robot action.
 Aggregate `Usage` remains the validated reference runner contract.
+
+A policy whose provider reports usage late or only cumulatively may implement
+`episode_usage()`. The runner reads it once after `end_episode` and reconciles
+the episode total with the per-call sum, recording any contradiction instead of
+clamping it; see [result format](result-format.md#episode-result).
 
 ## Results are independent of detailed logging
 

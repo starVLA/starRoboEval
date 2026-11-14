@@ -63,8 +63,8 @@ class InteractionRecorder:
 
 The caller supplies actual visible data and must exclude credentials, hidden
 reasoning and evaluator-private information. Bounded I/O failures are recorded
-as warnings instead of changing robot execution. Missing records are not a
-publication gate. Full contents should be reviewed before sharing.
+as warnings instead of changing robot execution; the closed-run audit then
+rejects the incomplete ledger. Full contents should be reviewed before sharing.
 """
 
     def __init__(self, path: Path, options: RecordingOptions):
@@ -102,22 +102,42 @@ publication gate. Full contents should be reviewed before sharing.
             return False
 
     def event(self, path: Path, payload: Mapping) -> None:
-        """Retain generic robot trajectory events only when selected."""
-        if not self.options.interactions:
-            return
+        """Append one trajectory ledger event; switches only strip payloads.
+
+        The ledger (calls, decisions with usage, action chunks, controls,
+        rejections, errors and episode boundaries) is always written because
+        audits, usage totals and reports read it. Without ``interactions`` the
+        observation/transition metadata is dropped; without ``model_io`` the
+        model note and decision/rejection/error metadata are dropped. Unknown
+        event kinds are kept unchanged.
+        """
         try:
             event = dict(payload)
+            kind = event.get("event")
+            if not self.options.interactions:
+                if kind in ("observation", "environment_step") and isinstance(event.get("observation"), Mapping):
+                    event["observation"] = {key: value for key, value in event["observation"].items()
+                                            if key != "metadata"}
+                if kind == "environment_step":
+                    event["info"] = {}
             if not self.options.model_io:
-                if event.get("event") == "policy_decision":
+                if kind == "policy_decision":
                     event["note"] = ""
                     event["metadata"] = {}
-                elif event.get("event") == "action_rejected":
+                elif kind == "action_rejected":
                     event["metadata"] = {}
-                elif event.get("event") in ("error", "artifact_error"):
-                    event["error"] = public_error_record(event["error"], self.options)
+                elif kind in ("error", "artifact_error"):
+                    event["error"] = _without_metadata(event["error"])
             append_jsonl(path, event)
         except (OSError, TypeError, ValueError, RecursionError, OverflowError):
             self.warn("trajectory_recording_failed")
+
+
+def _without_metadata(error):
+    if error is None:
+        return None
+    return {key: (_without_metadata(value) if isinstance(value, dict) else value)
+            for key, value in error.items() if key != "metadata"}
 
 
 def public_error_record(error, options: RecordingOptions):
@@ -127,10 +147,7 @@ def public_error_record(error, options: RecordingOptions):
     participant text. Public reports must project bounded fields, not publish
     this object wholesale. Recording switches are not secret sanitizers.
     """
-    if error is None or options.model_io:
-        return error
-    return {key: (public_error_record(value, options) if isinstance(value, dict) else value)
-            for key, value in error.items() if key != "metadata"}
+    return error if options.model_io else _without_metadata(error)
 
 
 def add_recording_arguments(parser) -> None:

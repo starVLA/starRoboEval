@@ -9,7 +9,7 @@ from typing import Any, Mapping, Sequence
 from benchkit.artifacts import append_jsonl, atomic_write_json
 from benchkit.contracts import (ActionSpec, BenchmarkDescriptor, EpisodeSpec, JsonValue,
                                Observation, ObservationSpec, Transition)
-from benchkit.errors import CompatibilityError, ProtocolError
+from benchkit.errors import ProtocolError
 from benchkit.registry import register_benchmark
 from benchmarks.simBenchmarks.Robotwin.environment import runtime
 

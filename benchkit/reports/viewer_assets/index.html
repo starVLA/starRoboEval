@@ -5,14 +5,14 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self'; media-src 'self'; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'">
   <meta name="color-scheme" content="light">
-  <title>BEHAVIOR · 评测回放</title>
+  <title>评测回放</title>
   <link rel="stylesheet" href="style.css">
   <script defer src="data.js"></script>
   <script defer src="app.js"></script>
 </head>
 <body>
   <header class="page-header">
-    <div><p class="eyebrow">BEHAVIOR / RECORDED EVALUATION</p><h1 id="page-title">评测回放</h1><p class="subtitle">从相机画面到动作记录，逐次查看一次评测的执行过程。</p></div>
+    <div><p class="eyebrow">RECORDED EVALUATION</p><h1 id="page-title">评测回放</h1><p class="subtitle">从相机画面到动作记录，逐次查看一次评测的执行过程。</p></div>
     <div id="summary" class="summary" aria-label="评测汇总"></div>
   </header>
   <main>
@@ -23,7 +23,7 @@
       <p class="method-note">分数是评测结束后的原生 benchmark 分数，不是模型输入，也不代表成功率。下方备注是记录中的模型输出，不是隐藏推理。</p>
       <div class="workspace-grid">
         <section class="playback panel" aria-labelledby="playback-title">
-          <div class="panel-heading"><h3 id="playback-title">执行画面</h3><span class="tag">原始相机 · 224 × 224</span></div>
+          <div class="panel-heading"><h3 id="playback-title">执行画面</h3><span class="tag">原始相机</span></div>
           <div id="camera-grid" class="camera-grid"></div>
           <p id="video-status" class="video-status" role="status"></p>
           <div class="playback-options"><label>播放速度 <select id="playback-speed" aria-label="播放速度"><option value="1">1×</option><option value="2">2×</option><option value="4">4×</option><option value="8">8×</option></select></label><label class="checkbox-label"><input id="auto-follow" type="checkbox" checked> 随视频定位记录</label><span id="frame-label" class="muted"></span></div>

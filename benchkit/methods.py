@@ -9,7 +9,7 @@ import math
 import re
 
 METHOD_SCHEMA = "starvla-rsi.method/v1"
-USAGE_ACCOUNTING_VERSION = "starvla-rsi.method-usage/v1"
+USAGE_ACCOUNTING_VERSION = "starvla-rsi.method-usage/v2"
 USAGE_FIELDS = ("calls", "input_tokens", "output_tokens", "cached_input_tokens",
                 "estimated_cost_usd", "latency_s")
 _SECRET = {"password", "secret", "credentials", "authorization", "api_key", "apikey",
@@ -93,7 +93,7 @@ def normalize_method(value):
 
 
 def method_from_policy(descriptor):
-    """Preserve legacy declarations without guessing a provider/model/configuration."""
+    """Project a policy descriptor without a method file; never guess provider/model/configuration."""
     policy = descriptor.to_dict() if hasattr(descriptor, "to_dict") else descriptor
     if type(policy) is not dict:
         raise ValueError("policy descriptor must be an object")

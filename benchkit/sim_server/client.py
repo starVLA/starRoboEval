@@ -18,7 +18,7 @@ from urllib.parse import urlsplit
 import uuid
 
 from benchkit.contracts import (ActionSpec, BenchmarkDescriptor, EpisodeSpec,
-                               ObservationSpec, ensure_jsonable)
+                               ObservationSpec, Usage, ensure_jsonable)
 from benchkit.errors import ActionRejected, InfrastructureError, ProtocolError
 from benchkit.validation import ValidationIssue, validate_action_vector
 from benchkit.sim_server.wire import (PROTOCOL, MAX_MESSAGE_BYTES, dumps, loads,
@@ -28,6 +28,7 @@ MAX_ARTIFACT_BYTES = 16 * 1024 ** 3
 MAX_ARTIFACT_FILES = 100_000
 ARTIFACT_CHUNK_BYTES = 1024 ** 2
 ACTION_REJECTION_PROTOCOL = "starvla-rsi.action-rejection/v1"
+SERVER_RETENTION_RECEIPT = "server_media_retention.json"
 
 # Retention classifies closed files, not live observations. These are intentionally
 # conservative filename categories, not claims about a file's trust or contents.
@@ -155,12 +156,9 @@ class SimServerBenchmarkAdapter:
         self._claimed: set[str] = set()
         data = self._rpc("describe", {})
         try:
-            description_fields = {"server_id", "descriptor", "observation_spec", "action_spec",
-                                  "budget", "seed", "episodes", "source", "parameters"}
-            if isinstance(data, dict) and "action_rejection" in data:
-                description_fields.add("action_rejection")
-                if data["action_rejection"] != ACTION_REJECTION_PROTOCOL:
-                    raise ValueError("unsupported action rejection contract")
+            description_fields = {"server_id", "action_rejection", "action_rejection_feedback", "descriptor",
+                                  "observation_spec", "action_spec", "budget", "seed", "episodes", "source",
+                                  "parameters"}
             if isinstance(data, dict) and "selection" in data:
                 description_fields.add("selection")
                 selection = _fields(data["selection"], ("episode_ids", "schedule_size"))
@@ -168,6 +166,11 @@ class SimServerBenchmarkAdapter:
                         or _integer(selection["schedule_size"], 1) < len(data["episodes"])):
                     raise ValueError("selection differs from the served schedule")
             _fields(data, description_fields)
+            if data["action_rejection"] != ACTION_REJECTION_PROTOCOL:
+                raise ValueError("unsupported action rejection contract")
+            if type(data["action_rejection_feedback"]) is not bool:
+                raise ValueError("invalid action rejection feedback declaration")
+            self.action_rejection_feedback = data["action_rejection_feedback"]
             if not isinstance(data["server_id"], str) or not re.fullmatch(r"[a-zA-Z0-9_-]{1,128}", data["server_id"]):
                 raise ValueError("invalid server identity")
             _fields(data["descriptor"], ("name", "version", "protocol_version", "source_revision"))
@@ -276,7 +279,7 @@ class SimServerBenchmarkAdapter:
                 if isinstance(error, dict) and "rejection" in error:
                     _fields(error, ("code", "rejection", "executed", "next_sequence"))
                     if (op != "step" or error["code"] != "invalid_action" or error["executed"] is not False
-                            or self._description.get("action_rejection") != ACTION_REJECTION_PROTOCOL):
+                            or self._description["action_rejection"] != ACTION_REJECTION_PROTOCOL):
                         raise ValueError("untrusted action rejection receipt")
                     sequence = _integer(error["next_sequence"], 1)
                     if type(params["sequence"]) is not int or sequence != params["sequence"]:
@@ -399,7 +402,7 @@ class RemoteEpisode:
             if exc.sequence != self._sequence:
                 self._faulted = True
                 raise _failure("invalid_rejection_sequence") from None
-            raise ActionRejected(exc.issue) from None
+            raise ActionRejected(exc.issue, usage=Usage()) from None
         except SimServerError as exc:
             self._faulted = True
             if exc.code == "invalid_action":
@@ -443,15 +446,12 @@ class RemoteEpisode:
                 receipt = {"protocol": PROTOCOL, "server": self._adapter.describe_data,
                            "session_id": self._session_id, "finish": result}
                 receipt["client_retention"] = {
-                        "schema_version": "starvla-rsi.client-artifact-retention/v2",
+                        "schema_version": "starvla-rsi.client-artifact-retention/v3",
                         "scope": "server_owned_media_and_selected_client_copies",
                         "recording": options.to_dict(),
                         "native_capture": "unchanged", "server_capture_control": "unsupported",
                         "media_owner": "benchmark_server",
-                        "server_retention_receipt": ("sim_server_files/server_media_retention.json"
-                            if "server_media_retention.json" in selected_paths else None),
-                        "server_retention_support": ("server_receipt_available"
-                            if "server_media_retention.json" in selected_paths else "not_declared_legacy_server"),
+                        "server_retention_receipt": "sim_server_files/" + SERVER_RETENTION_RECEIPT,
                         "server_media_references": [dict(file) for file in files
                             if PurePosixPath(file["path"]).suffix.lower() in _IMAGE_SUFFIXES | _VIDEO_SUFFIXES],
                         "reference_identity": {"server_id": self._adapter.describe_data["server_id"],
@@ -492,6 +492,7 @@ class RemoteEpisode:
         files, mapping = result["files"], result["artifacts"]
         if (not isinstance(files, list) or len(files) > MAX_ARTIFACT_FILES or
                 not isinstance(mapping, dict) or "sim_server_receipt" in mapping or
+                mapping.get("server_media_retention") != SERVER_RETENTION_RECEIPT or
                 (result["cleanup_error"] is not None and not isinstance(result["cleanup_error"], str))):
             raise ValueError("invalid inventory")
         seen, total = set(), 0

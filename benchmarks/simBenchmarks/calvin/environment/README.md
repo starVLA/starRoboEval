@@ -121,4 +121,4 @@ Then follow the [server launch guide](../README.md#prepare-and-launch).
 Check the fixed reset, both RGB views, control timing and clean disconnect on
 the selected installation before collecting task scores. Reset derivation and
 its dependency assumptions are stored in the evaluator-private
-[sequence definition](../bench_server/protocol/frozen_sequence.json).
+[sequence definition](../bench_server/protocol/selected_sequence.json).

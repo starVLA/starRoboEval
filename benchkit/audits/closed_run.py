@@ -119,6 +119,42 @@ def same_usage(actual: dict, expected: dict) -> bool:
         for key in USAGE_FIELDS)
 
 
+def reconcile_usage(summed: dict, reported: dict) -> tuple[dict, dict, list]:
+    """Independent copy of the runner rule: unknown total keeps the call sum,
+    unknown sum takes the total, total >= sum takes the total, and a total
+    below the sum makes the field unknown and inconsistent."""
+    final, adjustment, inconsistent = {}, {}, []
+    for key in sorted(USAGE_FIELDS):
+        left, right = summed[key], reported[key]
+        if left is None or right is None:
+            final[key], adjustment[key] = (left if right is None else right), None
+        elif right < left and not (key not in USAGE_COUNTERS and
+                                   math.isclose(right, left, rel_tol=1e-12, abs_tol=1e-9)):
+            final[key] = adjustment[key] = None
+            inconsistent.append(key)
+        else:
+            final[key], adjustment[key] = right, right - left
+    return final, adjustment, inconsistent
+
+
+def audit_usage_reconciliation(event: dict, usage_total: dict) -> dict:
+    require(set(event) == {"event", "timestamp", "policy_call_sum", "reported_total", "reported_complete",
+                           "adjustment", "inconsistent_fields", "usage"}, "invalid usage reconciliation fields")
+    require(type(event["reported_complete"]) is bool, "invalid usage reconciliation completeness")
+    require(same_usage(event["policy_call_sum"], usage_total), "logged/reconciled call usage mismatch")
+    expected, adjustment, inconsistent = reconcile_usage(usage_total, audit_usage(event["reported_total"]))
+    recorded = event["adjustment"]
+    require(type(recorded) is dict and set(recorded) == USAGE_FIELDS and all(
+        recorded[key] is None if adjustment[key] is None else (
+            type(recorded[key]) in (int, float) and math.isclose(recorded[key], adjustment[key],
+                                                                 rel_tol=1e-12, abs_tol=1e-9))
+        for key in USAGE_FIELDS), "usage reconciliation adjustment mismatch")
+    require(type(event["inconsistent_fields"]) is list
+            and all(type(key) is str for key in event["inconsistent_fields"]) and sorted(event["inconsistent_fields"]) == inconsistent, "usage reconciliation inconsistency mismatch")
+    require(same_usage(event["usage"], expected), "usage reconciliation rule mismatch")
+    return expected
+
+
 def audit_validation_issue(issue) -> None:
     # Closed public DTO, deliberately independent of live Python modules.
     codes = {"invalid_json", "unexpected_fields", "invalid_type", "invalid_length", "non_finite",
@@ -140,7 +176,7 @@ def audit_validation_issue(issue) -> None:
 
 
 def audit_episode(result: dict, events: list, protocol: dict) -> dict:
-    require(protocol.get("usage_accounting_version") == "starvla-rsi.method-usage/v1",
+    require(protocol.get("usage_accounting_version") == "starvla-rsi.method-usage/v2",
             "unknown method usage accounting version")
     require(events and events[0]["event"] == "episode_start" and events[-1]["event"] == "episode_end",
             "episode event boundaries missing")
@@ -176,7 +212,6 @@ def audit_episode(result: dict, events: list, protocol: dict) -> dict:
         require(type(protocol["max_steps"]) is int and protocol["max_steps"] > 0
                 and (protocol["replan_interval"] is None or (type(protocol["replan_interval"]) is int
                      and protocol["replan_interval"] > 0)), "invalid feedback-mode control/prefix budget")
-        counter(result.get("rejected_actions"), "rejected actions")
     else:
         require("action_rejection_feedback_version" not in protocol,
                 "rejection feedback extension requires feedback mode")
@@ -203,7 +238,11 @@ def audit_episode(result: dict, events: list, protocol: dict) -> dict:
     control_acks = []
     latest_instruction = decision_instruction = None
     instruction_changed = False
-    for event in events[1:-1]:
+    # A policy usage report is read after end_episode, so its reconciliation
+    # is the single event directly before episode_end.
+    body = events[1:-1]
+    reconciliation = body.pop() if body and body[-1]["event"] == "usage_reconciliation" else None
+    for event in body:
         kind = event["event"]
         if kind == "policy_call_start":
             require(not terminal, "decision after terminal event")
@@ -230,22 +269,12 @@ def audit_episode(result: dict, events: list, protocol: dict) -> dict:
             if recover_rejections:
                 counter(event["policy_call"], "returned policy")
                 counter(event["chunk_length"], "returned chunk length")
-            metadata = event.get("metadata", {})
-            response = metadata.get("structured_response")
-            if response is not None:
-                require(response.get("request_id") == metadata.get("request_id"),
-                        "embedded response/request ID mismatch")
-                require(response.get("stop", False) is event["stop"], "embedded response/stop mismatch")
-                if event["stop"]:
-                    require(response.get("stop_reason") == event["stop_reason"]
-                            and "actions" not in response, "embedded stop content mismatch")
             decision = event
             decisions += 1
-            if recover_rejections:
-                reported = audit_usage(event.get("usage"))
-                require(call not in metered_calls, "duplicate call accounting")
-                metered_calls.add(call)
-                usage_total = sum_usage(usage_total, reported)
+            reported = audit_usage(event.get("usage"))
+            require(call not in metered_calls, "duplicate call accounting")
+            metered_calls.add(call)
+            usage_total = sum_usage(usage_total, reported)
             if event["stop"]:
                 require(event["chunk_length"] == 0, "stop contains an action chunk")
                 stops += 1
@@ -263,9 +292,6 @@ def audit_episode(result: dict, events: list, protocol: dict) -> dict:
                 expected = min(expected, protocol["replan_interval"])
             require(counter(event["maximum_executed_prefix"], "prefix") == expected,
                     "executed-prefix budget mismatch")
-            response = decision.get("metadata", {}).get("structured_response")
-            if response is not None:
-                require(response.get("actions") == actions, "embedded accepted response/action mismatch")
             chunk = event
             chunks += 1
         elif kind == "environment_step":
@@ -361,20 +387,17 @@ def audit_episode(result: dict, events: list, protocol: dict) -> dict:
                     "reset reused a previous control acknowledgement")
         elif kind in ("error", "artifact_error"):
             require(not completed, "completed result contains an error event")
-            recorded_error = event.get("error", {})
-            if recover_rejections or "rejected_actions" in result:
-                require(type(recorded_error) is dict, "invalid recorded error object")
+            recorded_error = event.get("error")
+            require(type(recorded_error) is dict, "invalid recorded error object")
             if recover_rejections and kind == "error":
                 require(errors_seen == 0, "duplicate terminal error event")
                 errors_seen += 1
-            if kind == "error" and "rejected_actions" in result:
-                typed = recorded_error.get("policy_call_error", recorded_error)
-                require(type(typed) is dict, "invalid recorded policy-call error")
-                if typed.get("type") == "ActionRejected":
-                    audit_validation_issue(typed.get("issue"))
-                phase = typed.get("action_rejection_phase")
+            if kind == "error":
+                if recorded_error.get("type") == "ActionRejected":
+                    audit_validation_issue(recorded_error.get("issue"))
+                phase = recorded_error.get("action_rejection_phase")
                 if phase is not None:
-                    require(typed.get("type") == "ActionRejected" and call > 0 and not terminal
+                    require(recorded_error.get("type") == "ActionRejected" and call > 0 and not terminal
                             and not rejected, "unscheduled terminal action rejection")
                     if phase == "policy_act":
                         require(decision is None and chunk is None and played == 0
@@ -388,23 +411,36 @@ def audit_episode(result: dict, events: list, protocol: dict) -> dict:
                                 and played < chunk["maximum_executed_prefix"],
                                 "invalid terminal session-step rejection")
                     rejections += 1
-            if recover_rejections and kind == "error" and "usage" in recorded_error:
+            if kind == "error" and "usage" in recorded_error:
                 require(call > 0 and call not in metered_calls
                         and counter(recorded_error.get("policy_call"), "failed policy") == call,
                         "duplicate/unscheduled failed-call accounting")
                 usage_total = sum_usage(usage_total, audit_usage(recorded_error["usage"]))
                 metered_calls.add(call)
             terminal = True
+        elif kind == "usage_reconciliation":
+            raise AuditError("usage reconciliation is not the single event before episode_end")
         else:
             raise AuditError(f"unsupported event kind: {kind}")
 
     require(call == calls and step == controls, "logged/result counters disagree")
-    if "rejected_actions" in result:
-        require(counter(result["rejected_actions"], "rejected actions") == rejections,
-                "logged/result rejection counters disagree")
+    require(counter(result.get("rejected_actions"), "rejected actions") == rejections,
+            "logged/result rejection counters disagree")
+    require(metered_calls == set(range(1, calls + 1)), "unmetered policy call")
+    reported_complete = result.get("usage_reported_complete", "missing")
+    inconsistent_fields = result.get("usage_inconsistent_fields", "missing")
+    require(reported_complete is None or type(reported_complete) is bool, "invalid result usage completeness")
+    require((reconciliation is None) == (reported_complete is None),
+            "usage reconciliation event/result completeness mismatch")
+    if reconciliation is not None:
+        usage_total = audit_usage_reconciliation(reconciliation, usage_total)
+        require(reconciliation["reported_complete"] == reported_complete
+                and inconsistent_fields == reconciliation["inconsistent_fields"],
+                "usage reconciliation event/result mismatch")
+    else:
+        require(inconsistent_fields is None, "usage inconsistency without reconciliation")
+    require(same_usage(result.get("usage"), usage_total), "logged/result usage mismatch")
     if recover_rejections:
-        require(metered_calls == set(range(1, calls + 1)), "unmetered policy call in feedback mode")
-        require(same_usage(result.get("usage"), usage_total), "logged/result usage mismatch")
         require(finite_number(result["reward_sum"]), "invalid total acknowledged reward")
     require(counter(result.get("action_decisions"), "executed action decisions") == len(executed_calls),
             "action-decision count differs from executed controls")
@@ -446,10 +482,8 @@ def audit_episode(result: dict, events: list, protocol: dict) -> dict:
     row = {"episode_id": result["episode"]["id"], "status": result["status"],
             "success": result["success"], "controls": controls, "decisions_started": calls,
             "decisions_returned": decisions, "action_chunks": chunks, "stop_decisions": stops,
-            "termination_reason": result["termination_reason"]}
-    row["action_decisions"] = len(executed_calls)
-    if "rejected_actions" in result:
-        row["rejected_actions"] = rejections
+            "termination_reason": result["termination_reason"],
+            "action_decisions": len(executed_calls), "rejected_actions": rejections}
     return row
 
 
@@ -492,13 +526,15 @@ def audit_run(run: Path) -> dict:
                           "successes": sum(row["success"] is True for row in rows),
                           "policy_calls": sum(row["decisions_started"] for row in rows)}.items():
         require(summary[key] == expected, f"summary {key} mismatch")
-    if manifest["protocol"].get("invalid_action_handling") == "feedback":
-        require(counter(summary.get("rejected_actions"), "summary rejected actions") ==
-                sum(row["rejected_actions"] for row in rows), "summary rejected actions mismatch")
-        usage = {key: 0 for key in USAGE_FIELDS}
-        for result in results:
-            usage = sum_usage(usage, audit_usage(result.get("usage")))
-        require(same_usage(summary.get("usage"), usage), "summary usage mismatch")
+    require(counter(summary.get("rejected_actions"), "summary rejected actions") ==
+            sum(row["rejected_actions"] for row in rows), "summary rejected actions mismatch")
+    usage = {key: 0 for key in USAGE_FIELDS}
+    for result in results:
+        usage = sum_usage(usage, audit_usage(result.get("usage")))
+    require(same_usage(summary.get("usage"), usage), "summary usage mismatch")
+    require(counter(summary.get("usage_incomplete_episodes"), "summary incomplete usage") == sum(
+        result["usage_reported_complete"] is False or bool(result["usage_inconsistent_fields"])
+        for result in results), "summary incomplete usage count mismatch")
     files.verify_unchanged()
     report = {"schema_version": "starvla-rsi.closed-record-audit/v2", "source_run": str(files.root),
             "record_consistency": "passed", "episodes": rows,
@@ -506,13 +542,8 @@ def audit_run(run: Path) -> dict:
             "limitations": ["Read-only runner-record consistency, not native benchmark parity or execution attestation.",
                             "Does not follow video or native asset paths; independent artifact audit is separate.",
                             "No OS isolation or trusted model/provider/usage attestation.",
-                            "A consistent error or failed task is not a successful task."]}
-    # A policy that records its effective configuration selects the generic ledger check.
-    if isinstance(manifest["policy"].get("parameters", {}).get("effective_config"), dict):
-        report["persistent_direct_artifacts_audited"] = False
-        report["limitations"].append(
-            "Persistent policy support checks the generic call/ACK ledger only; "
-            "app-server thread/tool/token-watermark/closure receipts and native EEF artifacts are not audited here.")
+                            "A consistent error or failed task is not a successful task.",
+                            "Checks the generic call/ACK ledger only; policy-private receipts are not audited here."]}
     return report
 
 

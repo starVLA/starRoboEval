@@ -29,11 +29,6 @@ class TaskDefinition:
         return int(self.human_length * 1.5)
 
     @property
-    def horizon(self):
-        """Historical name for the configured timeout, NOT the execution cap."""
-        return self.native_timeout_steps
-
-    @property
     def control_cap(self):
         # Pinned Timeout checks the zero-based counter before _post_step
         # increments it. Preserve radio v1's historical cap, not timeout parity.

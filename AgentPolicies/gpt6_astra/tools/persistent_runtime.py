@@ -12,13 +12,12 @@ import sys
 import tempfile
 import time
 
-from benchkit.contracts import ActionRejectionFeedback, ExecutionFeedback, Usage
+from benchkit.contracts import ActionRejectionFeedback, EpisodeUsage, ExecutionFeedback, Usage
 from benchkit.errors import ActionRejected, PolicyCallError, PolicyError, PolicyPreflightError
 from benchkit.recording import RecordingOptions
 from benchkit.validation import ValidationIssue
 from AgentPolicies.gpt6_astra.tools.public_observation import compatibility_errors
 
-ROOT = Path(__file__).absolute().parents[1]
 TRANSPORT = "codex-app-server/v1"
 # Process startup can outlast an ordinary RPC. This is one bounded handshake,
 # not a retry or extension of model-turn idle timeouts.
@@ -30,6 +29,10 @@ OVERLOAD_BACKOFF_S = 30
 # A local action-wait timeout is not a failed provider turn. Keep consuming the
 # same stream, with ten total finite windows and no additional model request.
 ACTION_WAIT_MAX_WINDOWS = 10
+# Closing interrupts a turn left waiting on the unanswered robot tool so the
+# server reports the last response's tokens. Accounting only, bounded, no retry;
+# with session close it stays inside a remote run's 30 s interrupt grace.
+FINAL_TOKEN_FLUSH_TIMEOUT_S = 10
 # Configuration discovery is local and bounded; never a model/action retry.
 MAX_INHERITED_MCP_SERVERS = 128
 MAX_MCP_NAME_BYTES = 1024
@@ -57,7 +60,7 @@ def _toml(value, *, ensure_ascii=True):
     return json.dumps(value, ensure_ascii=ensure_ascii)
 
 
-def launch_settings(actor, public, audit, effort):
+def launch_settings(actor, public, audit, model, provider, effort):
     """No inherited shell secrets, network tools, repository or SIM filesystem.
 
     This is an explicitly requested sandbox profile, not an attestation of the
@@ -69,7 +72,7 @@ def launch_settings(actor, public, audit, effort):
              str(actor): "write", str(public): "read"}
     runtime = Path(actor).parent / "runtime"
     settings = {
-        "model": "gpt-6-astra", "model_provider": "openai", "model_reasoning_effort": effort,
+        "model": model, "model_provider": provider, "model_reasoning_effort": effort,
         "forced_login_method": "chatgpt", "approval_policy": "never",
         "default_permissions": PERMISSIONS, "permissions." + PERMISSIONS + ".filesystem": files,
         "permissions." + PERMISSIONS + ".network.enabled": False,
@@ -91,13 +94,13 @@ def launch_settings(actor, public, audit, effort):
     return settings
 
 
-def verify_configuration(config, actor, public, audit, effort):
+def verify_configuration(config, actor, public, audit, model, provider, effort):
     """Fail before a turn if inherited user/project config expands capabilities.
 
     --strict-config validates config syntax; it does not ignore user config.
     Do not record the raw effective config: it may contain private credentials.
     """
-    wanted = launch_settings(actor, public, audit, effort)
+    wanted = launch_settings(actor, public, audit, model, provider, effort)
     for key, expected in wanted.items():
         if key.startswith("permissions.") or key == "mcp_servers":
             continue
@@ -153,9 +156,9 @@ def _inherited_mcp_names(config):
     return tuple(sorted(names)), tuple(sorted(enabled))
 
 
-def _launch(executable, actor, public, audit, effort, *, disabled_mcp_names=()):
+def _launch(executable, actor, public, audit, model, provider, effort, *, disabled_mcp_names=()):
     argv = [str(executable), "app-server", "--stdio", "--strict-config"]
-    for key, value in launch_settings(actor, public, audit, effort).items():
+    for key, value in launch_settings(actor, public, audit, model, provider, effort).items():
         argv += ["-c", key + "=" + _toml(value)]
     # The pinned CLI's dotted override-key parser is not a TOML key parser.
     # Put names inside one TOML inline-table VALUE, with a plain top-level key.
@@ -293,6 +296,8 @@ class PersistentRuntime:
         self.public.mkdir(mode=0o700)
         self.actor.mkdir(mode=0o700)
         self.thread_id = self.turn_id = self.pending_rpc = None
+        self.turn_active = False
+        self.tokens_complete = True
         self.packet = self.feedback = self.rejection = self.pending_action = None
         self.issued = self.controls = self.decisions = self.rejected = 0
         self.continuations = self.network_continuations = self.network_consecutive = 0
@@ -312,14 +317,14 @@ class PersistentRuntime:
         from AgentPolicies.gpt6_astra.tools.codex_app_server import StdioAppServer
         from AgentPolicies.gpt6_astra.tools.codex_runtime import _environment, _inspect_runtime
         executable, readiness = _inspect_runtime()
-        effort = self.config["reasoning_effort"]
+        model, provider, effort = self.config["model"], self.config["provider"], self.config["reasoning_effort"]
         # Native Codex internals are private temporary state, not report assets.
         (self.actor.parent / "runtime").mkdir(mode=0o700, exist_ok=True)
         # RPC/error diagnostics are not image exports. Default video-only media
         # must not erase them; explicit non-media reduction still uses scratch.
         transport_dir = (self.audit / "transport" if self.recording.retain_unknown_artifacts
                          else self.actor.parent / "runtime" / "transport")
-        self.transport = StdioAppServer(_launch(executable, self.actor, self.public, self.audit, effort),
+        self.transport = StdioAppServer(_launch(executable, self.actor, self.public, self.audit, model, provider, effort),
             transport_dir, cwd=self.actor, env=_environment())
 
         def read_configuration():
@@ -347,13 +352,13 @@ class PersistentRuntime:
                 "transport_diagnostics": self.transport.diagnostics()}, category="tool_traces")
             isolated_dir = transport_dir.with_name("transport-isolated")
             isolated_dir.mkdir(mode=0o700, exist_ok=False)
-            self.transport = StdioAppServer(_launch(executable, self.actor, self.public, self.audit, effort,
+            self.transport = StdioAppServer(_launch(executable, self.actor, self.public, self.audit, model, provider, effort,
                 disabled_mcp_names=inherited_names), isolated_dir, cwd=self.actor, env=_environment())
             effective = read_configuration()
             final_names, _ = _inherited_mcp_names(effective)
             if not set(final_names) <= set(inherited_names):
                 raise PolicyError("inherited MCP configuration changed during child isolation")
-        isolation = verify_configuration(effective, self.actor, self.public, self.audit, effort)
+        isolation = verify_configuration(effective, self.actor, self.public, self.audit, model, provider, effort)
         del effective
         if enabled_names:
             isolation.update(configuration_bootstrap_restarts=1, disabled_inherited_mcp_count=len(inherited_names))
@@ -366,7 +371,7 @@ class PersistentRuntime:
         active = answer.get("activePermissionProfile")
         # The exact API shape is verified by the pinned CLI's generated schema.
         active_id = active.get("id") if isinstance(active, dict) else active
-        if (answer.get("model") != self.config["model"] or answer.get("modelProvider") != "openai"
+        if (answer.get("model") != self.config["model"] or answer.get("modelProvider") != provider
                 or answer.get("reasoningEffort") != effort or active_id != PERMISSIONS
                 or answer.get("approvalPolicy") != "never" or answer.get("cwd") != str(self.actor)):
             raise PolicyError("app-server did not accept the declared Direct identity/permissions")
@@ -376,7 +381,7 @@ class PersistentRuntime:
             "reported_model": answer["model"], "reported_effort": answer["reasoningEffort"],
             "permission_profile": active_id, "provider_identity_verified": False,
             "runtime": readiness, "configuration_receipt": isolation,
-            "launch_settings": launch_settings(self.actor, self.public, self.audit, effort)}, category="tool_traces")
+            "launch_settings": launch_settings(self.actor, self.public, self.audit, model, provider, effort)}, category="tool_traces")
         if not ephemeral:
             self._record("model_io", {"event": "session_instructions", "text": self.prompt,
                                       "tools": [self._tool_spec()]})
@@ -385,6 +390,9 @@ class PersistentRuntime:
         items = [{"type": "text", "text": text}]
         items += [{"type": "image", "url": "data:image/png;base64," + base64.b64encode(data).decode()}
                   for data in images]
+        # Active from the request on: a failed or ambiguous start may still
+        # have reached the model, so its usage cannot be called complete.
+        self.turn_active = True
         result = self.transport.request("turn/start", {"threadId": self.thread_id,
             "model": self.config["model"], "effort": self.config["reasoning_effort"], "input": items,
             "approvalPolicy": "never", "permissions": PERMISSIONS, "cwd": str(self.actor),
@@ -591,6 +599,7 @@ class PersistentRuntime:
                 turn = params.get("turn", {})
                 if turn.get("id") != self.turn_id:
                     continue
+                self.turn_active = False
                 error = turn.get("error") or overload_error or network_error
                 if turn.get("status") == "failed" and _overload_error(error):
                     self.last_overload_error_code = "server_overloaded"
@@ -758,17 +767,61 @@ class PersistentRuntime:
         self.rejection = feedback.issue.to_dict()
         self.rejected += 1
 
-    def end_episode(self):
-        # No post-horizon turn, provider call, action or unmetered final report.
-        # The final tool remains unanswered and the owned process is cancelled.
+    def episode_usage(self):
+        """Thread-cumulative app-server tokens, read once after end_episode.
+
+        Per-call usage is a delta of this counter, and each call's tokens are
+        reported only after the next tool reply, so the per-call sum misses
+        the last response (and every response when no counter arrived before
+        the first robot call). end_episode interrupts the open turn so that
+        response is reported; the total is incomplete if that did not close it.
+        """
+        total = (Usage.unavailable() if self.tokens is None else
+                 Usage(calls=None, **self.tokens, estimated_cost_usd=None, latency_s=None))
+        return EpisodeUsage(total=total, complete=self.tokens_complete)
+
+    def _flush_final_tokens(self):
+        """Interrupt the turn waiting on the robot tool; apply only its token
+        counter and its completion. No model request, reply, action or record
+        of anything else follows; any failure leaves the counters as seen."""
+        deadline = time.monotonic() + FINAL_TOKEN_FLUSH_TIMEOUT_S
         try:
-            if self.transport is not None:
-                self.transport.close()
+            self.transport.request("turn/interrupt", {"threadId": self.thread_id, "turnId": self.turn_id},
+                                   FINAL_TOKEN_FLUSH_TIMEOUT_S)
+            while True:
+                event = self.transport.next_message(max(deadline - time.monotonic(), 0))
+                params = event.get("params")
+                if not isinstance(params, dict) or params.get("threadId") != self.thread_id:
+                    continue
+                if event.get("method") == "thread/tokenUsage/updated":
+                    self._token_update(params)
+                elif event.get("method") == "turn/completed" and params.get("turn", {}).get("id") == self.turn_id:
+                    self.turn_active = False
+                    return "completed"
+        except Exception:  # accounting only; never changes the episode outcome
+            return "failed"
+
+    def end_episode(self):
+        # No post-horizon turn, model request, action or unmetered final report.
+        # The final tool remains unanswered; its turn is interrupted only to
+        # report its tokens, and the owned process is cancelled.
+        flush = "not_applicable"
+        try:
+            try:
+                if self.transport is not None and self.pending_rpc is not None and self.turn_active:
+                    flush = "failed"  # until the turn's completion is applied
+                    flush = self._flush_final_tokens()
+            finally:
+                # A turn still open at close may hold an unreported response.
+                self.tokens_complete = not self.turn_active
+                if self.transport is not None:
+                    self.transport.close()
         finally:
             try:
                 if self.audit is not None and self.context is not None:
                     self._write_audit("closed.json", {"schema_version": "starvla-rsi.codex-direct-close/v1",
                         "final_ack_delivery": "withheld_on_close", "pending_tool": self.pending_rpc is not None,
+                        "final_token_flush": flush, "reported_tokens_complete": self.tokens_complete,
                         "executed_controls": self.controls, "executed_decisions": self.decisions,
                         "no_post_episode_continuation": True, "receipt": self._receipt()})
                     # Only host-written public observations are exported. Actor

@@ -60,12 +60,11 @@ Pinned plan -> adapter.open_episode(EpisodeSpec) -> session.reset()
 
 `EpisodeSpec` is evaluator-private. The runner builds the public
 `EpisodeContext` for `Policy.start_episode`; never forward reset seeds or layout
-metadata wholesale. `Policy.end_episode` clears method state. Optional
-`ExecutionAwarePolicy.observe_execution` receives execution counters and any
+metadata wholesale. `Policy.end_episode` clears method state. An optional
+`Policy.observe_execution` hook receives execution counters and any
 protocol-declared robot-control receipts, not rewards or private simulator
-state. Optional
-`ArtifactBoundEpisodeSession.bind_artifact_dir` gives the session a runner-owned
-artifact directory before reset.
+state. An optional `EpisodeSession.bind_artifact_dir` hook gives the session a
+runner-owned artifact directory before reset.
 
 ## Observation and action rules
 

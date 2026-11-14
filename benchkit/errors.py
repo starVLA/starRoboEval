@@ -86,11 +86,11 @@ class ActionRejected(PolicyCallError):
 
     Only ``issue`` crosses the actor feedback boundary. Sanitized receipt
     metadata is evaluator-private, and follows PolicyCallError's copy/size
-    checks. Service-side validation uses zero Usage; model parsing must retain
-    the one failed call's real or explicitly unavailable usage.
+    checks. Unreported usage is unavailable: deterministic validation passes
+    zero Usage, model parsing passes the one failed call's real usage.
     """
 
-    def __init__(self, issue: ValidationIssue, *, usage: Usage = Usage(),
+    def __init__(self, issue: ValidationIssue, *, usage: Usage = Usage.unavailable(),
                  metadata: Mapping[str, JsonValue] | None = None) -> None:
         if not isinstance(issue, ValidationIssue):
             raise TypeError("action rejection requires a ValidationIssue")

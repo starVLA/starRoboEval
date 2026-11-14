@@ -37,6 +37,7 @@ LIMITATIONS = [
     "Generic records contain camera names, not pixels. This exporter does not include images or video.",
     "Unknown robot-feedback payloads are not published. Native private scores and metadata are omitted.",
     "Identity and usage are reported declarations, not independent provider verification; null means unavailable.",
+    "Episode usage follows the policy's own total when it reports one; per-call usage need not sum to it.",
     "Planned and unattempted counts cover only the manifest's client-selected schedule, not a full service or native panel.",
     "Only record consistency is checked here. Source/model audits, native replay and asset verification are separate.",
     "A final ACK or outcome in this report does not imply a final model continuation or feedback delivery.",
@@ -119,6 +120,16 @@ def _vector(value, label, size=None):
     return list(value)
 
 
+def _floats(vector, label):
+    """Numeric value of a checked vector, as the runner's ledger records it."""
+    try:
+        values = [float(item) for item in vector]
+    except OverflowError:
+        values = None
+    require(values is not None and all(math.isfinite(item) for item in values), f"nonfinite {label} vector")
+    return values
+
+
 def _usage(value):
     if value is None:
         return dict.fromkeys(USAGE_ORDER)
@@ -167,60 +178,29 @@ def _observation(value, contracts, *, origin, expected_step):
 
 
 def _structured_output(event, action_size):
-    """Known accepted-output shapes, never arbitrary metadata or provider text.
+    """The accepted robot_act submission, never arbitrary metadata or provider text.
 
     Request IDs and receipt/accounting envelopes are intentionally not copied.
     Unknown shapes remain unavailable rather than becoming arbitrary JSON.
+    ``action_size`` is the run's declared action dimension.
     """
     metadata = _object(event.get("metadata", {}), "decision metadata")
     value = metadata.get("structured_output")
-    source = "structured_output"
-    if value is None:
-        value, source = metadata.get("structured_response"), "structured_response"
     if value is None:
         return {"availability": "not_recorded", "content": None}
-    if type(value) is not dict:
+    if type(value) is not dict or set(value) != {"request_id", "actions", "reason", "stop_reason", "steps"}:
         return {"availability": "unsupported_record_shape", "content": None}
-    keys = set(value)
-    content = None
-    if source == "structured_output" and keys == {"stop", "stop_reason", "actions", "note"}:
-        require(type(value["stop"]) is bool and value["stop"] == event["stop"]
-                and value["stop_reason"] == event.get("stop_reason") and value["note"] == event.get("note"),
-                "structured output differs from decision")
-        require(type(value["actions"]) is list and len(value["actions"]) <= 10000, "invalid recorded output actions")
-        content = {"stop": value["stop"], "stop_reason": _label(value["stop_reason"], "stop reason", optional=True),
-                   "actions": [_vector(v, "output action", action_size) for v in value["actions"]],
-                   "note": _text(value["note"], "model note", optional=True)}
-        require(len(content["actions"]) == event["chunk_length"], "structured output chunk length mismatch")
-    elif source == "structured_response" and keys <= {"request_id", "usage", "note", "actions", "stop", "stop_reason"}:
-        require(value.get("note") == event.get("note"), "recorded response note differs from decision")
-        content = {"note": _text(value.get("note"), "model note", optional=True)}
-        if event["stop"]:
-            require(value.get("stop") is True and "actions" not in value, "recorded response stop mismatch")
-            content.update(stop=True, stop_reason=_label(value.get("stop_reason"), "stop reason"))
-        elif "actions" in value:
-            require(type(value["actions"]) is list and len(value["actions"]) <= 10000, "invalid response actions")
-            content["actions"] = [_vector(v, "response action", action_size) for v in value["actions"]]
-        else:
-            content = None
-    elif source == "structured_output" and keys == {"request_id", "mode", "steps", "reason", "target"}:
-        require(value["mode"] == "eef" and value["reason"] == event.get("note") and not event["stop"],
-                "recorded EEF output differs from decision")
-        require(action_size == 16 and type(value["steps"]) is int
-                and value["steps"] == event["chunk_length"], "recorded EEF action contract mismatch")
-        target = _object(value["target"], "EEF target")
-        if set(target) == {"left", "right"} and all(type(target[side]) is dict and set(target[side]) == {
-                "position", "quaternion_wxyz", "gripper_closed"} for side in target):
-            content = {"mode": "eef", "steps": counter(value["steps"], "EEF chunk length"),
-                       "reason": _text(value["reason"], "model explanation"), "target": {}}
-            for side in ("left", "right"):
-                row = target[side]
-                require(type(row["gripper_closed"]) is bool, "invalid recorded gripper target")
-                content["target"][side] = {"position": _vector(row["position"], "EEF position", 3),
-                    "quaternion_wxyz": _vector(row["quaternion_wxyz"], "EEF rotation", 4),
-                    "gripper_closed": row["gripper_closed"]}
-    return {"availability": "recorded_projection" if content is not None else "unsupported_record_shape",
-            "content": content}
+    require(value["reason"] == event.get("note") and value["stop_reason"] == event.get("stop_reason")
+            and (value["stop_reason"] is not None) == event["stop"], "structured output differs from decision")
+    require(type(value["actions"]) is list and len(value["actions"]) <= 10000, "invalid recorded output actions")
+    content = {"actions": [_floats(_vector(v, "output action", action_size), "output action")
+                           for v in value["actions"]],
+               "reason": _text(value["reason"], "model explanation"),
+               "stop_reason": _label(value["stop_reason"], "stop reason", optional=True),
+               "steps": counter(value["steps"], "output chunk length")}
+    require(content["steps"] == len(content["actions"]) == event["chunk_length"],
+            "structured output chunk length mismatch")
+    return {"availability": "recorded_projection", "content": content}
 
 
 def _error(value):
@@ -236,6 +216,7 @@ def _episode(result, events, contracts):
     calls, current, latest = [], None, None
     aftermath_errors = []
     last_terminal = False
+    reconciliation = None
     for event in events[1:-1]:
         kind = event["event"]
         timestamp = _text(event.get("timestamp"), "event timestamp", optional=True, limit=64)
@@ -263,15 +244,8 @@ def _episode(result, events, contracts):
             current["actions_availability"] = "recorded"
             current["maximum_executed_prefix"] = event["maximum_executed_prefix"]
             output = current["decision"]["structured_output"]["content"]
-            if output and "actions" in output:
+            if output is not None:
                 require(output["actions"] == current["submitted_actions"], "output/action ledger mismatch")
-            elif output and "target" in output:
-                vector = []
-                for side in ("left", "right"):
-                    target = output["target"][side]
-                    vector.extend([*target["position"], *target["quaternion_wxyz"],
-                                   0.0 if target["gripper_closed"] else 1.0])
-                require([vector] * output["steps"] == current["submitted_actions"], "EEF output/action ledger mismatch")
         elif kind == "environment_step":
             latest = _observation(event["observation"], contracts, origin="acknowledged_control",
                                   expected_step=event["environment_step"])
@@ -287,6 +261,12 @@ def _episode(result, events, contracts):
                 "executed_controls": feedback["executed_steps"], "rejected_actions": feedback["rejected_actions"]}
             if event["usage_recorded_in"] == "action_rejected":
                 current["usage"] = _usage(event["usage"])
+        elif kind == "usage_reconciliation":
+            # Audited before projection; an episode-level fact, not a policy call.
+            reconciliation = {"policy_call_sum": _usage(event["policy_call_sum"]),
+                              "reported_total": _usage(event["reported_total"]),
+                              "reported_complete": event["reported_complete"],
+                              "inconsistent_fields": list(event["inconsistent_fields"])}
         elif kind == "artifact_error":
             # Collection happens in finally, after the control loop. It must
             # not replace a primary failure or imply another attempted action.
@@ -302,12 +282,12 @@ def _episode(result, events, contracts):
                                          **_error(event["error"])})
                 continue
             current["error"] = current["error"] or _error(event["error"])
-            typed = _object(event["error"].get("policy_call_error", event["error"]), "typed error")
+            typed = event["error"]
             if typed.get("type") == "ActionRejected" and typed.get("action_rejection_phase") in {"policy_act", "session_step"}:
                 audit_validation_issue(typed["issue"])
                 current["rejection"] = {"phase": typed["action_rejection_phase"], "issue": dict(typed["issue"]),
                     "executed_controls": len(current["acknowledged_controls"]),
-                    "rejected_actions": result.get("rejected_actions")}
+                    "rejected_actions": result["rejected_actions"]}
             if "usage" in event["error"] and current["decision"] is None:
                 current["usage"] = _usage(event["error"]["usage"])
         if current is not None:
@@ -347,8 +327,8 @@ def _episode(result, events, contracts):
             "termination_reason": _label(result["termination_reason"], "termination reason"),
             "error": _error(final_error), "aftermath_errors": aftermath_errors,
             "counters": {"policy_calls": result["policy_calls"], "controls": result["environment_steps"],
-                         "action_decisions": result.get("action_decisions"), "rejected_actions": result.get("rejected_actions")},
-            "usage": _usage(result.get("usage")), "calls": calls,
+                         "action_decisions": result["action_decisions"], "rejected_actions": result["rejected_actions"]},
+            "usage": _usage(result["usage"]), "usage_reconciliation": reconciliation, "calls": calls,
             "media": {"images": "not_included", "video": "not_included"}}
 
 
@@ -397,10 +377,6 @@ def _build_history(run_dir):
         require(len(events) <= MAX_EVENTS, "episode event count exceeds report bound")
         for event in events:
             _object(event, "event")
-            if event.get("event") == "policy_decision":
-                metadata = _object(event.get("metadata", {}), "decision metadata")
-                if metadata.get("structured_response") is not None:
-                    _object(metadata["structured_response"], "recorded structured response")
             if event.get("event") in ("observation", "environment_step"):
                 _object(event.get("observation"), "recorded observation")
             if event.get("event") in ("error", "artifact_error"):
@@ -421,13 +397,17 @@ def _build_history(run_dir):
               "policy_calls": sum(row["policy_calls"] for row in results)}
     for key, expected in counts.items():
         require(counter(summary.get(key), "summary " + key) == expected, "summary " + key + " mismatch")
-    if protocol.get("invalid_action_handling") == "feedback" or "rejected_actions" in summary:
-        require(counter(summary.get("rejected_actions"), "summary rejections") == sum(row.get("rejected_actions", 0) for row in results),
-                "summary rejected actions mismatch")
+    require(counter(summary.get("rejected_actions"), "summary rejections") == sum(row["rejected_actions"] for row in results),
+            "summary rejected actions mismatch")
     usage = {key: 0 for key in USAGE_FIELDS}
     for result in results:
-        usage = sum_usage(usage, _usage(result.get("usage")))
-    require(same_usage(_usage(summary.get("usage")), usage), "summary usage mismatch")
+        usage = sum_usage(usage, audit_usage(result["usage"]))
+    require("usage" in summary, "summary usage missing")
+    require(same_usage(summary["usage"], usage), "summary usage mismatch")
+    usage_incomplete = sum(result["usage_reported_complete"] is False or bool(result["usage_inconsistent_fields"])
+                           for result in results)
+    require(counter(summary.get("usage_incomplete_episodes"), "summary incomplete usage") == usage_incomplete,
+            "summary incomplete usage count mismatch")
     public_protocol = {key: _label(protocol.get(key), key, optional=True)
                        for key in ("budget_mode", "invalid_action_handling")}
     for key in ("max_steps", "max_policy_calls", "replan_interval"):
@@ -440,16 +420,11 @@ def _build_history(run_dir):
         "identity_evidence": "recorded_declaration_only", "contracts": contracts, "protocol": public_protocol,
         "outcome": {"scope": "client_selected_schedule", "planned": len(planned),
                     "unattempted": len(planned) - len(results), **counts},
-        "usage": _usage(summary.get("usage")), "episodes": episodes,
+        "usage": _usage(summary["usage"]), "usage_incomplete_episodes": usage_incomplete, "episodes": episodes,
         "record_check": "closed_lifecycle_and_episode_ledger_consistent",
         "limitations": list(LIMITATIONS)}
     files.verify_unchanged()
     return history, files
-
-
-def build_history(run_dir: Path) -> dict:
-    """Read/check/project a closed client run without requiring source snapshots."""
-    return _build_history(run_dir)[0]
 
 
 def render_html(history: dict) -> str:

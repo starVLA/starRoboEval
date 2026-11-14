@@ -9,361 +9,301 @@
       "native_id": 0,
       "name": "assembly-v3",
       "instruction": "Pick up a nut and place it onto a peg",
-      "bucket": "hard",
-      "legacy_aliases": [
-        "nut-assembly-v3"
-      ]
+      "bucket": "hard"
     },
     {
       "native_id": 1,
       "name": "basketball-v3",
       "instruction": "Dunk the basketball into the basket",
-      "bucket": "medium",
-      "legacy_aliases": []
+      "bucket": "medium"
     },
     {
       "native_id": 2,
       "name": "bin-picking-v3",
       "instruction": "Grasp the puck from one bin and place it into another bin",
-      "bucket": "medium",
-      "legacy_aliases": []
+      "bucket": "medium"
     },
     {
       "native_id": 3,
       "name": "box-close-v3",
       "instruction": "Grasp the cover and close the box with it",
-      "bucket": "medium",
-      "legacy_aliases": []
+      "bucket": "medium"
     },
     {
       "native_id": 4,
       "name": "button-press-topdown-v3",
       "instruction": "Press a button from the top",
-      "bucket": "easy",
-      "legacy_aliases": []
+      "bucket": "easy"
     },
     {
       "native_id": 5,
       "name": "button-press-topdown-wall-v3",
       "instruction": "Bypass a wall and press a button from the top",
-      "bucket": "easy",
-      "legacy_aliases": []
+      "bucket": "easy"
     },
     {
       "native_id": 6,
       "name": "button-press-v3",
       "instruction": "Press a button",
-      "bucket": "easy",
-      "legacy_aliases": []
+      "bucket": "easy"
     },
     {
       "native_id": 7,
       "name": "button-press-wall-v3",
       "instruction": "Bypass a wall and press a button",
-      "bucket": "easy",
-      "legacy_aliases": []
+      "bucket": "easy"
     },
     {
       "native_id": 8,
       "name": "coffee-button-v3",
       "instruction": "Push a button on the coffee machine",
-      "bucket": "easy",
-      "legacy_aliases": []
+      "bucket": "easy"
     },
     {
       "native_id": 9,
       "name": "coffee-pull-v3",
       "instruction": "Pull a mug from a coffee machine",
-      "bucket": "medium",
-      "legacy_aliases": []
+      "bucket": "medium"
     },
     {
       "native_id": 10,
       "name": "coffee-push-v3",
       "instruction": "Push a mug under a coffee machine",
-      "bucket": "medium",
-      "legacy_aliases": []
+      "bucket": "medium"
     },
     {
       "native_id": 11,
       "name": "dial-turn-v3",
       "instruction": "Rotate a dial 180 degrees",
-      "bucket": "easy",
-      "legacy_aliases": []
+      "bucket": "easy"
     },
     {
       "native_id": 12,
       "name": "disassemble-v3",
       "instruction": "Pick a nut out of a peg",
-      "bucket": "very_hard",
-      "legacy_aliases": [
-        "nut-disassemble-v3"
-      ]
+      "bucket": "very_hard"
     },
     {
       "native_id": 13,
       "name": "door-close-v3",
       "instruction": "Close a door with a revolving joint",
-      "bucket": "easy",
-      "legacy_aliases": []
+      "bucket": "easy"
     },
     {
       "native_id": 14,
       "name": "door-lock-v3",
       "instruction": "Lock the door by rotating the lock clockwise",
-      "bucket": "easy",
-      "legacy_aliases": []
+      "bucket": "easy"
     },
     {
       "native_id": 15,
       "name": "door-open-v3",
       "instruction": "Open a door with a revolving joint",
-      "bucket": "easy",
-      "legacy_aliases": [
-        "door-v3"
-      ]
+      "bucket": "easy"
     },
     {
       "native_id": 16,
       "name": "door-unlock-v3",
       "instruction": "Unlock the door by rotating the lock counter-clockwise",
-      "bucket": "easy",
-      "legacy_aliases": []
+      "bucket": "easy"
     },
     {
       "native_id": 17,
       "name": "hand-insert-v3",
       "instruction": "Insert the gripper into a hole",
-      "bucket": "hard",
-      "legacy_aliases": []
+      "bucket": "hard"
     },
     {
       "native_id": 18,
       "name": "drawer-close-v3",
       "instruction": "Push and close a drawer",
-      "bucket": "easy",
-      "legacy_aliases": []
+      "bucket": "easy"
     },
     {
       "native_id": 19,
       "name": "drawer-open-v3",
       "instruction": "Open a drawer",
-      "bucket": "easy",
-      "legacy_aliases": []
+      "bucket": "easy"
     },
     {
       "native_id": 20,
       "name": "faucet-open-v3",
       "instruction": "Rotate the faucet counter-clockwise",
-      "bucket": "easy",
-      "legacy_aliases": []
+      "bucket": "easy"
     },
     {
       "native_id": 21,
       "name": "faucet-close-v3",
       "instruction": "Rotate the faucet clockwise",
-      "bucket": "easy",
-      "legacy_aliases": []
+      "bucket": "easy"
     },
     {
       "native_id": 22,
       "name": "hammer-v3",
       "instruction": "Hammer a screw on the wall",
-      "bucket": "medium",
-      "legacy_aliases": []
+      "bucket": "medium"
     },
     {
       "native_id": 23,
       "name": "handle-press-side-v3",
       "instruction": "Press a handle down sideways",
-      "bucket": "easy",
-      "legacy_aliases": []
+      "bucket": "easy"
     },
     {
       "native_id": 24,
       "name": "handle-press-v3",
       "instruction": "Press a handle down",
-      "bucket": "easy",
-      "legacy_aliases": []
+      "bucket": "easy"
     },
     {
       "native_id": 25,
       "name": "handle-pull-side-v3",
       "instruction": "Pull a handle up sideways",
-      "bucket": "easy",
-      "legacy_aliases": []
+      "bucket": "easy"
     },
     {
       "native_id": 26,
       "name": "handle-pull-v3",
       "instruction": "Pull a handle up",
-      "bucket": "easy",
-      "legacy_aliases": []
+      "bucket": "easy"
     },
     {
       "native_id": 27,
       "name": "lever-pull-v3",
       "instruction": "Pull a lever down 90 degrees",
-      "bucket": "easy",
-      "legacy_aliases": []
+      "bucket": "easy"
     },
     {
       "native_id": 28,
       "name": "pick-place-wall-v3",
       "instruction": "Pick a puck, bypass a wall and place the puck",
-      "bucket": "very_hard",
-      "legacy_aliases": []
+      "bucket": "very_hard"
     },
     {
       "native_id": 29,
       "name": "pick-out-of-hole-v3",
       "instruction": "Pick up a puck from a hole",
-      "bucket": "hard",
-      "legacy_aliases": []
+      "bucket": "hard"
     },
     {
       "native_id": 30,
       "name": "pick-place-v3",
       "instruction": "Pick and place a puck to a goal",
-      "bucket": "hard",
-      "legacy_aliases": []
+      "bucket": "hard"
     },
     {
       "native_id": 31,
       "name": "plate-slide-v3",
       "instruction": "Slide a plate into a cabinet",
-      "bucket": "easy",
-      "legacy_aliases": []
+      "bucket": "easy"
     },
     {
       "native_id": 32,
       "name": "plate-slide-side-v3",
       "instruction": "Slide a plate into a cabinet sideways",
-      "bucket": "easy",
-      "legacy_aliases": []
+      "bucket": "easy"
     },
     {
       "native_id": 33,
       "name": "plate-slide-back-v3",
       "instruction": "Get a plate from the cabinet",
-      "bucket": "easy",
-      "legacy_aliases": []
+      "bucket": "easy"
     },
     {
       "native_id": 34,
       "name": "plate-slide-back-side-v3",
       "instruction": "Get a plate from the cabinet sideways",
-      "bucket": "easy",
-      "legacy_aliases": []
+      "bucket": "easy"
     },
     {
       "native_id": 35,
       "name": "peg-insert-side-v3",
       "instruction": "Insert a peg sideways",
-      "bucket": "medium",
-      "legacy_aliases": [
-        "peg-insertion-side-v3"
-      ]
+      "bucket": "medium"
     },
     {
       "native_id": 36,
       "name": "peg-unplug-side-v3",
       "instruction": "Unplug a peg sideways",
-      "bucket": "easy",
-      "legacy_aliases": []
+      "bucket": "easy"
     },
     {
       "native_id": 37,
       "name": "soccer-v3",
       "instruction": "Kick a soccer into the goal",
-      "bucket": "medium",
-      "legacy_aliases": []
+      "bucket": "medium"
     },
     {
       "native_id": 38,
       "name": "stick-push-v3",
       "instruction": "Grasp a stick and push a box using the stick",
-      "bucket": "very_hard",
-      "legacy_aliases": []
+      "bucket": "very_hard"
     },
     {
       "native_id": 39,
       "name": "stick-pull-v3",
       "instruction": "Grasp a stick and pull a box with the stick",
-      "bucket": "very_hard",
-      "legacy_aliases": []
+      "bucket": "very_hard"
     },
     {
       "native_id": 40,
       "name": "push-v3",
       "instruction": "Push the puck to a goal",
-      "bucket": "hard",
-      "legacy_aliases": []
+      "bucket": "hard"
     },
     {
       "native_id": 41,
       "name": "push-wall-v3",
       "instruction": "Bypass a wall and push a puck to a goal",
-      "bucket": "medium",
-      "legacy_aliases": []
+      "bucket": "medium"
     },
     {
       "native_id": 42,
       "name": "push-back-v3",
       "instruction": "Push the puck back to a goal",
-      "bucket": "hard",
-      "legacy_aliases": []
+      "bucket": "hard"
     },
     {
       "native_id": 43,
       "name": "reach-v3",
       "instruction": "Reach a goal position",
-      "bucket": "easy",
-      "legacy_aliases": []
+      "bucket": "easy"
     },
     {
       "native_id": 44,
       "name": "reach-wall-v3",
       "instruction": "Bypass a wall and reach a goal",
-      "bucket": "easy",
-      "legacy_aliases": []
+      "bucket": "easy"
     },
     {
       "native_id": 45,
       "name": "shelf-place-v3",
       "instruction": "Pick and place a puck onto a shelf",
-      "bucket": "very_hard",
-      "legacy_aliases": []
+      "bucket": "very_hard"
     },
     {
       "native_id": 46,
       "name": "sweep-into-v3",
       "instruction": "Sweep a puck into a hole",
-      "bucket": "medium",
-      "legacy_aliases": [
-        "sweep-into-goal-v3"
-      ]
+      "bucket": "medium"
     },
     {
       "native_id": 47,
       "name": "sweep-v3",
       "instruction": "Sweep a puck off the table",
-      "bucket": "medium",
-      "legacy_aliases": []
+      "bucket": "medium"
     },
     {
       "native_id": 48,
       "name": "window-open-v3",
       "instruction": "Push and open a window",
-      "bucket": "easy",
-      "legacy_aliases": []
+      "bucket": "easy"
     },
     {
       "native_id": 49,
       "name": "window-close-v3",
       "instruction": "Push and close a window",
-      "bucket": "easy",
-      "legacy_aliases": []
+      "bucket": "easy"
     }
   ]
 }

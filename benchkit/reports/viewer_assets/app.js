@@ -4,9 +4,9 @@
   const $ = (id) => document.getElementById(id);
   const data = window.EVALUATION_VIEWER;
   const PAGE_SIZE = 32;
-  const cameraLabels = {head: '头部相机', left_wrist: '左腕相机', right_wrist: '右腕相机'};
+  const cameraLabel = (camera) => `${camera} 相机`;
   let task, calls = [], steps = [], filtered = [], searchText = [], selected = 0, page = 0;
-  let mainCamera = 'head', videos = [], seekGuardUntil = 0, taskIndex = 0;
+  let mainCamera, videos = [], seekGuardUntil = 0, taskIndex = 0;
   const finite = (value) => value !== null && value !== '' && Number.isFinite(Number(value));
   const number = (value, fallback = 0) => finite(value) ? Number(value) : fallback;
   const show = (value) => value === null || value === undefined || value === '' ? '未记录' : String(value);
@@ -25,8 +25,8 @@
   function renderSummary() {
     const entries = [['任务', data.tasks.length], ['已闭合', data.tasks.filter((item) => ['closed', 'completed', 'failed', 'error', 'aborted', 'stopped'].includes(item.status)).length], ['原生成功', data.tasks.filter((item) => item.success === true).length]];
     $('summary').replaceChildren(...entries.map(([label, value]) => { const el = node('div', 'summary-item'); el.append(node('strong', '', String(value)), node('span', '', label)); return el; }));
-    text('page-title', data.title || 'BEHAVIOR · 评测回放');
-    document.title = `${data.title || 'BEHAVIOR 评测回放'}`;
+    text('page-title', data.title || '评测回放');
+    document.title = data.title || '评测回放';
     text('generated-at', data.generated_at ? `导出于 ${data.generated_at}` : '');
   }
   function renderTabs() {
@@ -38,7 +38,7 @@
     }));
   }
   function selectTask(index) {
-    videos.forEach(({video}) => video.pause()); taskIndex = index; task = data.tasks[index]; calls = list(task.calls); selected = 0; page = 0; mainCamera = list(task.videos).some((v) => v.camera === 'head') ? 'head' : task.videos?.[0]?.camera;
+    videos.forEach(({video}) => video.pause()); taskIndex = index; task = data.tasks[index]; calls = list(task.calls); selected = 0; page = 0; mainCamera = list(task.contracts?.observation?.cameras).find((camera) => list(task.videos).some((v) => v.camera === camera)) ?? task.videos?.[0]?.camera;
     steps = calls.map(stepFor); searchText = calls.map((call, i) => `${callName(call, i)} ${note(call)}`.toLocaleLowerCase());
     $('note-search').value = ''; filtered = calls.map((_, i) => i);
     renderTabs(); text('task-title', task.title || task.task || task.id); text('task-id', task.task || task.id);
@@ -53,14 +53,14 @@
     for (const source of sources) {
       const isMain = source.camera === mainCamera;
       const tile = node('figure', `camera-tile${isMain ? ' main-camera' : ''}`);
-      const caption = node('figcaption'); caption.append(node('span', '', cameraLabels[source.camera] || source.camera));
+      const caption = node('figcaption'); caption.append(node('span', '', cameraLabel(source.camera)));
       const url = safeMediaURL(source.url);
       if (!url) { tile.append(node('p', 'camera-unavailable', '视频路径不可用')); }
       else {
-        const video = document.createElement('video'); video.src = url; video.preload = 'metadata'; video.controls = isMain; video.muted = true; video.playsInline = true; video.setAttribute('aria-label', `${cameraLabels[source.camera] || source.camera}回放`);
+        const video = document.createElement('video'); video.src = url; video.preload = 'metadata'; video.controls = isMain; video.muted = true; video.playsInline = true; video.setAttribute('aria-label', `${cameraLabel(source.camera)}回放`);
         const entry = {video, source, pendingControl: calls.length ? steps[selected] : 0}; videos.push(entry); video.playbackRate = Number($('playback-speed').value);
         video.addEventListener('loadedmetadata', () => { seekEntry(entry, entry.pendingControl); });
-        video.addEventListener('error', () => { $('video-status').textContent = `${cameraLabels[source.camera] || source.camera}视频无法加载，请确认回看服务及原始视频可用，且浏览器支持 MP4。`; });
+        video.addEventListener('error', () => { $('video-status').textContent = `${cameraLabel(source.camera)}视频无法加载，请确认回看服务及原始视频可用，且浏览器支持 MP4。`; });
         if (isMain) {
           video.addEventListener('timeupdate', () => followVideo(entry));
           video.addEventListener('seeking', () => syncOthers(entry));
@@ -169,11 +169,11 @@
   function renderSource() {
     const entries = [['原始 run_id', task.run_id], ['任务 ID', task.task || task.id], ['Benchmark', task.benchmark], ['协议', task.protocol], ['方法', task.method], ['方法版本', task.method_version], ['请求 / 声明模型', task.model], ['模型身份依据', '运行记录中的请求或声明；不构成提供方身份认证。'], ['种子', task.seed], ['状态', statusLabel(task.status)], ['策略调用 / 动作决策 / 控制', `${count(task.counters?.policy_calls)} / ${count(task.counters?.action_decisions)} / ${count(task.counters?.controls)}`], [task.score?.label || '原生 benchmark 分数（事后）', task.score?.scale ? `${qValue(task)}（${task.score.scale}）` : qValue(task)], ['评分来源', task.score?.source], ['输入相机', list(task.contracts?.observation?.cameras).join(' · ')]];
     // Show curated public termination labels; unknown codes must remain enum-shaped.
-    const reasons = {success: '原生任务成功', budget_exhausted: '执行预算耗尽', control_budget_exhausted: '控制预算耗尽', max_steps: '步数上限', time_limit: '时间上限', policy_stop: '策略请求停止', error: '异常结束', native_termination: '原生环境终止', 'environment:terminated': '原生环境终止', 'environment:truncated': '原生环境截断', 'runner:policy_call_limit': '策略调用次数上限', 'runner:step_limit': '执行控制步数上限', 'policy:give_up': '策略主动放弃', 'policy:stop': '策略请求停止', 'policy:safety_stop': '策略请求安全停止', 'policy:task_complete': '策略声明任务完成'};
+    const reasons = {'environment:terminated': '原生环境终止', 'environment:truncated': '原生环境截断', 'runner:policy_call_limit': '策略调用次数上限', 'runner:step_limit': '执行控制步数上限', 'policy:safety_stop': '策略请求安全停止', 'policy:task_complete': '策略声明任务完成'};
     const reason = task.termination_reason;
     const publicCode = typeof reason === 'string' && /^(environment|runner|policy):[a-z][a-z0-9_]{0,79}$/.test(reason);
     entries.push(['终止原因', reasons[reason] ? `${reasons[reason]} · ${reason}` : publicCode ? reason : reason ? '已记录（详见原始评测产物）' : '未记录']);
-    for (const video of list(task.videos)) entries.push([cameraLabels[video.camera] || video.camera, `${count(video.frames)} 帧 · ${show(video.fps)} FPS · ${finite(video.bytes) ? (Number(video.bytes) / 1048576).toFixed(2) + ' MiB' : '大小未记录'}`]);
+    for (const video of list(task.videos)) entries.push([cameraLabel(video.camera), `${count(video.frames)} 帧 · ${show(video.fps)} FPS · ${finite(video.bytes) ? (Number(video.bytes) / 1048576).toFixed(2) + ' MiB' : '大小未记录'}`]);
     $('source-details').replaceChildren(...entries.flatMap(([label, value]) => [node('dt', '', label), node('dd', '', show(value))]));
   }
   $('decision-slider').addEventListener('input', (event) => selectCall(Number(event.target.value), true));

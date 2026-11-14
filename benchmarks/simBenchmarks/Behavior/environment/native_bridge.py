@@ -121,7 +121,7 @@ def validate_loaded(evaluator, sim, task=TASK):
             raise ProtocolError("native gripper controller mismatch")
     if cfg["base"]["name"] != "HolonomicBaseJointController":
         raise ProtocolError("native base controller mismatch")
-    budget = ({"native_horizon": selected.horizon} if task == TASK else
+    budget = ({"native_horizon": selected.native_timeout_steps} if task == TASK else
               {"native_timeout_steps": selected.native_timeout_steps, "native_control_cap": selected.control_cap})
     return {"action_indices": indices, "action_dimension": 23, "proprio_dimension": len(STATE_NAMES),
             **budget, "physics_hz": 120, "control_hz": 30,

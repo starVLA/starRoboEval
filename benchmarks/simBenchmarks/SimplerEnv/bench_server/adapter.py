@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import copy
 import hashlib
+import json
 import math
 import os
 import subprocess
@@ -22,23 +23,8 @@ MANISKILL_REVISION = "ef7a4d4fdf4b69f2c2154db5b15b9ac8dfe10682"
 # Shared-filesystem Git metadata scans can exceed 15 s before native creation.
 # Bound each verification command independently; this is not a control budget.
 NATIVE_GIT_TIMEOUT_S = 120
-TASK_HORIZONS = {
-    "google_robot_pick_horizontal_coke_can": 80,
-    "google_robot_pick_vertical_coke_can": 80,
-    "google_robot_pick_standing_coke_can": 80,
-    "google_robot_move_near_v0": 80,
-    "google_robot_open_top_drawer": 113,
-    "google_robot_open_middle_drawer": 113,
-    "google_robot_open_bottom_drawer": 113,
-    "google_robot_close_top_drawer": 113,
-    "google_robot_close_middle_drawer": 113,
-    "google_robot_close_bottom_drawer": 113,
-    "google_robot_place_apple_in_closed_top_drawer": 200,
-    "widowx_spoon_on_towel": 60,
-    "widowx_carrot_on_plate": 60,
-    "widowx_stack_cube": 60,
-    "widowx_put_eggplant_in_basket": 120,
-}
+TASK_HORIZONS = {row["id"]: row["native_horizon"] for row in json.loads(
+    Path(__file__).with_name("protocol").joinpath("task_catalog.json").read_text(encoding="utf-8"))}
 
 
 def _revision(root: Path, expected: str) -> dict[str, JsonValue]:
@@ -122,6 +108,8 @@ class SimplerEnvEpisode:
         path.mkdir(parents=True, exist_ok=True)
 
     def reset(self) -> Observation:
+        if self.env is not None:
+            raise ProtocolError("a SimplerEnv session permits exactly one reset")
         import gymnasium as gym
         import mani_skill2_real2sim
         import simpler_env
@@ -181,10 +169,6 @@ class SimplerEnvEpisode:
                 "packages": {name: version(name) for name in ("numpy", "scipy", "sapien", "gymnasium")},
             })
             atomic_write_json(self.artifact_dir / "native_provenance.json", provenance)
-        self.step_count = 0
-        self.last_metrics = {"success": False}
-        self.success_ever = False
-        self.horizon_checkpoints = {"native": None, "evaluation": None}
         return self._observe(raw)
 
     def _observe(self, raw: Mapping[str, Any]) -> Observation:

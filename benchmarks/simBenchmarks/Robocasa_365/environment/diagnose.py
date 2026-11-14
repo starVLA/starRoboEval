@@ -9,8 +9,10 @@ import traceback
 from pathlib import Path
 
 from benchkit.artifacts import append_jsonl, atomic_write_json
-from .native_boundary import (ACTION_SPEC, CAMERAS, NEUTRAL_ACTION, OBSERVATION_SPEC,
-                              PILOT_SEED, PILOT_TASKS, NativeBoundary)
+from benchmarks.simBenchmarks.Robocasa_365.bench_server.adapter import (
+    ACTION_SPEC, CAMERAS, NEUTRAL_ACTION, OBSERVATION_SPEC, PILOT_SEED, PILOT_TASKS,
+    RoboCasa365BenchmarkAdapter, RoboCasa365Episode,
+)
 
 
 def main() -> None:
@@ -26,7 +28,9 @@ def main() -> None:
     os.environ["PYOPENGL_PLATFORM"] = "egl"
     status_path = args.output / "status.json"
     atomic_write_json(status_path, {"status": "running", "kind": "infrastructure_diagnostic"})
-    session = NativeBoundary(args.task, args.seed, args.gpu, render_track=args.render_track)
+    benchmark = RoboCasa365BenchmarkAdapter(task_ids=[PILOT_TASKS.index(args.task)],
+                                            render_gpu_device_id=args.gpu, render_track=args.render_track)
+    session = RoboCasa365Episode(benchmark, benchmark.episodes(args.seed)[0])
     session.bind_artifact_dir(args.output / "native")
     videos = {}
     result = {"kind": "infrastructure_diagnostic", "capability_attempt": False,

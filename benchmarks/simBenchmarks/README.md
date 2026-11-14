@@ -42,9 +42,6 @@ A task, layout, initial state, variation and seed are not
 interchangeable: see [how to select cases](TASK_COVERAGE.md). A different seed
 does not guarantee a different layout. The machine-readable catalog is
 [`benchkit/catalog/benchmarks.json`](../../benchkit/catalog/benchmarks.json).
-Its `step_success_field` names the boolean native-success key the adapter writes
-into every step's info (null when none); offline progress reports read it from
-there. A new adapter that reports per-step success declares the key there.
 
 ## Evaluate through a service
 

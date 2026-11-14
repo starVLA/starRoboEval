@@ -95,28 +95,33 @@ def validate_action_vector(spec: "ActionSpec", values) -> tuple[float, ...]:
     Semantic validators such as quaternion checks remain benchmark-owned.
     """
     # Lazy import avoids contracts -> validation -> errors -> contracts cycles.
+    from benchkit.contracts import Usage
     from benchkit.errors import ActionRejected
 
+    def rejected(issue):
+        # Deterministic validation makes no provider call.
+        return ActionRejected(issue, usage=Usage())
+
     if not isinstance(values, (list, tuple)):
-        raise ActionRejected(ValidationIssue("invalid_type"))
+        raise rejected(ValidationIssue("invalid_type"))
     if len(values) != spec.size:
-        raise ActionRejected(ValidationIssue("invalid_length", actual=len(values), limit=spec.size))
+        raise rejected(ValidationIssue("invalid_length", actual=len(values), limit=spec.size))
     normalized = []
     for index, value in enumerate(values):
         if isinstance(value, bool) or not isinstance(value, Real):
-            raise ActionRejected(ValidationIssue("invalid_type", action_index=index))
+            raise rejected(ValidationIssue("invalid_type", action_index=index))
         try:
             number = float(value)
         except OverflowError:
-            raise ActionRejected(ValidationIssue("non_finite", action_index=index)) from None
+            raise rejected(ValidationIssue("non_finite", action_index=index)) from None
         if not math.isfinite(number):
-            raise ActionRejected(ValidationIssue("non_finite", action_index=index))
+            raise rejected(ValidationIssue("non_finite", action_index=index))
         if spec.low is not None and spec.high is not None:
             if number < spec.low[index]:
-                raise ActionRejected(ValidationIssue("out_of_bounds", actual=number,
+                raise rejected(ValidationIssue("out_of_bounds", actual=number,
                     limit=spec.low[index], action_index=index))
             if number > spec.high[index]:
-                raise ActionRejected(ValidationIssue("out_of_bounds", actual=number,
+                raise rejected(ValidationIssue("out_of_bounds", actual=number,
                     limit=spec.high[index], action_index=index))
         normalized.append(number)
     return tuple(normalized)

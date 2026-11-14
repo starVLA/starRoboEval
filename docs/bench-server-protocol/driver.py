@@ -90,7 +90,7 @@ def run_one(client, decide, *, seed: int, method: dict, output_dir: Path,
         "protocol": {"seed": seed, "episode_ids": [episode.id], "max_steps": cap,
                      "max_policy_calls": call_cap, "replan_interval": 1, "budget_mode": "horizon",
                      "invalid_action_handling": "terminate", "fail_fast": False,
-                     "usage_accounting_version": "starvla-rsi.method-usage/v1"},
+                     "usage_accounting_version": "starvla-rsi.method-usage/v2"},
         "driver": {"kind": "educational_single_case", "actor_isolation": "not_enforced",
                    "interaction_format": "example_callback_events_not_reference_policy_ledger"}}, overwrite=False)
     atomic_write_json(root / "status.json", {"status": "running", "episodes_written": 0})
@@ -182,6 +182,7 @@ def run_one(client, decide, *, seed: int, method: dict, output_dir: Path,
         "termination_reason": reason, "policy_calls": calls, "action_decisions": controls,
         "environment_steps": controls, "rejected_actions": rejected,
         "duration_s": time.monotonic() - started, "usage": usage.to_dict(), "component_usage": components,
+        "usage_reported_complete": None, "usage_inconsistent_fields": None,  # no episode_usage hook here
         "metrics": metrics, "artifacts": artifacts, "error": error,
         "recording": {**settings, "agent_events_written": sink.events_written, "warnings": sink.warnings}}
     atomic_write_json(episode_dir / "result.json", result, overwrite=False)

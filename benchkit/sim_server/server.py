@@ -14,7 +14,7 @@ import traceback
 import uuid
 
 from benchkit.artifacts import append_jsonl, atomic_write_json, utc_now
-from benchkit.contracts import ensure_jsonable
+from benchkit.contracts import Usage, ensure_jsonable
 from benchkit.errors import ActionRejected
 from benchkit.validation import ValidationIssue, validate_action_vector
 from benchkit.sim_server.wire import (
@@ -146,6 +146,11 @@ class BenchmarkService:
                                    any(not isinstance(x, str) or not x for x in select)):
             raise ValueError("select must be a nonempty tuple of unique episode IDs, without limit")
         required_prefix = getattr(adapter, "required_replan_interval", None)
+        # Whether this track admits a driver that returns rejected actions to
+        # the policy as feedback; an adapter declares False to refuse it.
+        rejection_feedback = getattr(adapter, "action_rejection_feedback", True)
+        if type(rejection_feedback) is not bool:
+            raise ValueError("action_rejection_feedback must be a boolean")
         if required_prefix is not None and (type(required_prefix) is not int or required_prefix <= 0):
             raise ValueError("required_replan_interval must be a positive integer")
         self.adapter = adapter
@@ -196,6 +201,7 @@ class BenchmarkService:
         self.description = ensure_jsonable({
             "server_id": uuid.uuid4().hex,
             "action_rejection": ACTION_REJECTION_PROTOCOL,
+            "action_rejection_feedback": rejection_feedback,
             "descriptor": adapter.descriptor.to_dict(),
             "observation_spec": adapter.observation_spec.to_dict(),
             "action_spec": adapter.action_spec.to_dict(),
@@ -299,7 +305,7 @@ class BenchmarkService:
             if op == "step":
                 try:
                     if not isinstance(params["action"], list):
-                        raise ActionRejected(ValidationIssue("invalid_type", field="action"))
+                        raise ActionRejected(ValidationIssue("invalid_type", field="action"), usage=Usage())
                     action = validate_action_vector(self.adapter.action_spec, params["action"])
                     validate_input = getattr(self.adapter, "validate_action_input", None)
                     if validate_input is not None:
@@ -522,9 +528,16 @@ class BenchmarkService:
         return retained, retained_mapping
 
     def close(self) -> None:
-        """Operator shutdown: cleanup only, never reset or retry native controls."""
+        """Operator shutdown: cleanup only, never reset or retry native controls.
+
+        An episode still open was interrupted, possibly inside a native call
+        (state "executing"); its record keeps that as an infrastructure error.
+        """
         if self.active is not None:
-            self._finish(self.sessions[self.active])
+            record = self.sessions[self.active]
+            if record["state"] != "closed" and record["error"] is None:
+                record["error"] = "interrupted_by_shutdown"
+            self._finish(record)
 
 
 def make_http_server(service: BenchmarkService, *, token: str, host: str = "127.0.0.1",
@@ -553,8 +566,9 @@ def make_http_server(service: BenchmarkService, *, token: str, host: str = "127.
                 if self.path != "/rpc":
                     self.send_error(404)
                     return
+                # Bytes, since compare_digest raises on non-ASCII str (a 401, not a request error).
                 auth = self.headers.get_all("Authorization", [])
-                if len(auth) != 1 or not hmac.compare_digest(auth[0], "Bearer " + token):
+                if len(auth) != 1 or not hmac.compare_digest(auth[0].encode(), ("Bearer " + token).encode()):
                     self.send_error(401)
                     return
                 lengths = self.headers.get_all("Content-Length", [])

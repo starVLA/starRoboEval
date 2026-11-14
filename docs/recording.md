@@ -24,7 +24,7 @@ Add these options to a normal `python -m AgentPolicies.gpt6_astra.run ...` comma
 
 | Setting | Retains when supported | Standard / minimal |
 | --- | --- | --- |
-| `--[no-]record-interactions` | Robot trajectory events, decisions and ACKs | on / off |
+| `--[no-]record-interactions` | Observation/transition metadata in trajectory events | on / off |
 | `--[no-]record-model-io` | Visible model input/output, notes and method records | on / off |
 | `--[no-]record-tool-traces` | Allowlisted visible tool events | on / off |
 | `--[no-]record-images` | Retained client image artifacts / requested server image copies | off / off |
@@ -37,6 +37,25 @@ change them mid-episode. The Python SDK uses `RecordingOptions` and
 The essential closed-file inventory still identifies server media when client
 video copying is disabled; `--no-record-videos` does not delete server videos.
 
+## The trajectory ledger is always written
+
+Every mode writes `episodes/<id>/events.jsonl`, because the closed-run audit,
+usage totals and publication read it. The ledger holds `episode_start`,
+the reset `observation`, `policy_call_start`, `policy_decision` (with usage, stop
+and chunk length), `action_chunk` (proposed actions), `environment_step`
+(executed action, reward, terminal flags and the public observation),
+`action_rejected`, `error`/`artifact_error`, `usage_reconciliation` (when the
+policy reports an episode total) and `episode_end`. The switches only strip
+payloads:
+
+- without `interactions`, observation `metadata` is dropped and transition
+  `info` becomes `{}`; step, instruction, camera names, robot state and the
+  public control acknowledgement remain;
+- without `model_io`, the decision `note` becomes `""` and decision, rejection
+  and error `metadata` is dropped.
+
+Any other event kind is written unchanged.
+
 ## One canonical visual record
 
 For new service runs, videos stay under `server/episodes/<session>/`. The client
@@ -45,7 +64,9 @@ in its artifact receipt; a reference is not a downloaded or independently
 verified local copy. Keep the server result directory on durable storage. Reports
 and exports must not assume a video exists in `client/.../sim_server_files/`.
 `benchkit.reports.export_videos` copies local videos and otherwise lists these
-server references with `video_status: retained_on_server`.
+server references with `video_status: retained_on_server`. Each episode gets a
+`<date>-<task>-<short-instruction>-caseNNN/` directory; `index.json` maps it to
+the original episode record. Receipts are parsed before the archive is created.
 
 Native adapters may need PNG files during execution. They remain available until
 native finalization and close. The shared service then drops eligible temporary
@@ -66,10 +87,9 @@ If local image copies are also wanted, use client `--record-images
 copy; it does not remove the server original. Model-side public-image history is
 also optional to retain; live images remain available to the actor regardless.
 
-These defaults apply to newly launched sources. Historical runs, existing server
-inventories and historical media are not rewritten or cleaned retroactively.
-Older servers may still retain their frames; a new client's media references
-do not silently change an older server's retention policy.
+Historical runs, existing server inventories and historical media are not
+rewritten or cleaned retroactively. The client requires the server's
+`server_media_retention.json` receipt in every finalized inventory.
 
 Essential records remain: method/configuration, benchmark/protocol and selected
 cases, lifecycle, outcomes, termination/errors, counters and known usage. The
@@ -97,7 +117,7 @@ freezing is not required by the basic result exporter.
   disappear merely because images are disabled. Unknown non-media evidence is
   retained conservatively; recognized interaction streams still respect their
   switches. Direct's mixed public JSON export requires interactions and model IO;
-  robot events/ACKs remain separately configurable. Disabling images leaves
+  the trajectory ledger itself is always written. Disabling images leaves
   references to unavailable images, not invented retained pixels. Components
   without selective-recording support may retain mixed artifacts and report that
   limitation rather than silently dropping their non-media evidence.
@@ -139,10 +159,9 @@ and the record contract above for required field types; unsupported layouts fail
 explicitly, not by guessing metadata. Historical contract fixtures are no longer
 included in the active source tree and can be recovered from Git history.
 
-For sufficiently complete event records, the separate
-`python -m benchkit.reports.interaction_history` exporter provides a trajectory
-timeline. It currently does not merge `agent_interactions.jsonl` or copy media.
-Redacted/missing events may not satisfy its stronger audit: the basic result
-remains usable. The panel publication (`benchkit.reports.publication`) checks
-videos against the paired server record and needs no client copy. Hash/source
-audits retain their narrower requirements; they are not global publication gates.
+The `python -m benchkit.reports.interaction_history` exporter provides a
+trajectory timeline from the ledger in every mode; without model IO it shows
+decisions without notes or structured output. It currently does not merge
+`agent_interactions.jsonl` or copy media. The result publication
+(`benchkit.reports.publication`) is described in the
+[benchkit README](../benchkit/README.md).

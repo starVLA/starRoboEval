@@ -20,6 +20,9 @@ from verify_environment import assert_gpu_idle, measured_hold_and_contract
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--casa-source", type=Path, required=True)
+    parser.add_argument("--suite-source", type=Path, required=True)
+    parser.add_argument("--object-inventory", type=Path, required=True)
     parser.add_argument("--output-dir", type=Path, required=True)
     parser.add_argument("--native-task-index", type=int, choices=(0, 1, 2, 19), default=0)
     parser.add_argument("--task-scope", choices=("pilot", "tabletop-next-pair-v1"), default="pilot")
@@ -40,7 +43,8 @@ def main() -> None:
     persist()
     try:
         adapter = TabletopBenchmarkAdapter(task_ids=[args.native_task_index], task_scope=args.task_scope,
-                                          render_gpu_device_id=args.gpu)
+                                          casa_source=args.casa_source, suite_source=args.suite_source,
+                                          object_inventory=args.object_inventory, render_gpu_device_id=args.gpu)
         result["gpu"] = assert_gpu_idle(args.gpu)
         episode = adapter.episodes(PILOT_SEED)[0]
         result["episode"] = episode.to_dict()

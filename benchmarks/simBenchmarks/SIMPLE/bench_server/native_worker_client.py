@@ -12,9 +12,12 @@ import os
 from pathlib import Path
 import selectors
 import subprocess
+import time
 from typing import Any, Mapping
 
 from benchkit.errors import CompatibilityError, ProtocolError
+
+CLOSE_TIMEOUT = 60  # bound graceful close; close() then terminates the worker
 
 
 def worker_environment(benchmark, artifact_dir: Path, repo: Path,
@@ -50,28 +53,52 @@ class NativeWorkerClient:
         self.artifact_dir: Path | None = None
         self.process: subprocess.Popen | None = None
         self.log: Any = None
+        self.broken = False
         self.worker_artifacts: dict[str, Any] = {}
 
     def bind_artifact_dir(self, path: Path) -> None:
         self.artifact_dir = path.resolve()
         self.artifact_dir.mkdir(parents=True, exist_ok=True)
 
-    def _rpc(self, request: Mapping[str, Any]) -> dict[str, Any]:
+    def _rpc(self, request: Mapping[str, Any], timeout: float | None = None) -> dict[str, Any]:
         if self.process is None or self.process.stdin is None or self.process.stdout is None:
             raise ProtocolError("SIMPLE worker is not running")
-        self.process.stdin.write(json.dumps(request, allow_nan=False) + "\n")
-        self.process.stdin.flush()
-        with selectors.DefaultSelector() as selector:
-            selector.register(self.process.stdout, selectors.EVENT_READ)
-            if not selector.select(self.benchmark.worker_timeout):
-                raise TimeoutError("SIMPLE worker timed out; inspect native_worker.log")
-        line = self.process.stdout.readline()
-        if not line:
-            raise RuntimeError(f"SIMPLE worker exited ({self.process.poll()}); inspect native_worker.log")
-        result = json.loads(line)
+        if self.broken:
+            raise ProtocolError("SIMPLE worker transport failed earlier; no further RPC")
+        try:
+            result = self._exchange(request, self.benchmark.worker_timeout if timeout is None else timeout)
+        except BaseException:
+            # A late response to this request could be misread as the next one.
+            self.broken = True
+            raise
         if not result.get("ok"):
             raise RuntimeError(f"SIMPLE native worker: {result.get('error')}; inspect native_error.json")
         return result["result"]
+
+    def _exchange(self, request: Mapping[str, Any], timeout: float) -> dict[str, Any]:
+        self.process.stdin.write(json.dumps(request, allow_nan=False).encode() + b"\n")
+        self.process.stdin.flush()
+        # Read raw bytes under one deadline: a partial line must not block.
+        descriptor = self.process.stdout.fileno()
+        deadline = time.monotonic() + timeout
+        data = bytearray()
+        with selectors.DefaultSelector() as selector:
+            selector.register(descriptor, selectors.EVENT_READ)
+            while b"\n" not in data:
+                remaining = deadline - time.monotonic()
+                if remaining <= 0 or not selector.select(remaining):
+                    raise TimeoutError("SIMPLE worker timed out; inspect native_worker.log")
+                chunk = os.read(descriptor, 65536)
+                if not chunk:
+                    raise RuntimeError(f"SIMPLE worker exited ({self.process.poll()}); inspect native_worker.log")
+                data.extend(chunk)
+        line, trailing = bytes(data).split(b"\n", 1)
+        if trailing:
+            raise ProtocolError("SIMPLE worker sent more than one response")
+        result = json.loads(line)
+        if not isinstance(result, dict):
+            raise ProtocolError("SIMPLE worker response must be an object")
+        return result
 
     def _start_worker(self) -> None:
         if self.process is not None:
@@ -86,10 +113,14 @@ class NativeWorkerClient:
             raise CompatibilityError("missing configured SIMPLE interpreter or RSI native worker")
         env = worker_environment(self.benchmark, self.artifact_dir, repo)
         self.log = (self.artifact_dir / "native_worker.log").open("x")
-        self.process = subprocess.Popen(
-            [str(python), str(worker)], cwd=source, env=env, stdin=subprocess.PIPE,
-            stdout=subprocess.PIPE, stderr=self.log, text=True, bufsize=1,
-        )
+        try:
+            self.process = subprocess.Popen(
+                [str(python), str(worker)], cwd=source, env=env, stdin=subprocess.PIPE,
+                stdout=subprocess.PIPE, stderr=self.log, bufsize=0,
+            )
+        except BaseException:
+            self.log.close()
+            raise
 
     def artifacts(self) -> Mapping[str, Any]:
         if self.process is not None and self.process.poll() is None:
@@ -99,16 +130,21 @@ class NativeWorkerClient:
     def close(self) -> None:
         if self.process is not None:
             try:
+                # A broken transport gets no graceful close RPC: a stale late
+                # response could be read as its acknowledgement.
+                if not self.broken and self.process.poll() is None:
+                    try:
+                        self._rpc({"op": "close"}, timeout=CLOSE_TIMEOUT)
+                        self.process.wait(timeout=30)
+                    except Exception:
+                        pass  # fall through to forced termination
                 if self.process.poll() is None:
-                    self._rpc({"op": "close"})
-                    self.process.wait(timeout=30)
-            except Exception:
-                self.process.terminate()
-                try:
-                    self.process.wait(timeout=10)
-                except subprocess.TimeoutExpired:
-                    self.process.kill()
-                    self.process.wait(timeout=10)
+                    self.process.terminate()
+                    try:
+                        self.process.wait(timeout=10)
+                    except subprocess.TimeoutExpired:
+                        self.process.kill()
+                        self.process.wait(timeout=10)
             finally:
                 for stream in (self.process.stdin, self.process.stdout):
                     if stream:

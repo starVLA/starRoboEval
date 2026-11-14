@@ -270,13 +270,11 @@ class MetaWorldBenchmarkAdapter:
         self.image_orientation = image_orientation
         self.catalog = task_catalog()
         lookup = {row["name"]: row for row in self.catalog}
-        aliases = {alias: row["name"] for row in self.catalog for alias in row["legacy_aliases"]}
         if isinstance(task_names, (str, bytes)) or not task_names or not all(isinstance(n, str) for n in task_names):
             raise ValueError("task_names must be a nonempty sequence of canonical task names")
-        selected = tuple(aliases.get(name, name) for name in task_names)
-        if len(set(selected)) != len(selected) or any(name not in lookup for name in selected):
-            raise ValueError("MetaWorld tasks must be known and unique after legacy alias normalization")
-        self.selected = tuple(lookup[name] for name in selected)
+        if len(set(task_names)) != len(task_names) or any(name not in lookup for name in task_names):
+            raise ValueError("MetaWorld tasks must be unique canonical catalog names")
+        self.selected = tuple(lookup[name] for name in task_names)
         self.claims: set[str] = set()
 
     @property

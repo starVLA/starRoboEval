@@ -1,1 +1,1 @@
-"""Private VLN-CE native runtime; imported only by its benchmark worker."""
+"""Private VLN-CE native runtime for the benchmark worker; the adapter shares only its stdlib scene-path check."""

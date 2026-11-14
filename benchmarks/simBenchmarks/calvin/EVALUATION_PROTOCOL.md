@@ -30,7 +30,7 @@ The current service exposes **one fixed sequence with one fixed initial state**:
 | 4 | `place_in_slider` |
 | 5 | `turn_off_lightbulb` |
 
-The evaluator-private [sequence definition](bench_server/protocol/frozen_sequence.json)
+The evaluator-private [sequence definition](bench_server/protocol/selected_sequence.json)
 contains the initial condition, exact 15-value robot and 24-value scene reset
 vectors, ordered tasks and native language annotations. Changing the run seed
 does not select another layout. Additional sequences and independent evaluation
@@ -79,15 +79,14 @@ that chooses a smaller external limit must distinguish that stop from a native
 timeout. Partial completion does not make the whole five-subtask sequence a
 success.
 
-The current `agent-grouping-v2` interface imposes no action-prefix length.
+The current `agent-grouping-v2` interface declares no mandatory action prefix.
 An agent may issue successive controls from one decision. It receives the
 current public instruction after every acknowledged control, including a new
 instruction when a subtask completes. Its driver owns action grouping and when
 to request another decision; the service does not require a model call at that
 boundary. Future instructions and private subtask scores are not actor inputs.
 Controller timing, the 360-control subtask limit, native checks and sequence
-selection are unchanged. Report the returned protocol identity; older records
-retain their captured prefix-one conditions.
+selection are unchanged. Report the returned protocol identity.
 
 ## Scoring and result statistics
 

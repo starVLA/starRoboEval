@@ -126,7 +126,10 @@ does not replace native success.
 Report task/instance, binary success, final Q, actual controls and stop reason.
 For several selected cases, report successes and the selected/attempted case
 counts alongside Q statistics. Native failure, external truncation and
-infrastructure error are separate result categories.
+infrastructure error are separate result categories. The radio cap stop is
+recorded as metric `external_cap_truncated: true` with native `truncated: false`.
+`termination_reason` reads `environment:truncated` for both, so separate them
+by `metrics.external_cap_truncated`.
 
 Optional interactions and video recording use
 [shared recording settings](../../../docs/recording.md). Environment/controller

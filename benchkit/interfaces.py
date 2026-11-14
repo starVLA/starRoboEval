@@ -2,16 +2,13 @@
 
 from __future__ import annotations
 
-from pathlib import Path
 from typing import Mapping, Protocol, Sequence
 
 from benchkit.contracts import (
-    ActionRejectionFeedback,
     ActionSpec,
     BenchmarkDescriptor,
     EpisodeContext,
     EpisodeSpec,
-    ExecutionFeedback,
     JsonValue,
     Observation,
     ObservationSpec,
@@ -22,7 +19,11 @@ from benchkit.contracts import (
 
 
 class EpisodeSession(Protocol):
-    """One native benchmark episode opened by an adapter."""
+    """One native benchmark episode opened by an adapter.
+
+    Optional ``bind_artifact_dir(path)``: the runner calls it once, before
+    reset, with a new runner-owned directory inside the episode directory.
+    """
 
     def reset(self) -> Observation: ...
 
@@ -33,17 +34,6 @@ class EpisodeSession(Protocol):
     def artifacts(self) -> Mapping[str, str]: ...
 
     def close(self) -> None: ...
-
-
-class ArtifactBoundEpisodeSession(EpisodeSession, Protocol):
-    """Optional session capability for runner-owned video/observation artifacts.
-
-    The runner calls this once, before reset, with a newly created directory
-    inside the episode's run directory. Sessions without this capability keep
-    the original EpisodeSession interface.
-    """
-
-    def bind_artifact_dir(self, path: Path) -> None: ...
 
 
 class BenchmarkAdapter(Protocol):
@@ -64,7 +54,22 @@ class BenchmarkAdapter(Protocol):
 
 
 class Policy(Protocol):
-    """A model constrained to one observation-to-decision call at a time."""
+    """A model constrained to one observation-to-decision call at a time.
+
+    Optional hooks, found by attribute lookup; none may call a model or SIM:
+
+    - ``observe_execution(ExecutionFeedback)``: public counters and any declared
+      control acknowledgements after an executed chunk; never reward or
+      private simulator state. Stop/persistence rules stay with the policy.
+    - ``observe_rejection(ActionRejectionFeedback)``: required in feedback
+      mode; replaces observe_execution for a rejected call. The next ``act``
+      receives the unchanged last acknowledged observation.
+    - ``preflight_runtime()``: local dependency/credential readiness before
+      any attempt; failures raise PolicyPreflightError.
+    - ``episode_usage() -> EpisodeUsage``: the policy's own cumulative usage,
+      read once right after ``end_episode``; the runner reconciles the
+      episode total with it and leaves per-call usage as measured.
+    """
 
     @property
     def descriptor(self) -> PolicyDescriptor: ...
@@ -79,38 +84,3 @@ class Policy(Protocol):
 
     def end_episode(self) -> None: ...
 
-
-class RuntimeCheckablePolicy(Policy, Protocol):
-    """Optional model-owned local readiness, before any native attempt.
-
-    No model request, task context, simulator, action generation or usage event
-    is allowed. Check local dependencies/credential presence only; release any
-    temporary clients. Success returns None; failures use PolicyPreflightError.
-    A profile opts in through its declared runtime_preflight setting.
-    """
-
-    def preflight_runtime(self) -> None: ...
-
-
-class ExecutionAwarePolicy(Policy, Protocol):
-    """Optional public receipt, sent after a control chunk is executed.
-
-    The runner neither knows nor enforces a policy's persistence/stop rule.
-    Policies can use actual execution receipts for their own state and limits.
-    A separately declared robot-control sensor channel may supply ordered
-    control acknowledgements. No private simulator metadata or scoring crosses
-    this capability. The hook records feedback without calling a model or SIM.
-    """
-
-    def observe_execution(self, feedback: ExecutionFeedback) -> None: ...
-
-
-class ActionRejectionAwarePolicy(Policy, Protocol):
-    """Required opt-in for feedback-mode invalid actions, without another call.
-
-    For a rejected call this replaces observe_execution, including when a
-    prefix already executed. The next Policy.act receives the unchanged last
-    acknowledged observation. The hook must not request a model or simulator.
-    """
-
-    def observe_rejection(self, feedback: ActionRejectionFeedback) -> None: ...

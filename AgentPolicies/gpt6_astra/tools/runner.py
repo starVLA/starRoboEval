@@ -9,6 +9,7 @@ the benchmark server.
 
 from __future__ import annotations
 
+import math
 import re
 import secrets
 import tempfile
@@ -29,6 +30,7 @@ from benchkit.contracts import (
     ControlAcknowledgement,
     EpisodeContext,
     EpisodeSpec,
+    EpisodeUsage,
     ExecutionFeedback,
     JsonValue,
     PolicyDecision,
@@ -112,6 +114,11 @@ class EvaluationRunner:
             getattr(policy, "observe_rejection", None)
         ):
             raise CompatibilityError("action rejection feedback requires policy.observe_rejection")
+        if request.invalid_action_handling == "feedback" and getattr(
+            benchmark, "action_rejection_feedback", True
+        ) is not True:
+            raise CompatibilityError("feedback mode returns invalid actions to the policy; "
+                                     "this benchmark track does not admit action rejection feedback")
         adapter_mode = getattr(benchmark, "budget_mode", "horizon")
         if adapter_mode != request.budget_mode:
             raise ProtocolError("runner and benchmark budget_mode must match")
@@ -157,7 +164,7 @@ class EvaluationRunner:
                 "policy": policy.descriptor.to_dict(),
                 "method": method,
                 "method_origin": ("participant_declaration" if request.method is not None
-                                  else "legacy_policy_projection"),
+                                  else "policy_descriptor_projection"),
                 "recording": request.recording.to_dict(),
                 "observation_spec": benchmark.observation_spec.to_dict(),
                 "action_spec": benchmark.action_spec.to_dict(),
@@ -187,12 +194,16 @@ class EvaluationRunner:
                 )
             if required_prefix is not None:
                 manifest["protocol"]["required_replan_interval"] = required_prefix
-            # Record the used horizon against the service's advertised one.
+            # Record the used horizon and call cap against the service's advertised ones.
             if request.budget_mode == "horizon":
                 service_cap = getattr(benchmark, "environment_step_cap", None)
                 service_cap = service_cap if type(service_cap) is int else None
                 manifest["protocol"]["service_environment_step_cap"] = service_cap
                 manifest["protocol"]["max_steps_overridden"] = request.max_steps != service_cap
+                service_calls = getattr(benchmark, "max_policy_calls", None)
+                service_calls = service_calls if type(service_calls) is int else None
+                manifest["protocol"]["service_max_policy_calls"] = service_calls
+                manifest["protocol"]["max_policy_calls_overridden"] = request.max_policy_calls != service_calls
             service_provenance = getattr(benchmark, "execution_provenance", None)
             if callable(service_provenance):
                 provenance = ensure_jsonable(service_provenance(), "benchmark service provenance")
@@ -269,6 +280,7 @@ class EvaluationRunner:
         started_at = time.monotonic()
         session: EpisodeSession | None = None
         policy_started = False
+        reconciliation: dict[str, JsonValue] | None = None
         usage = Usage()
         usage_pending_since: float | None = None
         policy_call_failure: PolicyCallError | None = None
@@ -401,9 +413,8 @@ class EvaluationRunner:
                     raise PolicyError(f"policy failed to produce a valid decision: {exc}") from exc
                 if not isinstance(decision, PolicyDecision):
                     raise PolicyError(f"policy returned {type(decision).__name__}, expected PolicyDecision")
-                usage = usage + decision.usage
-                accumulate_component_usage(decision.metadata)
-                usage_pending_since = None
+                # Build the event first; then account the call with nothing
+                # that can fail between adding its usage and clearing pending.
                 decision_event: dict[str, JsonValue] = {
                     "event": "policy_decision",
                     "timestamp": utc_now(),
@@ -415,6 +426,9 @@ class EvaluationRunner:
                     "stop_reason": decision.stop_reason,
                     "chunk_length": 0 if decision.action is None else len(decision.action.steps),
                 }
+                accumulate_component_usage(decision.metadata)
+                usage = usage + decision.usage
+                usage_pending_since = None
                 recorder.event(events_path, decision_event)
                 if decision.stop:
                     termination_reason = f"policy:{decision.stop_reason}"
@@ -582,7 +596,7 @@ class EvaluationRunner:
                 error["issue"] = exc.issue.to_dict()
                 if terminal_rejection_phase is not None:
                     error["action_rejection_phase"] = terminal_rejection_phase
-            if request.invalid_action_handling == "feedback" and usage_pending_since is not None:
+            if usage_pending_since is not None:
                 error.update(policy_call=policy_calls, usage=failed_usage.to_dict())
             if not isinstance(exc, PolicyCallError):
                 error["traceback"] = traceback.format_exc()
@@ -628,6 +642,23 @@ class EvaluationRunner:
                     policy.end_episode()
                 except Exception as exc:  # cleanup must be visible without hiding the primary result
                     cleanup_errors.append(f"policy.end_episode: {type(exc).__name__}: {exc}")
+                # Read once after end_episode, when the policy has settled its
+                # own accounting. A broken report, including a raising lookup,
+                # never changes the outcome; it counts as unknown with a warning.
+                reported = None
+                try:
+                    usage_report = getattr(policy, "episode_usage", None)
+                    if usage_report is not None:
+                        reported = usage_report()
+                        if not isinstance(reported, EpisodeUsage):
+                            raise TypeError("episode_usage must return EpisodeUsage")
+                except Exception:
+                    recorder.warn("episode_usage_unavailable")
+                    reported = EpisodeUsage(total=Usage.unavailable(), complete=False)
+                if reported is not None:
+                    usage, reconciliation = self._reconcile_usage(usage, reported)
+                    recorder.event(events_path, {"event": "usage_reconciliation",
+                                                 "timestamp": utc_now(), **reconciliation})
             if policy_scratch is not None:
                 try:
                     policy_scratch.cleanup()
@@ -669,6 +700,9 @@ class EvaluationRunner:
             "duration_s": time.monotonic() - started_at,
             "usage": usage.to_dict(),
             "component_usage": component_usage,
+            # Null when the policy reports no episode usage of its own.
+            "usage_reported_complete": None if reconciliation is None else reconciliation["reported_complete"],
+            "usage_inconsistent_fields": None if reconciliation is None else reconciliation["inconsistent_fields"],
             "metrics": metrics,
             "artifacts": artifacts,
             "error": public_error_record(error, request.recording),
@@ -705,6 +739,31 @@ class EvaluationRunner:
         # No receipts, raw exceptions, reward/terminal flags or native metadata
         # cross this hook. Hook errors are terminal; no inner model retry.
         policy.observe_rejection(feedback)
+
+    @staticmethod
+    def _reconcile_usage(measured: Usage, reported: EpisodeUsage) -> tuple[Usage, dict[str, JsonValue]]:
+        """Combine the per-call sum S with the policy's own total T, field by field.
+
+        Unknown T keeps S; unknown S takes T; T >= S takes T. T below S
+        contradicts the measured calls, so that field becomes unknown and is
+        listed instead of being clamped to either side.
+        """
+        final, adjustment, inconsistent = {}, {}, []
+        for key, summed in measured.__dict__.items():
+            total = getattr(reported.total, key)
+            if total is None or summed is None:
+                final[key] = summed if total is None else total
+                adjustment[key] = None
+            elif total < summed and not (key in ("estimated_cost_usd", "latency_s") and
+                                         math.isclose(total, summed, rel_tol=1e-12, abs_tol=1e-9)):
+                final[key] = adjustment[key] = None
+                inconsistent.append(key)
+            else:
+                final[key], adjustment[key] = total, total - summed
+        usage = Usage(**final)
+        return usage, {"policy_call_sum": measured.to_dict(), "reported_total": reported.total.to_dict(),
+                       "reported_complete": reported.complete, "adjustment": ensure_jsonable(adjustment),
+                       "inconsistent_fields": inconsistent, "usage": usage.to_dict()}
 
     @staticmethod
     def _summarize(

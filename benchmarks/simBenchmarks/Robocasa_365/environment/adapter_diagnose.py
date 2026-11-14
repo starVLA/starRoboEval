@@ -12,10 +12,9 @@ from pathlib import Path
 
 from benchkit.artifacts import append_jsonl, atomic_write_json
 from benchmarks.simBenchmarks.Robocasa_365.bench_server.adapter import (
-    ACTION_SPEC, PILOT_SEED, RoboCasa365BenchmarkAdapter, RoboCasa365Episode,
-    action_dictionary,
+    PILOT_SEED, RoboCasa365BenchmarkAdapter, RoboCasa365Episode, action_dictionary,
 )
-from benchkit.contracts import ActionChunk, PolicyDecision, PolicyDescriptor
+from benchkit.contracts import ActionChunk, PolicyDecision, PolicyDescriptor, Usage
 from AgentPolicies.gpt6_astra.tools.runner import EvaluationRunner, RunRequest
 
 
@@ -44,7 +43,7 @@ class DiagnosticPolicy:
         pass
 
     def act(self, observation):
-        return PolicyDecision(action=ActionChunk.from_steps([diagnostic_actions()[observation.step]]))
+        return PolicyDecision(action=ActionChunk.from_steps([diagnostic_actions()[observation.step]]), usage=Usage())
 
     def end_episode(self):
         pass

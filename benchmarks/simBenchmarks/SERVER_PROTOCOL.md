@@ -185,10 +185,14 @@ unknown in-flight native execution must not be conflated. The client timeout
 does not kill or roll back a running native operation; retain server evidence and
 use the deployment supervisor for a stuck process. Cleanup is still attempted
 once. A failed native close blocks further sessions on that service.
+On operator shutdown (SIGTERM or Ctrl-C) the service closes an episode that is
+still open once, without reset, step or retry, and its session record keeps
+`error=interrupted_by_shutdown`, possibly from state `executing`.
 
 ### Pre-execution action rejection extension
 
-New descriptions advertise `action_rejection: starvla-rsi.action-rejection/v1`.
+Every description declares `action_rejection: starvla-rsi.action-rejection/v1`;
+clients refuse any other value.
 Generic action checks and an optional benchmark-owned pure `validate_action_input`
 hook run before consuming a sequence. The hook can check submitted values and
 public contract constants only, not native state or task feasibility.
@@ -198,11 +202,14 @@ A rejected input returns `error.code=invalid_action`, a closed `rejection` issue
 `executed=false` and unchanged `next_sequence`. No control, sensor or scoring
 call occurs. The session stays running. Only a negotiated, correlated receipt
 permits a corrected command at the same sequence; old code-only errors and lost
-replies remain fail-closed. Older strict clients may reject the new description;
-use a matching pinned client/service pair.
+replies remain fail-closed.
 
 An agent driver can select `invalid_action_handling=feedback` and return the
 issue at the next counted policy call with the last acknowledged observation.
+Descriptions also carry a boolean `action_rejection_feedback`: whether the
+selected track admits such a driver (true unless the adapter declares false, as
+SimplerEnv does outside its versioned feedback track). A feedback driver refuses
+a service that declares false.
 The current reference loop requires a finite decision-call safety budget for
 this mode; it grants no extra sensors or task reset. Internal inference/tool
 loops belong to the declared method, not a universal one-request rule.

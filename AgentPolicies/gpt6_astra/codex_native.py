@@ -17,7 +17,7 @@ from benchkit.model_profiles import validate_configuration
 from benchkit.validation import validate_action_vector
 from AgentPolicies.gpt6_astra.tools.json_io import _invalid_constant, _strict_object
 from AgentPolicies.gpt6_astra.tools.persistent_runtime import (
-    ROOT, TRANSPORT, PersistentRuntime, _bad, _json, _write,
+    TRANSPORT, PersistentRuntime, _bad, _json, _write,
 )
 from AgentPolicies.gpt6_astra.tools.public_observation import public_state, public_images
 from AgentPolicies.gpt6_astra.tools.stagnation_review import RepeatedCommandReview
@@ -28,30 +28,16 @@ METHOD = "codex-native/v2"
 class CodexNativePolicy(PersistentRuntime):
     METHOD = METHOD
 
-    def __init__(self, *, identity, prompt=None, timeout_s=None, max_chunk_length=None,
-                 image_max_edge=None, safety_stop=None,
-                 allow_task_completion=None, stagnation_review=None, stagnation_window=None):
-        payload = (ROOT / "configs/codex_native_config.json").read_bytes()
-        self.config = json.loads(payload, object_pairs_hook=_strict_object, parse_constant=_invalid_constant)
-        for key, value in (("timeout_s", timeout_s), ("max_chunk_length", max_chunk_length),
-                           ("image_max_edge", image_max_edge), ("safety_stop", safety_stop),
-                           ("allow_task_completion", allow_task_completion),
-                           ("stagnation_review", stagnation_review), ("stagnation_window", stagnation_window)):
-            if value is not None:
-                self.config[key] = value
-        # The policy's own schema is the single source of identity and ranges,
-        # checked before any actor/runtime starts.
-        schema = json.loads((ROOT / "configs/configuration.schema.json").read_bytes(),
-                            object_pairs_hook=_strict_object, parse_constant=_invalid_constant)
-        validate_configuration("gpt6_astra", self.config, schema)
-        self._prompt_base = ((ROOT / "configs/codex_native_prompt.txt").read_text()
-                             if prompt is None else prompt)
+    def __init__(self, *, config, identity, prompt):
+        # The effective configuration, already checked by the profile loader
+        # against the policy's own schema before any actor/runtime starts.
+        self.config = dict(config)
+        self._prompt_base = prompt
         if not isinstance(self._prompt_base, str) or not self._prompt_base.strip() or len(self._prompt_base) > 32000:
             raise ValueError("Codex native prompt must be bounded nonempty text")
         self.prompt = self._effective_prompt()
         self.descriptor = PolicyDescriptor(**identity, version=self.METHOD, parameters={
             "control_method": self.METHOD, "transport": TRANSPORT, "effective_config": self.config.copy(),
-            "preset_sha256": hashlib.sha256(payload).hexdigest(),
             "prompt_sha256": hashlib.sha256(self.prompt.encode()).hexdigest(),
             **{key: self.config[key] for key in ("max_chunk_length", "timeout_s", "image_max_edge",
                                                 "ordinary_give_up", "safety_stop", "feedback_projection",
@@ -115,10 +101,8 @@ class CodexNativePolicy(PersistentRuntime):
         self.review = RepeatedCommandReview(self.config["stagnation_review"], self.config["stagnation_window"])
 
     def _preflight_policy(self):
-        return CodexNativePolicy(identity={key: getattr(self.descriptor, key)
-            for key in ("name", "kind", "model", "provider")}, prompt=self._prompt_base,
-            **{key: self.config[key] for key in ("timeout_s", "max_chunk_length", "image_max_edge", "safety_stop",
-                                               "allow_task_completion", "stagnation_review", "stagnation_window")})
+        return CodexNativePolicy(config=self.config, prompt=self._prompt_base, identity={
+            key: getattr(self.descriptor, key) for key in ("name", "kind", "model", "provider")})
 
     def start_episode(self, context):
         super().start_episode(context)
@@ -264,15 +248,19 @@ class CodexNativePolicy(PersistentRuntime):
             self._clear_native()
 
 
-def create_policy(*, config, identity, **parameters):
-    """Create the single active method; retired identities are never aliases."""
+def create_policy(*, config, schema, identity, prompt, **overrides):
+    """Create the single active method from the profile loader's configuration.
+
+    Retired identities are never aliases. The loader checks override names; the
+    configuration this factory derives is checked against the schema here.
+    """
     if config.get("control_method") != METHOD:
         raise ValueError("unknown or retired model control method")
-    if "stagnation_window" in parameters:
+    overrides = {key: value for key, value in overrides.items() if value is not None}
+    if "stagnation_window" in overrides:
         # Choosing a review window turns the review on.
-        if parameters.setdefault("stagnation_review", True) is not True:
+        if overrides.setdefault("stagnation_review", True) is not True:
             raise ValueError("stagnation_window conflicts with a disabled stagnation_review")
-    for key in ("timeout_s", "max_chunk_length", "image_max_edge", "safety_stop",
-                "allow_task_completion", "stagnation_review", "stagnation_window"):
-        parameters.setdefault(key, config[key])
-    return CodexNativePolicy(identity=identity, **parameters)
+    effective = {**config, **overrides}
+    validate_configuration(config["profile_id"], effective, schema)
+    return CodexNativePolicy(config=effective, identity=identity, prompt=prompt)

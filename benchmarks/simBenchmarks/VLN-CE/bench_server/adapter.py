@@ -10,9 +10,10 @@ from pathlib import Path
 import stat
 from typing import Mapping
 
-from benchkit.contracts import ActionSpec, BenchmarkDescriptor, EpisodeSpec, Observation, ObservationSpec, Transition
+from benchkit.contracts import ActionSpec, BenchmarkDescriptor, EpisodeSpec, Observation, ObservationSpec, Transition, Usage
 from benchkit.errors import ActionRejected, ProtocolError
 from benchkit.validation import ValidationIssue, validate_action_vector
+from ..environment.native_runtime import scene_path
 from .native_worker_client import NativeOperationError, NativeWorkerClient
 
 PROTOCOL = "vlnce-r2r-habitat033/rgb512/native500/v1"
@@ -42,7 +43,7 @@ def _read_gzip(path):
 def validate_action(values):
     result = validate_action_vector(ACTION_SPEC, values)
     if not result[0].is_integer():
-        raise ActionRejected(ValidationIssue("invalid_action", actual=result[0], action_index=0))
+        raise ActionRejected(ValidationIssue("invalid_action", actual=result[0], action_index=0), usage=Usage())
     return result
 
 
@@ -319,10 +320,11 @@ class VLNCEBenchmarkAdapter:
             raise ValueError("selected episode ID absent from declared dataset")
         self.selected = tuple(lookup[identity] for identity in episode_ids)
         for row in self.selected:
-            scene = row["scene_id"]
-            if not isinstance(scene, str) or not scene.startswith("mp3d/") or ".." in Path(scene).parts or Path(scene).is_absolute():
-                raise ValueError("R2R scene must be relative mp3d/<scene>/<scene>.glb")
-            if not (self.scenes_dir / scene).is_file() or not (self.scenes_dir / scene).with_suffix(".navmesh").is_file():
+            try:
+                scene = scene_path(self.scenes_dir, row["scene_id"])
+            except ValueError:
+                raise ValueError("R2R scene must be a relative .glb path under scenes_dir") from None
+            if not scene.is_file() or not scene.with_suffix(".navmesh").is_file():
                 raise ValueError("selected R2R scene mesh or navmesh is unavailable")
             instruction = row.get("instruction", {}).get("instruction_text")
             if not isinstance(instruction, str) or not instruction.strip():

@@ -13,7 +13,7 @@ import sys
 
 from benchkit.errors import CompatibilityError
 from benchmarks.simBenchmarks.DOMINO.bench_server.protocol import (
-    CAMERAS, CUROBO_REVISION, INSTRUCTION, JOINT_NAMES, NATIVE_HORIZON,
+    CUROBO_REVISION, INSTRUCTION, JOINT_NAMES, NATIVE_HORIZON,
     NATIVE_REVISION, RUNTIME_VERSIONS, TASK, TASK_CONFIG,
 )
 from benchmarks.simBenchmarks.DOMINO.environment.deployment import digest, inventory, verify_rows, verify_curobo_asset_paths

@@ -2,23 +2,23 @@
 
 Plan JSON has exactly these required fields::
 
-    {"schema_version": "starvla-rsi.panel-plan/v1", "cases": ["episode-id"],
-     "reference": {"successes": 1, "episodes": 1}}
+    {"schema_version": "starvla-rsi.panel-plan/v1", "cases": ["episode-id"]}
 
-Optional ``reference_url`` and ``operator_notes`` are strings. Reference values
-are operator declarations, not independently verified or evidence of identical
-conditions. Case IDs are unique, nonempty strings matched exactly to episode.id.
+An optional ``reference`` ``{"successes": 1, "episodes": 1}`` enables the
+comparison fields; optional ``reference_url`` and ``operator_notes`` are strings.
+Reference values are operator declarations, not independently verified or
+evidence of identical conditions. Case IDs are unique, nonempty strings matched
+exactly to episode.id.
 
 Each JSONL row is a closed ``starvla-rsi.eval/v1`` result with ``episode.id``,
 ``status`` (completed/error), ``success``, ``metrics`` and ``error``. Completed
 rows require matching boolean success and metrics.success, with error=null.
-Error rows require success=null and an error object; policy/model categories
-are behavioral failures, while other/missing categories remain infrastructure
-or ambiguous failures. Artifact/cleanup errors also make a panel incomplete,
+Error rows require success=null and an error object; the policy category is a
+behavioral failure, while other/missing categories remain infrastructure or
+ambiguous failures. Artifact/cleanup errors also make a panel incomplete,
 including when attached to a primary policy failure. Those two counts can
-overlap. The same checks follow only the named policy_call_error chain, up to
-32 nested objects; deeper chains are rejected. Arbitrary metadata is not
-scanned. Additional finite JSON fields and all original error rows are retained.
+overlap. Arbitrary metadata is not scanned. Additional finite JSON fields and
+all original error rows are retained.
 
 Counters are optional nonnegative integers (null means unknown). Only existing
 top-level environment_steps/policy_calls/action_decisions and explicitly
@@ -50,7 +50,6 @@ PLAN_SCHEMA = "starvla-rsi.panel-plan/v1"
 RESULT_SCHEMA = "starvla-rsi.eval/v1"
 REPORT_SCHEMA = "starvla-rsi.panel-sr/v1"
 MAX_INPUT_BYTES = 64 * 1024 * 1024
-POLICY_CATEGORIES = frozenset({"policy", "model"})
 
 
 def _require(condition, message):
@@ -72,8 +71,9 @@ def _integer(value, name, minimum=0):
 
 def _plan(plan):
     _require(isinstance(plan, dict), "plan must be an object")
-    required = {"schema_version", "cases", "reference"}
-    _require(required <= set(plan) <= required | {"reference_url", "operator_notes"}, "invalid plan fields")
+    required = {"schema_version", "cases"}
+    _require(required <= set(plan) <= required | {"reference", "reference_url", "operator_notes"},
+             "invalid plan fields")
     _require(plan["schema_version"] == PLAN_SCHEMA, "unsupported plan schema")
     cases = plan["cases"]
     _require(isinstance(cases, list) and bool(cases), "cases must be a nonempty list")
@@ -81,11 +81,13 @@ def _plan(plan):
         _text(case, "case ID")
         _require(case == case.strip() and not any(ord(c) < 32 for c in case), "case IDs cannot have surrounding whitespace/control characters")
     _require(len(set(cases)) == len(cases), "duplicate planned case ID")
-    reference = plan["reference"]
-    _require(isinstance(reference, dict) and set(reference) == {"successes", "episodes"}, "invalid reference fields")
-    _integer(reference["episodes"], "reference episodes", 1)
-    _integer(reference["successes"], "reference successes")
-    _require(reference["successes"] <= reference["episodes"], "reference successes exceed episodes")
+    if "reference" in plan:
+        reference = plan["reference"]
+        _require(isinstance(reference, dict) and set(reference) == {"successes", "episodes"},
+                 "invalid reference fields")
+        _integer(reference["episodes"], "reference episodes", 1)
+        _integer(reference["successes"], "reference successes")
+        _require(reference["successes"] <= reference["episodes"], "reference successes exceed episodes")
     for name in ("reference_url", "operator_notes"):
         if name in plan:
             _text(plan[name], name)
@@ -114,25 +116,13 @@ def _row(record):
         category = error.get("category")
         if category is not None:
             _text(category, "error category")
-        policy_failure = category in POLICY_CATEGORIES
+        policy_failure = category == "policy"
         if not policy_failure:
             issues.append("primary_infrastructure_or_ambiguous_error")
-        current, depth = error, 0
-        while current is not None:
-            _require(depth <= 32, "policy_call_error chain exceeds supported depth32")
-            prefix = "policy_call_error." * depth
-            if not isinstance(current, dict):
-                issues.append(prefix + "malformed_error")
-                break
-            nested_category = current.get("category")
-            if depth and (not isinstance(nested_category, str) or nested_category not in POLICY_CATEGORIES):
-                issues.append(prefix + "infrastructure_or_ambiguous_error")
-            if "artifact_error" in current and current["artifact_error"] is not None:
-                issues.append(prefix + "artifact_error")
-            if "cleanup_errors" in current and current["cleanup_errors"] not in (None, []):
-                issues.append(prefix + "cleanup_errors")
-            current = current.get("policy_call_error")
-            depth += 1
+        if error.get("artifact_error") is not None:
+            issues.append("artifact_error")
+        if error.get("cleanup_errors"):
+            issues.append("cleanup_errors")
         outcome = "policy_failure" if policy_failure else "infrastructure_or_ambiguous_error"
     counters = {}
     for name in ("environment_steps", "policy_calls", "action_decisions"):
@@ -170,8 +160,9 @@ def summarize_panel(plan: dict, records: list[dict]) -> dict:
     planned, recorded = len(cases), len(records)
     complete = recorded == planned and infrastructure == 0
     rate = successes / planned
-    reference = plan["reference"]
-    reference_rate = reference["successes"] / reference["episodes"]
+    reference = plan.get("reference")
+    compared = complete and reference is not None
+    reference_rate = reference["successes"] / reference["episodes"] if reference is not None else None
     return {"schema_version": REPORT_SCHEMA, "plan": plan, "records": records, "cases": cases,
         "complete_panel": complete,
         "counts": {"planned": planned, "recorded": recorded, "completed_native": completed,
@@ -183,10 +174,11 @@ def summarize_panel(plan: dict, records: list[dict]) -> dict:
         "full_panel_success_rate": rate if complete else None,
         "completed_native_success_rate": {"successes": successes, "episodes": completed,
             "rate": successes / completed if completed else None, "secondary_denominator_only": True},
-        "reference": {**reference, "rate": reference_rate, "operator_declared_not_verified": True},
+        "reference": None if reference is None else {**reference, "rate": reference_rate,
+                                                     "operator_declared_not_verified": True},
         "comparison": {"eligible_full_panel_sr": complete,
-            "rate_difference": rate - reference_rate if complete else None,
-            "same_numeric_rate": successes * reference["episodes"] == reference["successes"] * planned if complete else None,
+            "rate_difference": rate - reference_rate if compared else None,
+            "same_numeric_rate": successes * reference["episodes"] == reference["successes"] * planned if compared else None,
             "same_conditions_verified": False, "statistical_equivalence_established": False},
         "caveats": ["Policy failures remain in the planned denominator.",
             "Infrastructure-error case counts may overlap primary policy-failure counts; neither is dropped.",

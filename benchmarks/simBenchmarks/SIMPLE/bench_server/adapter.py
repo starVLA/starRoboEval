@@ -17,13 +17,13 @@ from benchkit.contracts import (
     ActionSpec, BenchmarkDescriptor, EpisodeSpec, Observation, ObservationSpec, Transition,
 )
 from benchkit.errors import CompatibilityError, ProtocolError
+from benchkit.registry import register_benchmark
 from benchmarks.simBenchmarks.SIMPLE.bench_server.native_worker_client import NativeWorkerClient
 
 SIMPLE_REVISION = "5e3d6f84e85343e34e9bca8d157f0d7813231185"
 TRACK = "simple-native-wbc-development-v1"
 SEED = 20260907
 TASKS = ("G1WholebodyBendPickMP-v0", "G1WholebodyOpenFaucetTeleop-v0")
-INSTRUCTIONS = ("bend to pick up the cracker box", "move forward to the faucet and open it")
 INVENTORY_PATH = Path(__file__).with_name("protocol") / "simple_released_tasks.json"
 TASK_INVENTORY = json.loads(INVENTORY_PATH.read_text())
 INVENTORY_SHA256 = hashlib.sha256(INVENTORY_PATH.read_bytes()).hexdigest()
@@ -64,7 +64,7 @@ def deployment_path(value: str | Path, name: str, *, resolve_symlinks: bool = Tr
 
 
 def task_config(task: str, task_scope: str = "pilot") -> Mapping[str, Any]:
-    """Select an explicit frozen scope without expanding legacy pilot defaults."""
+    """Return a task's frozen config from the explicitly selected scope."""
     if task_scope not in ("pilot", "released-12"):
         raise ValueError("task_scope must be pilot or released-12")
     if not isinstance(task, str) or task not in (TASKS if task_scope == "pilot" else FULL_TASKS):
@@ -323,12 +323,8 @@ class SimpleHumanoidBenchmarkAdapter:
             raise ProtocolError("episode differs from the frozen SIMPLE task manifest")
         return SimpleHumanoidEpisode(self, episode)
 
-    def aggregate(self, metrics: Sequence[Mapping[str, Any]]) -> Mapping[str, Any]:
-        count = len(metrics)
-        return {"episodes": count, "successes": sum(bool(item["success"]) for item in metrics),
-            "success_rate": sum(bool(item["success"]) for item in metrics) / count if count else 0.0}
 
-
+@register_benchmark("simple_humanoid")
 def make_simple_humanoid(parameters: Mapping[str, Any]) -> SimpleHumanoidBenchmarkAdapter:
     """CLI construction remains dependency-free; native imports happen at reset."""
     return SimpleHumanoidBenchmarkAdapter(**dict(parameters))

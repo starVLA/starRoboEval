@@ -298,8 +298,7 @@ Useful reproducibility information includes the recorded protocol, upstream Git
 revision, native environment/controller and asset origin, where actually saved
 in a supported format. These are not inferred from today's checkout. The
 generic viewer initially exposes a bounded subset; benchmark-specific provenance
-and video reports remain separate. It does not replace existing Dojo publication
-or evidence checks.
+and video reports remain separate. It does not replace evidence checks.
 
 ## Internal source and result integrity
 

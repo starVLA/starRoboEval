@@ -192,7 +192,7 @@ def prepare(*, native_repository: Path, base_assets: Path, additional_assets: Pa
             additions.append({**row, "path": relative + "/" + row["path"]})
     additions.sort(key=lambda row: row["path"])
     if canonical_digest(additions) != expected["additional_asset_inventory_sha256"]:
-        raise ValueError("additional reference assets differ from the frozen 54-file inventory")
+        raise ValueError("additional reference assets differ from the pinned 54-file inventory")
     document = {"schema": SCHEMA, "native_revision": expected["native_revision"],
         "python": str(python.resolve()), "isaaclab_root": str(isaaclab_root.resolve()),
         "curobo_root": str(curobo_root.resolve()), "recording_support": str(recording_support.resolve()),

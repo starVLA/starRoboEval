@@ -32,7 +32,7 @@ class NativeSession:
         self.writers = {}
         self.steps = self.physics_ticks = 0
         self.reset_attempted = self.ready = self.finalized = self.closed = False
-        self.terminated = self.truncated = False
+        self.terminated = self.truncated = self.external_truncated = False
         self.execution_unknown = False
         self.latest = {"success": False, "control_steps": 0, "physics_ticks": None,
                        "native_benchmark_score": None, "native_episode_complete": False}
@@ -93,7 +93,7 @@ class NativeSession:
                                                        macro_block_size=1)
             self.writers[name].append_data(rgb)
         return {"observation": encode_observation(observation, OBSERVATION_SPEC), "metrics": self.summary(),
-                "terminated": self.terminated, "truncated": self.truncated}
+                "terminated": self.terminated, "truncated": self.truncated or self.external_truncated}
 
     def step(self, action):
         if not self.ready or self.finalized or self.terminated or self.truncated or self.steps >= self.task_spec.control_cap:
@@ -115,7 +115,11 @@ class NativeSession:
         if self.policy.calls != calls + 1 or self.policy.pending is not None or delta != 4:
             raise ProtocolError("native control/action consumption/physics accounting differs")
         if self.steps == self.task_spec.control_cap and not (self.terminated or self.truncated):
-            raise ProtocolError("native horizon did not terminate at configured task cap")
+            # Native timeout fires on control H + 1. Only radio's historical
+            # cap H ends earlier; record it as an external, not native, stop.
+            if self.task_spec.control_cap > self.task_spec.native_timeout_steps:
+                raise ProtocolError("native horizon did not terminate at configured task cap")
+            self.external_truncated = True
         return self.observe()
 
     def summary(self):
@@ -123,6 +127,7 @@ class NativeSession:
             self.latest.update(success=bool(self.evaluator.env.task.success), control_steps=self.steps,
                 physics_ticks=self.physics_ticks, native_episode_complete=self.terminated or self.truncated,
                 terminated=self.terminated, truncated=self.truncated,
+                external_cap_truncated=self.external_truncated,
                 in_flight_native_execution_unknown=self.execution_unknown)
         return dict(self.latest)
 

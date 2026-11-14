@@ -8,7 +8,6 @@ import hashlib
 import importlib.metadata
 import importlib.util
 import json
-import os
 from pathlib import Path
 import subprocess
 import sys
@@ -66,7 +65,7 @@ def source_identity(source):
     source = absolute(source)
     def git(*args):
         return subprocess.run(["git", "-c", "safe.directory=" + str(source), "-C", str(source), *args],
-                              check=True, capture_output=True).stdout
+                              check=True, capture_output=True, timeout=60).stdout
     if git("rev-parse", "HEAD").decode().strip() != REVISION:
         raise ValueError("BEHAVIOR source revision differs")
     rows = []

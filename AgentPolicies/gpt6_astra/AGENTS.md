@@ -1,9 +1,13 @@
 # Policy development boundary
 
-Build general-purpose embodied agent methods here. Start with a top-down design
-of capabilities, observations, planning, execution feedback and recovery before
-changing prompts or running tasks. Do not encode a benchmark/task name, layout,
-object coordinate, prerecorded trajectory or private score as a strategy.
+This profile holds the Native GPT-6-Astra Policy, the baseline for what the model
+does before anything is tailored to a benchmark. Its prompt and checked-in
+configuration are frozen before each reported run and shared by every benchmark.
+Do not tune them on evaluation failures. A method that adds a harness, tools,
+demonstrations, a changed prompt or a self-improvement loop is a different
+method: give it its own profile or method ID so that it is reported as its own
+entry next to the baseline. Never encode a benchmark/task name, layout, object
+coordinate, prerecorded trajectory or private score as a strategy.
 
 `benchmarks/simBenchmarks/` is **read-only for policy work**. You may inspect its
 public contracts and source to understand the interface. Do not edit, patch,
@@ -25,10 +29,9 @@ for all robot execution. No task-solving fallback, VLA proposals or simulated
 lookahead. Acknowledgment confirms executed controls, not object manipulation
 success. Success is reported only from the benchmark's native result.
 
-Keep prior versioned methods/results intact while introducing a new method.
-Never patch an active run. New validation attempts must be preselected,
+Never patch an active run. New evaluation runs must be preselected,
 separately named and retained on failure. No automatic task retry or uncertain
-action replay. Keep all policy implementation, prompt, configuration and results
-in this model namespace; shared record/source tooling is not a policy planner.
+action replay. Keep this policy's implementation, prompt, configuration and
+results in this profile; shared record/source tooling is not a policy planner.
 
 

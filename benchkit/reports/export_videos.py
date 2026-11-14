@@ -12,10 +12,24 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 SERVER_VIDEO_SUFFIXES = (".mp4", ".webm", ".mkv", ".avi", ".mov")
+MAX_COMPONENT = 64  # keeps every archive path segment well under filesystem name limits
 
 
 def component(value: str) -> str:
-    return re.sub(r"[^A-Za-z0-9_.-]", "_", value).strip(".") or "episode"
+    return re.sub(r"[^A-Za-z0-9_.-]", "_", value)[:MAX_COMPONENT].strip(".") or "episode"
+
+
+def episode_dir_name(created_at: str, episode: dict, case: int) -> str:
+    """Date, canonical task ID, short English description and run-local case."""
+    date = re.match(r"[0-9]{4}-[0-9]{2}-[0-9]{2}", created_at)
+    if date is None:
+        raise ValueError("manifest created_at is not an ISO date")
+    # Whole words only: a word with any non-ASCII letter is skipped, never truncated.
+    words = [word for word in re.findall(r"[^\W_]+", episode["instruction"].lower())
+             if re.fullmatch(r"[a-z0-9]+", word) and word not in ("a", "an", "the")][:4]
+    description = "-".join(words)[:MAX_COMPONENT].rstrip("-")
+    parts = [date.group(), component(episode["task"]), description, f"case{case:03d}"]
+    return "-".join(part for part in parts if part)
 
 
 def artifact_dir(run: Path, episode: dict) -> Path:
@@ -77,9 +91,11 @@ def main() -> int:
     episodes = [json.loads(line) for line in (run / "episodes.jsonl").read_text().splitlines() if line]
     if not episodes:
         parser.error("closed run contains no episode records")
-    names = [component(item["episode"]["id"]) for item in episodes]
-    if len(names) != len(set(names)):
-        parser.error("episode archive paths would collide")
+    try:
+        names = [episode_dir_name(manifest["created_at"], item["episode"], index)
+                 for index, item in enumerate(episodes)]
+    except (KeyError, TypeError, ValueError) as error:
+        parser.error(f"cannot name episode archive directories: {error}")
     # Resolve all sources before creating output. Artifact references must not
     # copy arbitrary files outside this completed run.
     sources = []
@@ -97,6 +113,14 @@ def main() -> int:
                 except (OSError, ValueError) as error:
                     parser.error(f"invalid video artifact for {episode['episode']['id']}: {key}: {error}")
                 sources.append((index, key, path))
+    # Parse server receipts up front so a corrupt one leaves no partial archive.
+    on_server = {}
+    for index, episode in enumerate(episodes):
+        if not any(source_index == index for source_index, _, _ in sources):
+            try:
+                on_server[index] = server_videos(run, episode)
+            except (OSError, ValueError, KeyError, TypeError) as error:
+                parser.error(f"invalid SIM receipt for {episode['episode']['id']}: {error!r}")
     output = args.output_dir.resolve()
     output.mkdir(parents=True, exist_ok=False)
     report = {
@@ -107,8 +131,8 @@ def main() -> int:
         "policy": manifest["policy"], "episodes": [],
     }
     for index, episode in enumerate(episodes):
-        target = output if len(episodes) == 1 else output / names[index]
-        target.mkdir(exist_ok=True)
+        target = output / names[index]
+        target.mkdir()
         videos = []
         for source_index, key, source in sources:
             if source_index != index:
@@ -120,14 +144,14 @@ def main() -> int:
                 raise RuntimeError("copied video digest differs from its source")
             videos.append({"path": str(destination.relative_to(output)), "sha256": source_digest,
                            "source": str(source), "bytes": destination.stat().st_size})
-        on_server = [] if videos else server_videos(run, episode)
+        retained = on_server.get(index, [])
         report["episodes"].append({
-            "episode": episode["episode"], "status": episode["status"],
+            "directory": names[index], "episode": episode["episode"], "status": episode["status"],
             "success": episode["success"], "metrics": episode["metrics"],
             "termination_reason": episode["termination_reason"], "error": episode["error"],
             "environment_steps": episode["environment_steps"], "policy_calls": episode["policy_calls"],
-            "usage": episode["usage"], "videos": videos, "server_videos": on_server,
-            "video_status": "available" if videos else "retained_on_server" if on_server else "not_produced",
+            "usage": episode["usage"], "videos": videos, "server_videos": retained,
+            "video_status": "available" if videos else "retained_on_server" if retained else "not_produced",
         })
     (output / "index.json").write_text(json.dumps(report, indent=2, sort_keys=True) + "\n")
     print(output)

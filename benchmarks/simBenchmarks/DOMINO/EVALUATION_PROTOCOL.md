@@ -82,12 +82,12 @@ movement guards belong to agents. Physics ticks, started native targets, ACKs
 and model decisions are recorded separately. Initialization/settling ticks are
 not currently instrumented; do not report them as zero or model controls.
 
-The current `sm120-agent-grouping-v2` interface does not require a model call
-after each target. The agent chooses grouping; the service acknowledges each
-target separately and applies native termination and the 400-target limit
-before accepting another. Native TOPP, physics frequency, dynamics and scoring
-are unchanged. Report the returned protocol identity; earlier records retain
-their captured prefix-one conditions.
+The current `sm120-agent-grouping-v2` interface declares no mandatory action
+prefix and does not require a model call after each target. The agent chooses
+grouping; the service acknowledges each target separately and applies native
+termination and the 400-target limit before accepting another. Native TOPP,
+physics frequency, dynamics and scoring are unchanged. Report the returned
+protocol identity.
 
 No object truth, depth, camera-calibration mapping, expert plan, dynamic
 motion parameters, hidden score, branch rollout or task-planning RPC is exposed.

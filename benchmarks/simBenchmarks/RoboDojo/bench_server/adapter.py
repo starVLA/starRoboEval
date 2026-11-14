@@ -6,7 +6,6 @@ the versioned robot-control ACK enabled.
 """
 from __future__ import annotations
 
-import json
 import hashlib
 import math
 from numbers import Real
@@ -16,7 +15,7 @@ from pathlib import PurePosixPath
 import subprocess
 from typing import Any, Mapping, Sequence
 
-from benchkit.contracts import ActionSpec, BenchmarkDescriptor, EpisodeSpec, Observation, ObservationSpec, Transition
+from benchkit.contracts import ActionSpec, BenchmarkDescriptor, EpisodeSpec, Observation, ObservationSpec, Transition, Usage
 from benchkit.errors import ActionRejected, CompatibilityError, ProtocolError
 from benchkit.validation import ValidationIssue, validate_action_vector
 from benchmarks.simBenchmarks.RoboDojo.bench_server.native_worker_client import CAMERAS, RoboDojoEpisode, SEED, validate_tick_result
@@ -70,8 +69,10 @@ def validate_direct_tick_result(message: Mapping[str, Any], expected_targets: in
         raise ProtocolError("native RPC terminal flags must be boolean")
     if type(horizon) is not int or horizon <= 0 or type(expected_targets) is not int or not 1 <= expected_targets <= horizon:
         raise ProtocolError("reference control count is outside native horizon")
-    legacy_projection = {**message, "terminated": metrics.get("native_end_flag"), "truncated": False}
-    success, ended, _, reward = validate_tick_result(legacy_projection, expected_targets)
+    # Check native counters against the raw end flag; the reported flags below
+    # additionally split horizon timeouts into truncation.
+    native_view = {**message, "terminated": metrics.get("native_end_flag"), "truncated": False}
+    success, ended, _, reward = validate_tick_result(native_view, expected_targets)
     if expected_targets == horizon and not ended:
         raise ProtocolError("native horizon reached without native termination")
     truncated = bool(ended and not success and expected_targets >= horizon)
@@ -170,7 +171,7 @@ class ReferenceEEFEpisode(RoboDojoEpisode):
         self.log = (self.artifact_dir / "native_worker.log").open("x")
         self.process = subprocess.Popen([str(benchmark.python), "-B", str(worker)],
             cwd=benchmark.source_root, env=env, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
-            stderr=self.log, text=True, bufsize=1)
+            stderr=self.log, text=True, bufsize=1, start_new_session=True)
         request = {"op": "reset", "task": benchmark.task, "layout_id": self.episode.metadata["layout_id"],
             "runtime_manifest": str(benchmark.runtime_manifest),
             "runtime_manifest_sha256": benchmark.runtime_manifest_sha256,
@@ -231,10 +232,10 @@ class DirectEEFBenchmarkAdapter:
             norm = math.hypot(*vector[offset + 3:offset + 7])
             if not math.isfinite(norm) or abs(norm - 1.0) > tolerance:
                 raise ActionRejected(ValidationIssue("quaternion_not_unit", field=f"{side}.quaternion_norm",
-                    actual=norm if math.isfinite(norm) else None, limit=tolerance))
+                    actual=norm if math.isfinite(norm) else None, limit=tolerance), usage=Usage())
             if not 0 <= vector[offset + 7] <= 1:
                 raise ActionRejected(ValidationIssue("out_of_bounds", field=f"{side}.opening",
-                    actual=vector[offset + 7], limit=0 if vector[offset + 7] < 0 else 1))
+                    actual=vector[offset + 7], limit=0 if vector[offset + 7] < 0 else 1), usage=Usage())
         return vector
 
     def __init__(self, *, runtime_manifest: str, runtime_manifest_sha256: str,
@@ -262,7 +263,7 @@ class DirectEEFBenchmarkAdapter:
         self.runtime_manifest_sha256 = runtime_manifest_sha256
         snapshot_path = Path(__file__).resolve().parents[1] / "environment/reference_eef_snapshot.json"
         if hashlib.sha256(snapshot_path.read_bytes()).hexdigest() != self.task_spec["layout_binding"]["snapshot_sha256"]:
-            raise ValueError("task catalog and frozen layout snapshot differ")
+            raise ValueError("task catalog and pinned layout snapshot differ")
         document = self.runtime_document()
         self.source_root = self.runtime_manifest.parent.resolve() / "RoboDojo"
         self.python = Path(document["python"])
@@ -278,9 +279,9 @@ class DirectEEFBenchmarkAdapter:
 
     def episodes(self, seed: int = SEED, limit: int | None = None) -> Sequence[EpisodeSpec]:
         if type(seed) is not int or seed != SEED:
-            raise ProtocolError("use the declared RSI seed; native startup/eval seed is0")
+            raise ProtocolError("use the declared RSI seed; native startup/eval seed is 0")
         if limit is not None and (type(limit) is not int or not 1 <= limit <= len(self.layout_ids)):
-            raise ValueError("limit must select a nonempty prefix of the frozen schedule")
+            raise ValueError("limit must select a nonempty prefix of the declared layout schedule")
         native_seed = self.task_spec["native_eval_seed"]
         simulator_seed = self.task_spec["simulator_initial_seed"]
         result = tuple(EpisodeSpec(f"{self.task}/arx_x5/eval-seed{native_seed}/layout{i}", self.task, seed, self.instruction,
@@ -307,11 +308,3 @@ class DirectEEFBenchmarkAdapter:
         if episode not in self.episodes():
             raise ProtocolError("episode was not in the immutable service schedule")
         return ReferenceEEFEpisode(self, episode)
-
-
-def make_reference_eef(parameters: Mapping[str, Any]) -> DirectEEFBenchmarkAdapter:
-    """Construct the single Direct v2 adapter without protocol selection."""
-    values = dict(parameters)
-    if "protocol_track" in values or "robot_feedback" in values:
-        raise ValueError("Direct v2 protocol and robot feedback are fixed")
-    return DirectEEFBenchmarkAdapter(**values)

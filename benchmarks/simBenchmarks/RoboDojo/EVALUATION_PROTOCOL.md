@@ -54,7 +54,7 @@ entire native task suite. Only `classify_objects` is currently exposed.
 - Native task instruction: sort objects by category into three baskets
 - Public instruction also requires both arms to return to their starting
   end-effector poses
-- Campaign seed: 20260907
+- Launch seed: 20260907
 - Native evaluation/simulator seed: 0
 - Layout selections: 0–4 (5 cases) or 0–49 (50 cases), in order
 - Attempts: exactly one per selected layout; no automatic retry or replacement

@@ -1,4 +1,4 @@
-"""One frozen CALVIN debug sequence: public RGB/language to native relative control."""
+"""One predeclared CALVIN debug sequence: public RGB/language to native relative control."""
 from __future__ import annotations
 
 import hashlib
@@ -312,7 +312,7 @@ class CalvinBenchmarkAdapter:
         if track != "debug-sequence0" or evaluation_mode != "fast":
             raise ValueError("only debug-sequence0 fast is implemented; native full validation is unsupported")
         self.source_root, self.dataset_root = Path(source_root), Path(dataset_root)
-        self.sequence = runtime.frozen_sequence()
+        self.sequence = runtime.selected_sequence()
         self.claimed = False
 
     @property
@@ -344,13 +344,13 @@ class CalvinBenchmarkAdapter:
                                 "native_horizon": NATIVE_HORIZON, "native_subtask_horizon": SUBTASK_HORIZON,
                                 "native_horizon_source": "native evaluate_policy.py EP_LEN=360, five-subtask fixed sequence",
                                 "sequence_sha256": runtime.SEQUENCE_SHA256, "native_environment_seed": 0,
-                                "sample_selection": "one predeclared frozen sequence; no seed search, retries or success screening",
+                                "sample_selection": "one predeclared sequence; no seed search, retries or success screening",
                                 "policy_memory": "sequence-level; no per-subtask policy reset hook",
                             }),)
 
     def open_episode(self, episode):
         if episode not in self.episodes(episode.seed):
-            raise ProtocolError("CALVIN episode differs from its frozen schedule")
+            raise ProtocolError("CALVIN episode differs from its declared schedule")
         if self.claimed:
             raise ProtocolError("CALVIN one-sequence service already claimed; no automatic retry")
         self.claimed = True

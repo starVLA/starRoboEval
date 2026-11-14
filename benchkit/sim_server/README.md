@@ -72,7 +72,9 @@ not apply, and `remote-run` refuses `--case-file` and `--limit` for it.
 
 `launch` starts the case's service with `--episode-id` on the
 requested slot, with a fresh per-lease token, and waits for a matching
-description. The slot port relays to that service until `release`, which sends
+description. A service that listens but fails the client's description checks
+fails the launch at once (`service_contract_mismatch`; the cause is in the
+gateway's `events.jsonl`). The slot port relays to that service until `release`, which sends
 SIGTERM to the owned process group and verifies that it is gone; it never
 SIGKILLs. An unverified stop quarantines the slot. Every launch is a new lease
 with its own record under `state/leases/`; any case can be launched again.
@@ -94,13 +96,18 @@ RSI_GATEWAY_TOKEN=... rsi-bench remote-run --gateway http://127.0.0.1:18800 \
 `client.json` holds `{"argv": [...], "cwd": ..., "env": {...}}` with the
 placeholders `{endpoint}`, `{benchmark}`, `{seed}`, `{episodes}`, `{run_id}`,
 `{case_id}`, `{episode_id}` and `{output_dir}`, for example
-`["python", "-m", "<driver>", "--sim-server", "{endpoint}", ...]`. The client gets the
+`["python", "-m", "<driver>", "--sim-server", "{endpoint}", ...]`. `{run_id}` is
+the prefix, the case and the lease ID, so every attempt has its own. The client gets the
 lease token as `RSI_SIM_SERVER_TOKEN` and never the gateway token. Each slot is
 one sequential lane. A lane stops at its first engineering error (nonzero exit,
 unverified cleanup, or no opened episode); ordinary failures are results.
-`--case-file` fixes an explicit case order. Rerunning with the same output
+`--case-file` fixes an explicit case order. The first start writes `plan.json`
+(profile, panel and the planned case IDs, before `--limit`); it is the
+denominator of a [publication](../README.md), and a rerun
+that would plan other cases is refused. Rerunning with the same output
 directory skips completed cases and leases the others again, keeping each
-earlier attempt directory. A crash is not an attempt, but a nonzero exit after
+earlier attempt directory; an unreadable or inconsistent `completion.json`
+stops the run before any lease. A crash is not an attempt, but a nonzero exit after
 an episode opened can also be a recorded policy error, which is a result:
 review the client record before rerunning such a case. Nothing stops a new
 output directory from running completed cases again; doing so would be an

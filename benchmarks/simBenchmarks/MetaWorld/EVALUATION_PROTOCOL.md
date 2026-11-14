@@ -36,10 +36,9 @@ taxonomy rather than a native difficulty standard.
 
 ### Current service selection
 
-Select a unique list of `task_names`. The service records canonical names,
-resolving the aliases listed in the catalog before rejecting duplicates. It
-schedules one episode per selected task, in declared order, with an explicit
-seed. The example chooses `reach-v3` and seed 4042. Fix the task/seed selection
+Select a unique list of canonical catalog `task_names`; other spellings are
+rejected. The service schedules one episode per selected task, in declared
+order, with an explicit seed. The example chooses `reach-v3` and seed 4042. Fix the task/seed selection
 before observing outcomes; retain unsuccessful attempts and errors.
 
 The native constructor generates a pool of **50 goal/reset configurations per

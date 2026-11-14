@@ -2,7 +2,7 @@
   "schema_version": "starvla-rsi.calvin-debug-sequence/v1",
   "track": "debug-sequence0",
   "selection": "retained fixed sequence file index 0, selected before native construction; no screening",
-  "sequence_file": "environment/eval_sequences.json",
+  "sequence_file": "eval_sequences.json",
   "sequence_file_sha256": "c99e041c255df3408ebf3bbb4feea8b407e17e60e7c07d172a6ea7ba6680e8ca",
   "sequence_count": 1000,
   "selected_index": 0,
@@ -19,6 +19,6 @@
     "initial_condition_repr": "dict_values([1, 1, 'left', 'open', 'slider_left', 'table', 'slider_right', 0])",
     "pyhash_compatibility": "flier/pyfasthash 0.9.3 at 0f9f51de7cb90956d507090c37af5c2807861085: Python 3 Unicode UTF-16LE without BOM, fnv1_32 default seed 0; multiply 16777619 mod 2**32 then XOR each byte",
     "fnv_seed": 2138410836,
-    "scope": "one frozen state under explicit pyhash compatibility semantics, not historical dependency or native 1000-sequence parity"
+    "scope": "one pinned state under explicit pyhash compatibility semantics, not historical dependency or native 1000-sequence parity"
   }
 }

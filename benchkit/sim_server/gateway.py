@@ -34,6 +34,7 @@ import time
 import uuid
 
 from benchkit.artifacts import append_jsonl, atomic_write_json, utc_now
+from benchkit.errors import InfrastructureError
 from benchkit.sim_server.cli import SERVICE_MODULES
 from benchkit.sim_server.wire import MAX_MESSAGE_BYTES, dumps, loads
 
@@ -191,7 +192,7 @@ def _free_port() -> int:
         return probe.getsockname()[1]
 
 
-def _group_alive(pgid: int) -> bool:
+def group_alive(pgid: int) -> bool:
     try:
         os.killpg(pgid, 0)
     except ProcessLookupError:
@@ -343,11 +344,19 @@ class Gateway:
         while time.monotonic() < deadline and not self.closing.is_set():
             if lease["process"].poll() is not None:
                 raise GatewayError("service_exited_during_startup")
+            # Only "not listening yet" is retried. The service binds after its
+            # adapter is built, so a listener that fails describe fails the launch.
             try:
-                client = SimServerBenchmarkAdapter(f"http://127.0.0.1:{port}", lease["token"], timeout=30)
-            except Exception:
+                socket.create_connection(("127.0.0.1", port), timeout=5).close()
+            except OSError:
                 time.sleep(1.0)
                 continue
+            try:
+                client = SimServerBenchmarkAdapter(f"http://127.0.0.1:{port}", lease["token"], timeout=30)
+            except Exception as exc:
+                self._event("startup_describe_failed", lease_id=lease["lease_id"],
+                            cause=str(exc) if isinstance(exc, InfrastructureError) else type(exc).__name__)
+                raise GatewayError("service_contract_mismatch") from exc
             if client.descriptor.name != expected or [e.id for e in client.episodes(profile["seed"])] != [episode["id"]]:
                 raise GatewayError("service_identity_mismatch")
             return client.describe_data["server_id"]
@@ -381,9 +390,9 @@ class Gateway:
                 except subprocess.TimeoutExpired:
                     pass
                 deadline = time.monotonic() + 10
-                while _group_alive(process.pid) and time.monotonic() < deadline:
+                while group_alive(process.pid) and time.monotonic() < deadline:
                     time.sleep(0.5)
-            if process is None or (process.poll() is not None and not _group_alive(process.pid)):
+            if process is None or (process.poll() is not None and not group_alive(process.pid)):
                 cleanup = "verified"
             opened = len(list((lease["root"] / "server" / "episodes").glob("*/claim.json")))
         finally:
@@ -486,8 +495,9 @@ def make_control_server(gateway: Gateway, *, token: str, port: int) -> Threading
                 if self.path != "/rpc":
                     self.send_error(404)
                     return
+                # Bytes, since compare_digest raises on non-ASCII str (a 401, not a request error).
                 auth = self.headers.get_all("Authorization", [])
-                if len(auth) != 1 or not hmac.compare_digest(auth[0], "Bearer " + token):
+                if len(auth) != 1 or not hmac.compare_digest(auth[0].encode(), ("Bearer " + token).encode()):
                     self.send_error(401)
                     return
                 lengths = self.headers.get_all("Content-Length", [])

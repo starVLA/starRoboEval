@@ -15,9 +15,6 @@ Factory = Callable[[Mapping[str, JsonValue]], T]
 _BENCHMARKS: dict[str, Factory[BenchmarkAdapter]] = {}
 _POLICIES: dict[str, Factory[Policy]] = {}
 _BUILTINS_LOADED = False
-_POLICY_MODULES = {
-    "constant": "benchkit.diagnostics.constant",
-}
 
 
 def _register(registry: dict[str, Factory[Any]], name: str, factory: Factory[Any]) -> None:
@@ -53,6 +50,7 @@ def load_builtins() -> None:
     """Import dependency-free built-ins exactly once."""
     global _BUILTINS_LOADED
     if not _BUILTINS_LOADED:
+        import benchkit.diagnostics.constant  # noqa: F401
         import benchkit.diagnostics.smoke  # noqa: F401
         import benchmarks.simBenchmarks.SimplerEnv.bench_server.adapter  # noqa: F401
         import benchmarks.simBenchmarks.LIBERO.bench_server.adapter  # noqa: F401
@@ -68,8 +66,6 @@ def load_builtins() -> None:
         import_module("benchmarks.simBenchmarks.LIBERO-plus.bench_server.adapter")
         import_module("benchmarks.simBenchmarks.VLA-Arena.bench_server.adapter")
 
-        _register(_BENCHMARKS, "simple_humanoid", benchmarks.simBenchmarks.SIMPLE.bench_server.adapter.make_simple_humanoid)
-
         _BUILTINS_LOADED = True
 
 
@@ -78,6 +74,10 @@ def create_benchmark(name: str, parameters: Mapping[str, JsonValue] | None = Non
     load_builtins()
     normalized = name.strip().lower()
     if normalized not in _BENCHMARKS:
+        from benchkit.catalog import load_catalog
+
+        if normalized in {entry.id for entry in load_catalog()}:
+            raise KeyError(f"benchmark {name!r} is served only by its SIM server; run it with --sim-server")
         raise KeyError(f"unknown benchmark {name!r}; installed: {', '.join(sorted(_BENCHMARKS))}")
     return _BENCHMARKS[normalized](parameters or {})
 
@@ -86,8 +86,6 @@ def create_policy(name: str, parameters: Mapping[str, JsonValue] | None = None) 
     """Construct a registered policy or report available names."""
     load_builtins()
     normalized = name.strip().lower()
-    if normalized not in _POLICIES and normalized in _POLICY_MODULES:
-        import_module(_POLICY_MODULES[normalized])
     if normalized not in _POLICIES:
         raise KeyError(f"unknown policy {name!r}; installed: {', '.join(sorted(_POLICIES))}")
     return _POLICIES[normalized](parameters or {})
@@ -96,4 +94,4 @@ def create_policy(name: str, parameters: Mapping[str, JsonValue] | None = None) 
 def registered() -> dict[str, list[str]]:
     """Return registered names without exposing mutable registry state."""
     load_builtins()
-    return {"benchmarks": sorted(_BENCHMARKS), "policies": sorted(set(_POLICIES) | set(_POLICY_MODULES))}
+    return {"benchmarks": sorted(_BENCHMARKS), "policies": sorted(_POLICIES)}

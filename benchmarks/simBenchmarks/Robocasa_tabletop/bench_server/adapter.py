@@ -42,8 +42,7 @@ NEXT_TASKS = {
     2: "gr1_unified/PnPMilkToMicrowaveClose_GR1ArmsAndWaistFourierHands_Env",
 }
 TASK_LAYOUTS = {0: 4, 19: 0, 1: 2, 2: 2}
-DEFAULT_ROOT = "/mnt/workspace/users/jinhuiye"
-# Distinguish omitted legacy defaults from explicitly mixed/null parameters.
+# Distinguish omitted defaults from explicitly mixed/null parameters.
 _UNSET_BUDGET = object()
 _UNSET_EGL_DEVICE = object()
 
@@ -374,10 +373,17 @@ class TabletopEpisode:
             os.environ[key] = value
         os.environ["NUMBA_CACHE_DIR"] = str(self.artifact_dir / "numba_cache")
         gpu = self.benchmark.render_gpu_device_id
-        processes = subprocess.check_output(["nvidia-smi", f"--id={gpu}", "--query-compute-apps=pid",
-                                             "--format=csv,noheader,nounits"], text=True).strip().splitlines()
-        if any(int(pid.strip()) != os.getpid() for pid in processes):
-            raise InfrastructureError(f"GPU {gpu} has another process; do not disturb it")
+        try:
+            processes = subprocess.run(["nvidia-smi", f"--id={gpu}", "--query-compute-apps=pid",
+                                        "--format=csv,noheader,nounits"], capture_output=True, text=True,
+                                       check=True, timeout=60).stdout.split()
+        except (OSError, subprocess.SubprocessError) as exc:
+            raise InfrastructureError(f"cannot query compute processes on GPU {gpu} with nvidia-smi") from exc
+        # nvidia-smi may report host PIDs (or placeholders) inside a PID
+        # namespace; compare as text and fail closed on anything but our PID.
+        if set(processes) - {str(os.getpid())}:
+            raise InfrastructureError(f"GPU {gpu} has compute processes {processes} other than this server "
+                                      "(host PIDs differ inside a PID namespace); do not disturb it")
         sources = {name: verify_source(root, name) for name, root in self.benchmark.sources.items()}
         objects = Path(sources["robocasa"]["asset_overlay"]) / "objects"
         inventory = verify_object_inventory(self.benchmark.object_inventory, objects)
@@ -539,14 +545,12 @@ class TabletopEpisode:
 
 
 class TabletopBenchmarkAdapter:
-    def __init__(self, task_ids: Sequence[int] | None = None, *, task_scope: str = "pilot",
+    def __init__(self, task_ids: Sequence[int] | None = None, *,
+                 casa_source: str, suite_source: str, object_inventory: str, task_scope: str = "pilot",
                  episode_seeds: Any = _UNSET_BUDGET,
                  budget_mode: str = "decisions", max_policy_calls: Any = _UNSET_BUDGET,
                  replan_interval: Any = _UNSET_BUDGET, control_step_cap: Any = _UNSET_BUDGET,
-                 render_gpu_device_id: int = 2, egl_device_id: Any = _UNSET_EGL_DEVICE,
-                 casa_source: str = DEFAULT_ROOT + "/benchmarks/robocasa-gr1-tabletop-tasks-rsi",
-                 suite_source: str = DEFAULT_ROOT + "/benchmarks/robosuite-gr1-rsi",
-                 object_inventory: str = DEFAULT_ROOT + "/eval_results/starvla-rsi/tabletop-eval-object-inventory-20260907.json"):
+                 render_gpu_device_id: int = 2, egl_device_id: Any = _UNSET_EGL_DEVICE):
         if task_scope not in ("pilot", "tabletop-next-pair-v1", "tabletop24-seeded-v1"):
             raise ValueError("unsupported Tabletop task_scope")
         expanded = task_scope == "tabletop24-seeded-v1"
@@ -658,4 +662,7 @@ def make_tabletop(parameters: Mapping[str, JsonValue]) -> TabletopBenchmarkAdapt
                                  "render_gpu_device_id", "egl_device_id", "casa_source", "suite_source", "object_inventory"}
     if unknown:
         raise ValueError(f"unknown Tabletop parameters: {sorted(unknown)}")
+    missing = [key for key in ("casa_source", "suite_source", "object_inventory") if key not in parameters]
+    if missing:
+        raise ValueError(f"missing required Tabletop deployment paths: {missing}")
     return TabletopBenchmarkAdapter(**parameters)

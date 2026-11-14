@@ -14,27 +14,35 @@ import sys
 from benchkit.errors import CompatibilityError, ProtocolError
 
 NATIVE_REVISION = "fa03f01f19c65920e18cf37398a9ce859274af76"
-SEQUENCE_SHA256 = "3fa343cf594d530b0b127030ff1c5cbeaee36fb3aa8c9d2a4063c09047c8d508"
+SEQUENCE_SHA256 = "bca697b3b11b4f5c0aa1ae4d4b2cf1b0d5b7b300e6e1a6f43a95cd5cd6c692a1"
 SNAPSHOT_SHA256 = "ef2c0cfede0419651faf75b32366755832fb549109427047523af91db5b5786c"
 TASK_CONFIG = "calvin_models/conf/callbacks/rollout/tasks/new_playtable_tasks.yaml"
 LANGUAGE_CONFIG = "calvin_models/conf/annotations/new_playtable_validation.yaml"
 
 
-def _frozen_json(name, digest):
-    directory = (Path(__file__).parents[1] / "bench_server" / "protocol"
-                 if name == "frozen_sequence.json" else Path(__file__).parent)
-    raw = (directory / name).read_bytes()
+PROTOCOL_DIR = Path(__file__).parents[1] / "bench_server" / "protocol"
+
+
+def _pinned_json(path, digest):
+    raw = path.read_bytes()
     if hashlib.sha256(raw).hexdigest() != digest:
-        raise CompatibilityError(f"CALVIN frozen input differs: {name}")
+        raise CompatibilityError(f"CALVIN pinned input differs: {path.name}")
     return json.loads(raw)
 
 
-def frozen_sequence():
-    return _frozen_json("frozen_sequence.json", SEQUENCE_SHA256)
+def selected_sequence():
+    sequence = _pinned_json(PROTOCOL_DIR / "selected_sequence.json", SEQUENCE_SHA256)
+    # The selection must remain entry `selected_index` of the retained sequence
+    # file, named relative to the protocol directory.
+    sequences = _pinned_json(PROTOCOL_DIR / sequence["sequence_file"], sequence["sequence_file_sha256"])
+    if (len(sequences) != sequence["sequence_count"]
+            or sequences[sequence["selected_index"]] != [sequence["initial_condition"], sequence["tasks"]]):
+        raise CompatibilityError("CALVIN selected sequence differs from the retained sequence file")
+    return sequence
 
 
 def _git(root, *arguments):
-    return subprocess.check_output(["git", "-C", str(root), *arguments], stderr=subprocess.PIPE)
+    return subprocess.check_output(["git", "-C", str(root), *arguments], stderr=subprocess.PIPE, timeout=120)
 
 
 def verify_tree(root: Path, revision: str, expected_count: int):
@@ -68,7 +76,7 @@ def verify_tree(root: Path, revision: str, expected_count: int):
 
 
 def readiness(source_root: Path, dataset_root: Path):
-    snapshot = _frozen_json("runtime_snapshot.json", SNAPSHOT_SHA256)
+    snapshot = _pinned_json(Path(__file__).with_name("runtime_snapshot.json"), SNAPSHOT_SHA256)
     if (list(sys.version_info[:2]) != snapshot["python"] or platform.system() != "Linux"
             or platform.machine() != "x86_64" or not sys.dont_write_bytecode):
         raise CompatibilityError("CALVIN debug runtime requires Linux x86_64 Python 3.10 launched with -B")
@@ -100,7 +108,7 @@ def readiness(source_root: Path, dataset_root: Path):
             "runtime_snapshot_sha256": SNAPSHOT_SHA256, "runtime_scope": snapshot["scope"],
             "dependency_versions": packages, "debug_config": {**snapshot["debug_config"], "root": str(dataset_root)},
             "original_debug_archive": snapshot["original_debug_archive"],
-            "frozen_sequence_sha256": SEQUENCE_SHA256, "sequence": frozen_sequence(),
+            "selected_sequence_sha256": SEQUENCE_SHA256, "sequence": selected_sequence(),
             "runtime_environment": {key: os.environ.get(key) for key in
                                     ("CUDA_VISIBLE_DEVICES", "EGL_VISIBLE_DEVICES", "PYOPENGL_PLATFORM")}}
 
@@ -158,7 +166,7 @@ def resolved_config(source_root, dataset_root):
     del cfg.env.cameras.tactile  # Same RGB-only omission as the retained evaluator.
     cfg.env.show_gui, cfg.env.use_vr, cfg.env.use_scene_info = False, False, True
     annotation = OmegaConf.load(source_root / LANGUAGE_CONFIG)
-    sequence = frozen_sequence()
+    sequence = selected_sequence()
     if [annotation[task][0] for task in sequence["tasks"]] != sequence["instructions"]:
         raise CompatibilityError("CALVIN selected native language differs")
     return cfg

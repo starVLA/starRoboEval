@@ -12,6 +12,7 @@ from numbers import Real
 import os
 from pathlib import Path
 import selectors
+import signal
 import subprocess
 import time
 from typing import Any, Mapping
@@ -27,6 +28,16 @@ CLOSE_WAIT_SECONDS = 30
 CLOSE_TERMINATE_SECONDS = 10
 RPC_MAX_RESPONSE_BYTES = 1024 * 1024
 RPC_PROTOCOL = "robodojo-private-rpc/v2"
+
+
+def _group_alive(pgid: int) -> bool:
+    try:
+        os.killpg(pgid, 0)
+    except ProcessLookupError:
+        return False
+    except PermissionError:
+        return True
+    return True
 
 
 class NativeOperationError(RuntimeError):
@@ -237,21 +248,25 @@ class RoboDojoEpisode:
             self.process.wait(timeout=0 if self.rpc_failure is not None else CLOSE_WAIT_SECONDS)
         except subprocess.TimeoutExpired:
             errors.append("native worker shutdown wait timed out")
-            try:
-                self.process.terminate()
-                receipt["terminate_sent"] = True
-                self.process.wait(timeout=CLOSE_TERMINATE_SECONDS)
-            except subprocess.TimeoutExpired:
-                try:
-                    self.process.kill()
-                    receipt["kill_sent"] = True
-                    self.process.wait(timeout=CLOSE_TERMINATE_SECONDS)
-                except Exception as exc:
-                    errors.append(f"kill/wait: {type(exc).__name__}: {exc}")
-            except Exception as exc:
-                errors.append(f"terminate/wait: {type(exc).__name__}: {exc}")
         except Exception as exc:
             errors.append(f"wait: {type(exc).__name__}: {exc}")
+        # The worker leads its own process group: signal the group, so native
+        # descendants that outlive the worker are stopped too.
+        for sig, flag in ((signal.SIGTERM, "terminate_sent"), (signal.SIGKILL, "kill_sent")):
+            if self.process.poll() is not None and not _group_alive(self.process.pid):
+                break
+            try:
+                os.killpg(self.process.pid, sig)
+                receipt[flag] = True
+            except ProcessLookupError:
+                pass
+            except Exception as exc:
+                errors.append(f"{sig.name}: {type(exc).__name__}: {exc}")
+            deadline = time.monotonic() + CLOSE_TERMINATE_SECONDS
+            while time.monotonic() < deadline and (self.process.poll() is None or _group_alive(self.process.pid)):
+                time.sleep(0.1)
+        if self.process.poll() is None or _group_alive(self.process.pid):
+            errors.append("native worker process group survived SIGKILL")
         receipt["child_returncode"] = self.process.returncode
         if type(self.process.returncode) is not int or self.process.returncode != 0:
             errors.append(f"native worker final return code: {self.process.returncode}")

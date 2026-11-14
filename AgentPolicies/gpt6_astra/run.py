@@ -8,21 +8,14 @@ Do not hand this driver or its credentials to an untrusted model process.
 from __future__ import annotations
 
 import argparse
-from dataclasses import replace
 import json
 import os
 from pathlib import Path
 
-import benchkit.sim_server.client as service_client_module
 from benchkit.sim_server.client import SimServerBenchmarkAdapter
 from benchkit.errors import CompatibilityError, PolicyPreflightError, ProtocolError
-from benchkit import model_profiles as profile_records
-from benchkit.model_profiles import load_profile
-from benchkit.source_snapshot import installed_source_root
+from benchkit.model_profiles import create_policy, preflight_policy
 from benchkit.recording import add_recording_arguments, recording_from_arguments
-from AgentPolicies.gpt6_astra import codex_native as policy_module
-from AgentPolicies.gpt6_astra.codex_native import create_policy
-from AgentPolicies.gpt6_astra.tools import runner as driver_module
 from AgentPolicies.gpt6_astra.tools.runner import EvaluationRunner, RunRequest
 
 
@@ -46,60 +39,14 @@ def build_parser():
     parser.add_argument("--episodes", type=int, required=True)
     parser.add_argument("--max-steps", type=int, default=None,
                         help="control horizon, default the service's advertised horizon; recorded in the manifest")
-    parser.add_argument("--max-policy-calls", type=int)
+    parser.add_argument("--max-policy-calls", type=int, default=None,
+                        help="policy-call cap, default the service's advertised allowance; recorded in the manifest")
     parser.add_argument("--output-dir", type=Path, required=True)
     parser.add_argument("--run-id", required=True)
     parser.add_argument("--method-file", type=Path,
                         help="optional declared method/model composition JSON; not provider attestation")
     add_recording_arguments(parser)
     return parser
-
-
-def checked_policy(*, image_max_edge=None, safety_stop=None,
-                   stagnation_review=None, stagnation_window=None, allow_task_completion=None):
-    """Validate local configuration and construct a policy without runtime I/O.
-
-    No service connection, child process, actor thread or model turn starts here.
-    Runtime readiness is a separate phase after service compatibility checks.
-    """
-    root = Path(__file__).absolute().parents[2]
-    origins = ((Path(profile_records.__file__).absolute(), root / "benchkit/model_profiles.py"),
-               (Path(policy_module.__file__).absolute(), root / "AgentPolicies/gpt6_astra/codex_native.py"),
-               (Path(driver_module.__file__).absolute(), root / "AgentPolicies/gpt6_astra/tools/runner.py"),
-               (Path(service_client_module.__file__).absolute(), root / "benchkit/sim_server/client.py"),
-               (installed_source_root().absolute(), root / "benchkit"))
-    if any(actual != expected for actual, expected in origins):
-        raise ValueError("driver, factory and harness must come from this checkout; "
-                         "the run records its Git revision")
-    data = load_profile("gpt6_astra")
-    parameters = {"prompt": data["prompt"]}
-    if image_max_edge is not None:
-        parameters["image_max_edge"] = image_max_edge
-    if safety_stop is not None:
-        parameters["safety_stop"] = safety_stop
-    for name, value in (("stagnation_review", stagnation_review), ("stagnation_window", stagnation_window),
-                        ("allow_task_completion", allow_task_completion)):
-        if value is not None:
-            parameters[name] = value
-    policy = create_policy(config=data["config"], identity=data["profile"]["policy"], **parameters)
-    policy.descriptor = replace(policy.descriptor, parameters={
-        **policy.descriptor.parameters, "model_profile": data["profile"]["id"]})
-    return policy
-
-
-def check_runtime(policy):
-    """Probe local CLI/configuration readiness, never inference or case claims.
-
-    The policy may create temporary files, child processes and an ephemeral
-    configuration thread. This is not pure configuration validation.
-    """
-    try:
-        if policy.preflight_runtime() is not None:
-            raise PolicyPreflightError("initialization_failed")
-    except PolicyPreflightError:
-        raise
-    except Exception:
-        raise PolicyPreflightError("initialization_failed") from None
 
 
 def run(args):
@@ -110,10 +57,11 @@ def run(args):
     if args.method_file is not None:
         from benchkit.methods import normalize_method
         method = normalize_method(json.loads(args.method_file.read_text(encoding="utf-8")))
-    policy = checked_policy(image_max_edge=args.image_max_edge,
-                            safety_stop=args.safety_stop,
-                            allow_task_completion=args.allow_task_completion,
-                            stagnation_review=args.stagnation_review, stagnation_window=args.stagnation_window)
+    # Profile-validated construction without runtime I/O: no service connection,
+    # child process, actor thread or model turn starts here.
+    overrides = {name: getattr(args, name) for name in (
+        "image_max_edge", "safety_stop", "allow_task_completion", "stagnation_review", "stagnation_window")}
+    policy = create_policy("gpt6_astra", **{name: value for name, value in overrides.items() if value is not None})
     benchmark = SimServerBenchmarkAdapter(args.sim_server, os.environ.get(args.token_env, ""),
                                          timeout=args.sim_server_timeout)
     if benchmark.descriptor.name != args.benchmark:
@@ -127,9 +75,6 @@ def run(args):
     max_steps = benchmark.environment_step_cap if args.max_steps is None else args.max_steps
     if type(max_steps) is not int or max_steps <= 0:
         raise ValueError("codex_native needs --max-steps or a positive advertised service horizon")
-    if (benchmark.descriptor.name == "simpler_env"
-            and benchmark.parameters.get("action_rejection_feedback") is not True):
-        raise ValueError("SimplerEnv feedback needs its explicitly versioned action_rejection_feedback track")
     call_cap = args.max_policy_calls
     if call_cap is None:
         call_cap = getattr(benchmark, "max_policy_calls", None)
@@ -151,7 +96,7 @@ def run(args):
     available = len(tuple(benchmark.episodes(request.seed, request.episode_limit)))
     if available != args.episodes:
         raise ProtocolError(f"benchmark offers {available} episodes for this seed, not --episodes {args.episodes}")
-    check_runtime(policy)
+    preflight_policy(policy)
     return EvaluationRunner().run(benchmark, policy, request)
 
 
