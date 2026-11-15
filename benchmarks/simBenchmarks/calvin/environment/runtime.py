@@ -14,13 +14,11 @@ import sys
 from benchkit.errors import CompatibilityError, ProtocolError
 
 NATIVE_REVISION = "fa03f01f19c65920e18cf37398a9ce859274af76"
-SEQUENCE_SHA256 = "bca697b3b11b4f5c0aa1ae4d4b2cf1b0d5b7b300e6e1a6f43a95cd5cd6c692a1"
-SNAPSHOT_SHA256 = "ef2c0cfede0419651faf75b32366755832fb549109427047523af91db5b5786c"
+SNAPSHOT_SHA256 = "d2d62ee402ef61b2b6f93cbd1cc37640c9a6ad1f58b538fb25ebb877d6f25343"
 TASK_CONFIG = "calvin_models/conf/callbacks/rollout/tasks/new_playtable_tasks.yaml"
 LANGUAGE_CONFIG = "calvin_models/conf/annotations/new_playtable_validation.yaml"
-
-
-PROTOCOL_DIR = Path(__file__).parents[1] / "bench_server" / "protocol"
+DATASET_CONFIG = "validation/.hydra/merged_config.yaml"
+SCENE = "calvin_scene_D"  # Native D table, as declared by the D->D validation config.
 
 
 def _pinned_json(path, digest):
@@ -30,15 +28,15 @@ def _pinned_json(path, digest):
     return json.loads(raw)
 
 
-def selected_sequence():
-    sequence = _pinned_json(PROTOCOL_DIR / "selected_sequence.json", SEQUENCE_SHA256)
-    # The selection must remain entry `selected_index` of the retained sequence
-    # file, named relative to the protocol directory.
-    sequences = _pinned_json(PROTOCOL_DIR / sequence["sequence_file"], sequence["sequence_file_sha256"])
-    if (len(sequences) != sequence["sequence_count"]
-            or sequences[sequence["selected_index"]] != [sequence["initial_condition"], sequence["tasks"]]):
-        raise CompatibilityError("CALVIN selected sequence differs from the retained sequence file")
-    return sequence
+def dataset_scene(dataset_root: Path):
+    """Stdlib read of the setup config's top-level `scene.name`; None if absent."""
+    in_scene = False
+    for line in (dataset_root / DATASET_CONFIG).read_text().splitlines():
+        if line and not line[0].isspace():
+            in_scene = line.rstrip() == "scene:"
+        elif in_scene and line.startswith("  name:"):
+            return line.split(":", 1)[1].strip()
+    return None
 
 
 def _git(root, *arguments):
@@ -108,7 +106,6 @@ def readiness(source_root: Path, dataset_root: Path):
             "runtime_snapshot_sha256": SNAPSHOT_SHA256, "runtime_scope": snapshot["scope"],
             "dependency_versions": packages, "debug_config": {**snapshot["debug_config"], "root": str(dataset_root)},
             "original_debug_archive": snapshot["original_debug_archive"],
-            "selected_sequence_sha256": SEQUENCE_SHA256, "sequence": selected_sequence(),
             "runtime_environment": {key: os.environ.get(key) for key in
                                     ("CUDA_VISIBLE_DEVICES", "EGL_VISIBLE_DEVICES", "PYOPENGL_PLATFORM")}}
 
@@ -155,10 +152,10 @@ def _native_imports(source_root):
     return env_module
 
 
-def resolved_config(source_root, dataset_root):
+def resolved_config(source_root, dataset_root, language=None):
     from omegaconf import OmegaConf
-    cfg = OmegaConf.load(dataset_root / "validation/.hydra/merged_config.yaml")
-    if (cfg.env._target_ != "calvin_env.envs.play_table_env.PlayTableSimEnv"
+    cfg = OmegaConf.load(dataset_root / DATASET_CONFIG)
+    if (cfg.scene.name != SCENE or cfg.env._target_ != "calvin_env.envs.play_table_env.PlayTableSimEnv"
             or cfg.env.seed != 0 or cfg.env.bullet_time_step != 240.0 or cfg.env.control_freq != 30
             or not cfg.env.use_egl or list(cfg.env.cameras) != ["static", "gripper", "tactile"]
             or cfg.env.robot_cfg.use_ik_fast or cfg.env.robot_cfg.filename != "franka_panda/panda_longer_finger.urdf"):
@@ -166,8 +163,8 @@ def resolved_config(source_root, dataset_root):
     del cfg.env.cameras.tactile  # Same RGB-only omission as the retained evaluator.
     cfg.env.show_gui, cfg.env.use_vr, cfg.env.use_scene_info = False, False, True
     annotation = OmegaConf.load(source_root / LANGUAGE_CONFIG)
-    sequence = selected_sequence()
-    if [annotation[task][0] for task in sequence["tasks"]] != sequence["instructions"]:
+    # Every selected {task: instruction} must be the native annotation [task][0].
+    if language is not None and any(annotation[task][0] != text for task, text in language.items()):
         raise CompatibilityError("CALVIN selected native language differs")
     return cfg
 
@@ -273,11 +270,11 @@ class NativeRuntime:
         return receipt, errors
 
 
-def prepare_native(source_root, dataset_root):
+def prepare_native(source_root, dataset_root, language):
     module = _native_imports(source_root)
     import hydra
     from omegaconf import OmegaConf
-    cfg = resolved_config(source_root, dataset_root)
+    cfg = resolved_config(source_root, dataset_root, language)
     oracle = hydra.utils.instantiate(OmegaConf.load(source_root / TASK_CONFIG))
     if oracle.num_tasks != 34:
         raise CompatibilityError("CALVIN native oracle must expose 34 configured predicates")

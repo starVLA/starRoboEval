@@ -24,9 +24,9 @@ mujoco==3.2.6
 numba==0.61.2
 numpy==1.26.4
 opencv-python==4.11.0.86
-packaging @ file:///home/conda/feedstock_root/build_artifacts/bld/rattler-build_packaging_1785888127/work
+packaging==26.3
 pillow==12.3.0
-pip @ file:///home/conda/feedstock_root/build_artifacts/pip_1785914405025/work
+pip==26.2.1
 pygame==2.6.1
 pynput==1.8.2
 PyOpenGL==3.1.10

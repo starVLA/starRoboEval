@@ -1,5 +1,5 @@
 {
-  "schema": "simple-released-task-inventory/v1",
+  "schema": "starvla-rsi.simple_humanoid.released-task-inventory/v1",
   "revision": "5e3d6f84e85343e34e9bca8d157f0d7813231185",
   "scope": "released-12",
   "order": "lexicographic native task ID",

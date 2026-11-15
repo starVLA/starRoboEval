@@ -1,4 +1,4 @@
-"""Pinned RoboCasa365 PandaOmron development adapter, with no simulator imports at load time."""
+"""Pinned RoboCasa365 PandaOmron target50 adapter, with no simulator imports at load time."""
 
 from __future__ import annotations
 
@@ -15,18 +15,18 @@ from typing import Any, Mapping, Sequence
 
 from benchkit.artifacts import append_jsonl, atomic_write_json
 from benchkit.contracts import (
-    ActionSpec, BenchmarkDescriptor, EpisodeSpec, JsonValue, Observation, ObservationSpec, Transition,
+    ActionSpec, BenchmarkDescriptor, EpisodeSpec, JsonValue, Observation, ObservationSpec, Transition, Usage,
 )
-from benchkit.errors import CompatibilityError, InfrastructureError, ProtocolError
-from benchkit.registry import register_benchmark
+from benchkit.errors import ActionRejected, CompatibilityError, InfrastructureError, ProtocolError
+from benchkit.validation import ValidationIssue, validate_action_vector
 
 ROBOCASA_REVISION = "b4684e6ee37d377cc392e98302a6b916d588b415"
 ROBOSUITE_REVISION = "85abee228d1c43ab1939bce33028099945d453b4"
 CAMERAS = ("robot0_agentview_left", "robot0_agentview_right", "robot0_eye_in_hand")
-PILOT_TASKS = ("OpenDrawer", "NavigateKitchen")
-NATIVE_HORIZONS = {"OpenDrawer": 750, "NavigateKitchen": 450}
-PILOT_SEED = 20260907
-NEUTRAL_ACTION = (0.0,) * 12
+SEED = 20260907  # launch seed; fast's one fixed scenario per target task
+EVALUATION_MODES = ("fast", "max", "example")  # fast: blog subset; max: 50 seeded scenarios per task; example: first fast episode
+FAST_ATTEMPTS = 5  # repeated attempts on each task's seeded scenario
+MAX_SCENARIOS = 50  # native rule: 50 scenarios per task; scenario k reset seed = SEED + k
 OBSERVATION_SPEC = ObservationSpec(cameras=CAMERAS, modalities=("language", "rgb"))
 
 
@@ -35,7 +35,7 @@ def target50_inventory() -> dict[str, Any]:
     path = Path(__file__).parent / "protocol" / "robocasa365_target50.json"
     inventory = json.loads(path.read_text(encoding="utf-8"))
     groups = {"atomic_seen": 18, "composite_seen": 16, "composite_unseen": 16}
-    if (inventory.get("schema_version") != "starvla-rsi.robocasa365-target50/v1"
+    if (inventory.get("schema_version") != "starvla-rsi.robocasa365.target50/v1"
             or inventory.get("native_revision") != ROBOCASA_REVISION
             or inventory.get("counts") != groups):
         raise CompatibilityError("invalid bundled target50 inventory identity")
@@ -113,6 +113,15 @@ ACTION_SPEC = PandaOmronActionSpec(
     rotation="base-frame axis-angle delta, unit=0.5rad; binary base_mode 0=achieved arm goal, 1=desired arm goal",
     gripper="binary 0=open, 1=close; native -1/+1; no fractional values",
 )
+
+
+def validate_action(values: Sequence[float]) -> tuple[float, ...]:
+    """Reject a fractional binary component before execution, as an ordinary action rejection."""
+    action = validate_action_vector(ACTION_SPEC, values)
+    for index, code in ((6, "gripper_binary_required"), (11, "invalid_action")):  # gripper_close, base_mode
+        if action[index] not in (0.0, 1.0):
+            raise ActionRejected(ValidationIssue(code, actual=action[index], action_index=index), usage=Usage())
+    return action
 
 
 def action_dictionary(values: Sequence[float]) -> dict[str, Any]:
@@ -246,7 +255,7 @@ def asset_dependency_manifest(xml: str, allowed_roots: Sequence[Path],
     for path in extra_files:
         add(path, None)
     ordered = sorted(files.values(), key=lambda row: row["path"])
-    return {"schema_version": "robocasa365.used-assets/v1",
+    return {"schema_version": "starvla-rsi.robocasa365.used-assets/v1",
             "scope": "compiled_scene_MJCF_file_dependency_closure_plus_layout_style_and_private_macros",
             "all_benchmark_assets_verified": False, "complete": not errors,
             "model_xml_sha256": hashlib.sha256(xml.encode()).hexdigest(),
@@ -298,9 +307,8 @@ class RoboCasa365Episode:
         self.provenance = {"phase": "checking_sources", **self.benchmark.budget_metadata(self.episode.task)}
         self._write_provenance()
         self.provenance.update(verify_sources())
-        if self.benchmark.task_scope == "target50":
-            self.provenance["target50_source_binding"] = verify_target50_sources(
-                Path(self.provenance["sources"]["robocasa"]["root"]))
+        self.provenance["target50_source_binding"] = verify_target50_sources(
+            Path(self.provenance["sources"]["robocasa"]["root"]))
         self._write_provenance()
         from ..environment.render_lifecycle import install, require_native_track
         if self.benchmark.render_track == "native-v1":
@@ -321,10 +329,7 @@ class RoboCasa365Episode:
             expected = Path(self.provenance["sources"][module.__name__]["root"])
             if Path(module.__file__).resolve().parent.parent != expected:
                 raise CompatibilityError("imported native module differs from verified source")
-        if self.benchmark.task_scope == "target50":
-            verify_target50_registry(TARGET_TASKS, ATOMIC_TASK_DATASETS, COMPOSITE_TASK_DATASETS)
-        elif ATOMIC_TASK_DATASETS[self.episode.task]["horizon"] != NATIVE_HORIZONS[self.episode.task]:
-            raise CompatibilityError("native task horizon changed")
+        verify_target50_registry(TARGET_TASKS, ATOMIC_TASK_DATASETS, COMPOSITE_TASK_DATASETS)
         self.provenance["phase"] = "initializing"
         self._write_provenance()
         self.env = gym.make(
@@ -372,6 +377,10 @@ class RoboCasa365Episode:
                    (("robocasa", roots[0]), ("robosuite", roots[1])) if (root / package / "macros_private.py").is_file()]
         self.asset_manifest = asset_dependency_manifest(xml, roots, extras)
         atomic_write_json(self.artifact_dir / "used_assets.json", self.asset_manifest)
+        if "scenario" in self.episode.metadata:  # max: drawn layout/style below stay evaluator-private
+            self.provenance.update({"scenario": self.episode.metadata["scenario"],
+                                    "launch_seed": self.episode.metadata["launch_seed"],
+                                    "scenario_sampling": "native sampler, reset seed = launch seed + scenario"})
         self.provenance.update({
             "phase": "initialized", "task": self.episode.task, "split": "target", "seed": self.episode.seed,
             "layout_id": int(native.layout_id), "style_id": int(native.style_id),
@@ -522,85 +531,81 @@ class RoboCasa365Episode:
 
 
 class RoboCasa365BenchmarkAdapter:
-    def __init__(self, task_ids: Sequence[int] = (0, 1), *, render_gpu_device_id: int = 3,
-                 budget_mode: str = "horizon", max_policy_calls: int | None = None,
-                 replan_interval: int | None = None, task_scope: str = "pilot",
+    def __init__(self, *, evaluation_mode: str = "fast", render_gpu_device_id: int = 0,
                  render_track: str = "native-v1"):
+        if evaluation_mode not in EVALUATION_MODES:
+            raise ValueError(f"evaluation_mode must be one of {', '.join(EVALUATION_MODES)}; got {evaluation_mode!r}")
         if render_track not in ("native-v1", "egl-owner-restore-v1", "egl-owner-material-clamp-v1"):
             raise ValueError("render_track must be native-v1, egl-owner-restore-v1 or egl-owner-material-clamp-v1")
-        self.render_track = render_track
-        if task_scope not in ("pilot", "target50"):
-            raise ValueError("task_scope must be pilot or target50")
-        self.task_scope = task_scope
-        self.task_rows = (target50_inventory()["tasks"] if task_scope == "target50" else [
-            {"task": task, "native_horizon": NATIVE_HORIZONS[task], "task_set": "atomic_seen"}
-            for task in PILOT_TASKS])
-        self.task_names = tuple(row["task"] for row in self.task_rows)
-        self.native_horizons = {row["task"]: row["native_horizon"] for row in self.task_rows}
-        if (not isinstance(task_ids, (list, tuple)) or not task_ids
-                or any(type(i) is not int or not 0 <= i < len(self.task_rows) for i in task_ids)
-                or list(task_ids) != sorted(set(task_ids))):
-            raise ValueError(f"task_ids must be a unique increasing subset of 0..{len(self.task_rows)-1} for {task_scope}")
         if type(render_gpu_device_id) is not int or render_gpu_device_id < 0:
             raise ValueError("render_gpu_device_id must be a nonnegative integer")
-        if budget_mode not in ("horizon", "decisions"):
-            raise ValueError("budget_mode must be horizon or decisions")
-        if budget_mode == "decisions":
-            if (type(max_policy_calls) is not int or not 1 <= max_policy_calls <= 200
-                    or type(replan_interval) is not int or not 1 <= replan_interval <= 5):
-                raise ValueError("development decision limits must be 1..200 calls and 1..5 actions")
-        elif max_policy_calls is not None or replan_interval is not None:
-            raise ValueError("adapter decision limits require budget_mode=decisions")
-        self.task_ids = tuple(task_ids)
+        self.evaluation_mode, self.render_track = evaluation_mode, render_track
         self.render_gpu_device_id = render_gpu_device_id
-        self.budget_mode, self.max_policy_calls, self.replan_interval = budget_mode, max_policy_calls, replan_interval
-        self.environment_step_cap = (max_policy_calls * replan_interval if budget_mode == "decisions"
-                                     else max(self.native_horizons[self.task_names[i]] for i in task_ids))
-        budget_track = f"decision-{max_policy_calls}-prefix-{replan_interval}" if budget_mode == "decisions" else "native-horizons"
-        selection = "target-first2-development" if task_scope == "pilot" else "target50-development"
-        render_version = "v3" if render_track == "egl-owner-material-clamp-v1" else "v2"
-        protocol = (f"{selection}/rgb/{budget_track}/v1" if render_track == "native-v1" else
-                    f"{selection}/rgb/{budget_track}/{render_track}/{render_version}")
+        self.task_rows = target50_inventory()["tasks"]
+        self.task_names = tuple(row["task"] for row in self.task_rows)
+        self.native_horizons = {row["task"]: row["native_horizon"] for row in self.task_rows}
+        # Attempt-major: each round covers all 50 tasks before the next attempt.
+        self.schedule = tuple((task_id, attempt) for attempt in range(1, FAST_ATTEMPTS + 1)
+                              for task_id in range(len(self.task_rows)))
+        if evaluation_mode == "example":
+            self.schedule = self.schedule[:1]
+        elif evaluation_mode == "max":
+            # Scenario-major like fast: scenario 0 over all 50 tasks, then scenario 1, and so on.
+            self.schedule = tuple((task_id, scenario) for scenario in range(MAX_SCENARIOS)
+                                  for task_id in range(len(self.task_rows)))
+        self.environment_step_cap = max(self.native_horizons[self.task_names[i]] for i, _ in self.schedule)
+        selection = ("target50-seeded-scenarios-native-horizons" if evaluation_mode == "max"
+                     else "target50-single-scenario-native-horizons")
+        rendering = "" if render_track == "native-v1" else "-" + render_track.removesuffix("-v1")  # variant joins the RGB spec
+        protocol = f"robocasa365-{ROBOCASA_REVISION[:7]}/{selection}/rgb{rendering}/{evaluation_mode}/v1"
         self.descriptor = BenchmarkDescriptor("robocasa365", "1.0.1", protocol, ROBOCASA_REVISION)
         self.action_spec, self.observation_spec = ACTION_SPEC, OBSERVATION_SPEC
 
+    def validate_action_input(self, values: Sequence[float]) -> tuple[float, ...]:
+        return validate_action(values)
+
     def step_cap(self, task: str) -> int:
-        return self.environment_step_cap if self.budget_mode == "decisions" else self.native_horizons[task]
+        return self.native_horizons[task]
 
     def budget_metadata(self, task: str) -> dict[str, JsonValue]:
-        return {"budget_mode": self.budget_mode, "max_policy_calls": self.max_policy_calls,
-                "render_track": self.render_track,
-                "replan_interval": self.replan_interval, "environment_step_cap": self.step_cap(task),
+        return {"render_track": self.render_track, "environment_step_cap": self.step_cap(task),
                 "native_horizon": self.native_horizons[task],
                 "native_horizon_source": "pinned_robocasa1.0.1_dataset_registry",
                 "evaluation_horizon": self.step_cap(task), "official_leaderboard_protocol": False}
 
     def episodes(self, seed: int, limit: int | None = None) -> Sequence[EpisodeSpec]:
-        if type(seed) is not int or seed != PILOT_SEED:
-            raise ValueError(f"frozen development seed must be {PILOT_SEED}")
-        if limit is not None and (type(limit) is not int or not 1 <= limit <= len(self.task_ids)):
+        if type(seed) is not int or seed != SEED:
+            raise ValueError(f"frozen RoboCasa365 seed must be {SEED}")
+        if limit is not None and (type(limit) is not int or not 1 <= limit <= len(self.schedule)):
             raise ValueError("limit must select a nonempty prefix without repetitions")
-        namespace = "robocasa365" if self.task_scope == "pilot" else "robocasa365-target50"
+        if self.evaluation_mode == "max":
+            # Seeded stand-in for upstream's unseeded 50-scenario stream; the native
+            # sampler still draws layout/style/objects, which are never forced here.
+            return [EpisodeSpec(
+                id=f"robocasa365-target50-task{task_id:02d}-scenario{scenario:02d}", task=self.task_names[task_id],
+                seed=seed + scenario, instruction="Follow the native task instruction provided at reset.",
+                metadata={"task_id": task_id, "scenario": scenario, "launch_seed": seed, "split": "target",
+                          "task_set": self.task_rows[task_id]["task_set"], "evaluation_mode": self.evaluation_mode,
+                          "instruction_source": "native language replaces generic instruction at reset",
+                          **self.budget_metadata(self.task_names[task_id])},
+            ) for task_id, scenario in self.schedule[:limit]]
         return [EpisodeSpec(
-            id=f"{namespace}-task{task_id:02d}-attempt01", task=self.task_names[task_id], seed=seed,
-            instruction=(("Open the drawer." if task_id == 0 else "Navigate to the target fixture.")
-                         if self.task_scope == "pilot" else "Follow the native task instruction provided at reset."),
-            metadata={"task_id": task_id, "attempt": 1, "split": "target",
-                      "task_set": self.task_rows[task_id]["task_set"],
-                      **({"task_scope": "target50"} if self.task_scope == "target50" else {}),
+            id=f"robocasa365-target50-task{task_id:02d}-attempt{attempt:02d}", task=self.task_names[task_id],
+            seed=seed, instruction="Follow the native task instruction provided at reset.",
+            metadata={"task_id": task_id, "attempt": attempt, "split": "target",
+                      "task_set": self.task_rows[task_id]["task_set"], "evaluation_mode": self.evaluation_mode,
                       "instruction_source": "native language replaces generic instruction at reset",
                       **self.budget_metadata(self.task_names[task_id])},
-        ) for task_id in self.task_ids[:limit]]
+        ) for task_id, attempt in self.schedule[:limit]]
 
     def open_episode(self, episode: EpisodeSpec) -> RoboCasa365Episode:
-        if episode not in self.episodes(PILOT_SEED):
+        if episode not in self.episodes(SEED):
             raise ProtocolError("episode differs from the frozen RoboCasa365 manifest")
         return RoboCasa365Episode(self, episode)
 
 
-@register_benchmark("robocasa365")
 def make_robocasa365(parameters: Mapping[str, JsonValue]) -> RoboCasa365BenchmarkAdapter:
-    unknown = set(parameters) - {"task_ids", "task_scope", "render_gpu_device_id", "budget_mode", "max_policy_calls", "replan_interval", "render_track"}
+    unknown = set(parameters) - {"evaluation_mode", "render_gpu_device_id", "render_track"}
     if unknown:
         raise ValueError(f"unknown RoboCasa365 parameters: {sorted(unknown)}")
     return RoboCasa365BenchmarkAdapter(**parameters)

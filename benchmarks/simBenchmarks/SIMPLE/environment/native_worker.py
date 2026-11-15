@@ -39,6 +39,15 @@ def require_hash(path, expected):
     return record
 
 
+def check_pinned_hash(path, expected):
+    """Compare when pinned; a missing pin records the observed hash and continues."""
+    record = fingerprint(path)
+    if expected is not None and record["sha256"] != expected:
+        raise ValueError(f"frozen native input changed: {path}")
+    record["pin"] = "unpinned" if expected is None else "matched"
+    return record
+
+
 def native_python_inventory(root):
     """Pin the same native source bytes independently of the installation path."""
     root = Path(root).resolve()
@@ -136,7 +145,8 @@ class NativeRuntime:
 
     def reset(self, request):
         from benchmarks.simBenchmarks.SIMPLE.bench_server.adapter import (
-            SIMPLE_REVISION, HORIZONS, SEED, INVENTORY_PATH, task_config, execution_budget,
+            SIMPLE_REVISION, HORIZONS, SEED, INVENTORY_PATH, DR_LEVELS, RELEASED_EPISODES,
+            NATIVE_SUCCESS_THRESHOLDS, task_config,
         )
         self.artifact_dir = Path(request["artifact_dir"]).resolve()
         self.artifact_dir.mkdir(parents=True, exist_ok=True)
@@ -145,20 +155,19 @@ class NativeRuntime:
         self.task_id = request["task"]
         self.diagnostic = bool(request["diagnostic"])
         self.proprioception = bool(request["proprioception"])
-        self.budget_mode = request["budget_mode"]
-        self.horizon = HORIZONS[self.task_id]
-        self.environment_step_cap, policy_call_cap, prefix_cap = execution_budget(
-            self.horizon, self.budget_mode, request["max_policy_calls"], request["replan_interval"])
+        self.horizon = self.environment_step_cap = HORIZONS[self.task_id]
         if request["environment_step_cap"] != self.environment_step_cap:
             raise ValueError("worker and runner environment step cap differ")
-        self.task_scope = request.get("task_scope", "pilot")
-        config = task_config(self.task_id, self.task_scope)
+        config = task_config(self.task_id, request["proprioception"])
         self.backend = config["backend"]
         if request["seed"] != SEED:
             raise ValueError("seed outside the frozen SIMPLE manifest")
-        if self.task_scope == "released-12":
-            if request["proprioception"] is not True:
-                raise ValueError("released-12 requires RGB+qpos31")
+        self.dr_level = request["dr_level"]
+        if type(self.dr_level) is not int or self.dr_level not in DR_LEVELS:
+            raise ValueError("dr_level outside the released DR0-DR2 levels")
+        self.episode_index = request["episode_index"]
+        if type(self.episode_index) is not int or not 0 <= self.episode_index < RELEASED_EPISODES:
+            raise ValueError("episode_index outside the ten released episodes of a DR level")
         if self.env is not None:
             raise RuntimeError("one native environment per process")
         actual_root = Path(subprocess.check_output(
@@ -186,21 +195,25 @@ class NativeRuntime:
             raise ValueError("native source inventory format or file count differs")
         write_json(source_dir / "native-python-hashes.json", source_hashes)
         require_hash(source_dir / "native-python-hashes.json", pins["native_python_relative_inventory_sha256"])
-        data = Path(request["eval_root"]) / "simple-eval" / self.task_id / "dr-level-0/meta"
-        require_hash(data / "episodes.jsonl", pins["reset_metadata_sha256"][self.task_id])
-        require_hash(data / "episodes.jsonl", config["reset_metadata_sha256"])
+        level_dir = f"dr-level-{self.dr_level}"
+        data = Path(request["eval_root"]) / "simple-eval" / self.task_id / level_dir / "meta"
+        reset_metadata = check_pinned_hash(data / "episodes.jsonl",
+            pins["reset_metadata_sha256"][self.task_id].get(level_dir))  # DR1/DR2: no pin yet
+        if self.dr_level == 0:  # the inventory binds DR0 only
+            require_hash(data / "episodes.jsonl", config["reset_metadata_sha256"])
         require_hash(self.root / config["native_source"], config["native_source_sha256"])
         rows = [json.loads(line) for line in (data / "episodes.jsonl").read_text().splitlines() if line.strip()]
-        if [row["episode_index"] for row in rows] != list(range(10)):
-            raise ValueError("expected ten ordered released DR0 episodes")
+        if [row["episode_index"] for row in rows] != list(range(RELEASED_EPISODES)):
+            raise ValueError(f"expected ten ordered released {level_dir} episodes")
         # Only released reset metadata is read: no demonstration frames/actions.
-        conf = json.loads(rows[0]["environment_config"])
-        if hashlib.sha256(rows[0]["environment_config"].encode()).hexdigest() != config["environment_config_sha256"]:
+        if (self.dr_level == 0 and hashlib.sha256(rows[0]["environment_config"].encode()).hexdigest()
+                != config["environment_config_sha256"]):
             raise ValueError("released episode-0 reset hash mismatch")
+        conf = json.loads(rows[self.episode_index]["environment_config"])
         if conf["uid"] != config["task_uid"] or conf["robot_cfg"]["uid"] != config["robot_uid"]:
             raise ValueError("released reset task UID mismatch")
-        if conf["dr_state_dict"]["scene"]["uid"] != config["scene_uid"]:
-            raise ValueError("released episode-0 scene UID mismatch")
+        if conf["dr_state_dict"]["scene"]["uid"] != config["scene_uid"]:  # every level keeps the task scene
+            raise ValueError("released episode scene UID differs from the task scene")
         mapped_uid, scene_alias = verify_scene_alias(self.root, pins, conf["dr_state_dict"]["scene"]["uid"])
         conf["dr_state_dict"]["scene"]["uid"] = mapped_uid
         write_json(self.artifact_dir / "private_reset.json", conf)
@@ -214,19 +227,20 @@ class NativeRuntime:
             "git_tracked_status": dirty, "existing_patch": fingerprint(source_dir / "native-existing.patch"),
             "native_python_manifest": fingerprint(source_dir / "native-python-hashes.json"),
             "native_python_manifest_format": pins["native_python_inventory_format"],
-            "reset_metadata": fingerprint(data / "episodes.jsonl"),
+            "reset_metadata": reset_metadata,  # carries pin: matched/unpinned
             "selected_reset": fingerprint(self.artifact_dir / "private_reset.json"),
-            "task_inventory": fingerprint(INVENTORY_PATH), "task_scope": self.task_scope,
+            "task_inventory": fingerprint(INVENTORY_PATH),
             "selected_task_configuration": config,
             "scene_alias": scene_alias,
             "controller_weight_files": [fingerprint(path) for path in sorted(weights)],
-            "task": self.task_id, "dr_level": 0, "episode_index": 0, "seed": SEED,
+            "task": self.task_id, "dr_level": self.dr_level, "episode_index": self.episode_index, "seed": SEED,
             "reference_native_horizon": self.horizon, "environment_step_cap": self.environment_step_cap,
-            "budget_mode": self.budget_mode, "policy_call_cap": policy_call_cap, "prefix_cap": prefix_cap,
             "diagnostic_only": self.diagnostic, "native_task_metadata_horizon_unchanged": True,
             "time_limit_wrapper_extension": self.environment_step_cap > self.horizon,
             "time_limit_wrapper_reduction": self.environment_step_cap < self.horizon,
-            "success_criteria_override": None, "fixed_controller": "AMO" if self.backend == "amo" else "SONIC-decoupled-WBC",
+            "success_criteria_override": None,  # native constructor/metadata threshold stays in force
+            "native_success_threshold": NATIVE_SUCCESS_THRESHOLDS[self.task_id],
+            "fixed_controller": "AMO" if self.backend == "amo" else "SONIC-decoupled-WBC",
             "source_worker": fingerprint(Path(__file__)),
             "source_codec": fingerprint(Path(codec.__file__)),
             "versions": {name: importlib.metadata.version(name) for name in ("numpy", "torch", "mujoco", "isaacsim")},
@@ -279,8 +293,6 @@ class NativeRuntime:
             if native_cmd.shape != (9,) or not np.isfinite(native_cmd).all():
                 raise ValueError("invalid post-warmup AMO command")
             self.amo_torso_ypr = native_cmd[3:6].copy()
-            self.hold_height = float(native_cmd[6])
-            self.hold_yaw = float(self.robot.amo_policy.target_yaw)
         else:
             from simple.agents.sonic_decoupled_wbc_agent import SonicDecoupledWbcAgent
             self.env = gym.wrappers.TimeLimit(raw, max_episode_steps=self.environment_step_cap)
@@ -300,8 +312,6 @@ class NativeRuntime:
                 self.warmup_steps += 1
                 time.sleep(max(0, self.agent._control_dt - (time.monotonic() - started)))
             self.agent._wbc_policy.lower_body_policy.gait_indices = torch.zeros((1), dtype=torch.float32)
-            from decoupled_wbc.control.main.constants import DEFAULT_BASE_HEIGHT, DEFAULT_NAV_CMD
-            self.hold_height, self.hold_yaw = float(DEFAULT_BASE_HEIGHT), float(DEFAULT_NAV_CMD[3])
             model = self.agent._dwbc_robot_model
             indices = model.get_joint_group_indices("upper_body")
             self.sonic_names = [name for name, idx in model.joint_to_dof_index.items() if idx in indices]
@@ -367,19 +377,6 @@ class NativeRuntime:
         return ActionCmd("decoupled_wbc", target_q=model.get_body_actuated_joints(action["q"]),
             left_hand_q=model.get_hand_actuated_joints(action["q"], side="left"),
             right_hand_q=model.get_hand_actuated_joints(action["q"], side="right"))
-
-    def diagnostic_hold(self):
-        if not self.diagnostic or self.steps != 0:
-            raise ValueError("one evaluator-only safe hold is permitted in diagnostic mode")
-        from benchmarks.simBenchmarks.SIMPLE.bench_server.adapter import ACTION_NAMES
-        qpos = self.raw.mujoco.get_robot_qpos()
-        # Use current encoders solely to construct the no-model diagnostic hold.
-        # This action artifact is evaluator-private and never goes to fresh actors.
-        values = [max(self.robot.joint_limits[name][0], min(self.robot.joint_limits[name][1], float(qpos[name])))
-            for name in ACTION_NAMES[:31]]
-        values += [self.hold_height, 0., 0., 0., self.hold_yaw]
-        write_json(self.artifact_dir / "private_diagnostic_hold.json", {"values": values, "source": "post-warmup robot encoders"})
-        return self.step(values)
 
     def step(self, values):
         if self.finished:
@@ -463,8 +460,6 @@ def main():
                 result = runtime.reset(request)
             elif op == "step":
                 result = runtime.step(request["action"])
-            elif op == "diagnostic_hold":
-                result = runtime.diagnostic_hold()
             elif op == "finalize":
                 result = runtime.finalize()
             elif op == "close":

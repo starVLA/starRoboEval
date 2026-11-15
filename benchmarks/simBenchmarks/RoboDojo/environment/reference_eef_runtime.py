@@ -21,7 +21,7 @@ from benchmarks.simBenchmarks.RoboDojo.environment.asset_reference import (
     KNOWN_UNRESOLVED, load_reference, verify_reference_document,
 )
 
-SCHEMA = "starvla-rsi.robodojo-reference-eef-runtime/v1"
+SCHEMA = "starvla-rsi.robodojo.reference-eef-runtime/v1"
 PIN_FILE = Path(__file__).with_name("reference_eef_snapshot.json")
 VERSIONS = {"isaacsim": "5.1.0.0", "isaaclab": "0.54.3", "torch": "2.7.0+cu128",
             "numpy": "1.26.0", "scipy": "1.15.3", "gymnasium": "1.2.1", "av": "18.1.0"}
@@ -122,7 +122,7 @@ def verify_layouts(source: Path) -> list[dict]:
         raise ValueError("classify layout candidate hashes changed")
     for row in expected["layouts"]:
         if rows[row["layout_id"]]["sha256"] != row["sha256"]:
-            raise ValueError("selected public panel layout changed")
+            raise ValueError("selected public layout changed")
     return rows
 
 

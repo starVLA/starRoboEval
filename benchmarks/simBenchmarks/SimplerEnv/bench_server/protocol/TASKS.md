@@ -114,8 +114,8 @@ pose/overlay is one matched condition, not independently cross-multiplied axes.
 | Eggplant in basket | 24 native layouts | 1 sink/overlay setup | 24 |
 
 This reference expansion is **864 Google + 96 WidowX = 960 episodes** per policy.
-It does not mean every alias has 960 episodes or that the RSI adapter runs this
-reference matrix.
+It does not mean every alias has 960 episodes. `max` mode runs the selected
+task's share of it (see [service selection](#service-task-and-case-selection)).
 
 Sources: [pick VM](https://github.com/allenai/SimplerEnv/blob/c701ea271b16b80616d6fed9713c4a50a0adea3b/scripts/rt1_pick_coke_can_visual_matching.sh),
 [move VM](https://github.com/allenai/SimplerEnv/blob/c701ea271b16b80616d6fed9713c4a50a0adea3b/scripts/rt1_move_near_visual_matching.sh),
@@ -159,6 +159,10 @@ not a full Cartesian product. Do not also multiply by the four VM URDF recolors.
 
 This Google reference expansion has **1,992 episodes per policy**. The cited
 Bridge script supplies VM configurations, not an equivalent published VA sweep.
+Move-near VA uses `MoveNearGoogleInScene-v0` (VM: `MoveNearGoogleBakedTexInScene-v0`),
+and apple VA uses `model_ids=apple` (VM: `baked_apple_v2`), as in the scripts.
+The pinned metrics tool averages pick and move-near VA without the two camera
+configurations; the scripts, and `max`, still run them.
 
 - Pick: base + 2 table textures + 2 distractor configurations + 2 backgrounds +
   2 lighting settings + 2 camera configurations = 11.
@@ -175,14 +179,29 @@ and [apple VA](https://github.com/allenai/SimplerEnv/blob/c701ea271b16b80616d6fe
 
 [bench_server/protocol/task_catalog.json](task_catalog.json) is an ordered JSON
 array with `id`, `family`, `robot`, and `native_horizon` fields. It contains the
-15 marked aliases. A service selects one alias and an episode count; episode
-index `i` uses reset seed `seed + i`. It does not automatically enumerate the
-960-episode VM or 1,992-episode Google VA matrix. State the chosen tasks, seeds,
-number of attempts and reference-condition coverage separately. A layout ID,
-an appearance variant and a reset seed are not interchangeable sample labels.
-See [EVALUATION_PROTOCOL.md](../../EVALUATION_PROTOCOL.md) for budgets, final-step
-success and configured horizon extensions.
+15 marked aliases. A service selects one alias; `evaluation_mode` `fast` (default)
+runs prepackaged reset seeds `seed + 0..4` and `example` runs the first of them.
+These seeded resets do not enumerate the VM or VA matrix. `max` runs one
+complete scripted matrix of the selected task per service run
+([`max_matrix.py`](max_matrix.py)), chosen with `reference_matrix`:
+`visual_matching` (default) or `variant_aggregation` (Google Robot tasks only).
+
+| Task | `visual_matching` episodes | `variant_aggregation` episodes |
+| --- | ---: | ---: |
+| `google_robot_pick_{horizontal,vertical,standing}_coke_can`, each | 4 URDF × 25 = 100 | 11 × 25 = 275 |
+| `google_robot_move_near_v0` | 4 URDF × 60 = 240 | 10 × 60 = 600 |
+| `google_robot_{open,close}_{top,middle,bottom}_drawer`, each | 4 URDF × 9 = 36 | 7 × 9 = 63 |
+| `google_robot_place_apple_in_closed_top_drawer` | 4 URDF × 3 × 9 = 108 | 7 × 27 = 189 |
+| `widowx_{spoon_on_towel,carrot_on_plate,stack_cube,put_eggplant_in_basket}`, each | 24 | — |
+
+Across all 15 tasks this is the 960-episode VM and 1,992-episode Google VA
+reference, run as separate service runs. Report each matrix, and each variant
+within it, separately; never pool VM and VA. State the chosen tasks, seeds, number of attempts and
+reference-condition coverage separately. A layout ID, an appearance variant and
+a reset seed are not interchangeable sample labels. See
+[EVALUATION_PROTOCOL.md](../../EVALUATION_PROTOCOL.md) for budgets, final-step
+success, configured horizon extensions and the `max` reset semantics.
 
 Changing aliases, texture versions, sensor inputs, seeds, sweeps, or evaluation
 horizons changes the evaluated conditions. Record those settings and keep their
-scores separate from the default development sample.
+scores separate from the default seeded-reset sample.

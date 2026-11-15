@@ -68,17 +68,24 @@ arms**. This is one implemented integration, not the size of RoboDojo. The task
 requires category sorting into three baskets and both arms returning to their
 starting end-effector poses. Other native tasks are not selectable yet.
 
-Its asset binding contains 55 stored layouts. The service selects either of
-the following fixed sets, once per layout:
+Its asset binding contains 55 stored layouts. `evaluation_mode` selects a
+fixed set, once per layout:
 
-| Selected layouts | Cases | Server configuration |
-| --- | ---: | --- |
-| 0–4 | 5 | `panel: "fast"` |
-| 0–49 | 50 | `panel: "full"` |
+| `evaluation_mode` | Selected layouts | Cases | Step cap |
+| --- | --- | ---: | --- |
+| `fast` (default) | 0–4 | 5 | 1100 native controls |
+| `max` | the first 50 reset-stable layouts of a stability manifest | 50 | 1100 native controls |
+| `example` | 0 | 1 | 1100 native controls |
 
-The supplied configuration chooses five cases. The 50-case selection matches
-this task's configured native episode count; neither selection uses layouts
-50–54. Arbitrary subsets and `--episodes` truncation are not supported.
+The 50-case selection matches this task's configured native episode count.
+Like the native evaluator, `max` skips layouts whose reset is unstable, so it
+can reach the spare layouts 50–54. It runs only with a complete reset-stability
+manifest prepared offline, which has not yet been done; see the
+[`max` protocol](EVALUATION_PROTOCOL.md#max-first-reset-stable-layouts).
+`fast` and `example` layouts are not stability-screened. `task_id` names the deployed task and narrows within
+the mode. Arbitrary subsets and `--episodes` truncation are not supported: the
+launcher and service adapter refuse a schedule limit, and the gateway refuses
+case files and limits. `--episode-id` is for gateway per-case services only.
 The launch seed is fixed at 20260907 and native evaluation uses seed 0;
 changing the launch seed is not a way to choose layouts. See the
 [service task definition](bench_server/protocol/task_catalog.json) and
@@ -107,8 +114,11 @@ every RoboDojo embodiment. See the [action specification](EVALUATION_PROTOCOL.md
 Follow [environment preparation](environment/README.md) for the pinned native
 runtime, authorized assets and deployment manifest. Copy
 [server.example.json](server.example.json) to an operator-owned path and set its
-runtime manifest, digest, GPU and chosen `panel`. The sensor/action protocol is
-fixed; it is not a runtime selector.
+runtime manifest, digest, GPU and `evaluation_mode`; `max` also needs
+`stability_manifest` and takes an optional `stability_manifest_sha256` pin (an
+unpinned digest is recorded, a mismatched pin refuses). The sensor/action protocol is
+fixed; it is not a runtime selector. `max` uses its own protocol ID,
+`robodojo-ee67a14/classify-objects-reset-stable-layouts/rgb-proprio28-eef16/max/v1`.
 
 Use a fresh output directory and an evaluator-only token:
 

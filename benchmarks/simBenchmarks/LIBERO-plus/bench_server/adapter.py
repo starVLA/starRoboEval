@@ -15,12 +15,13 @@ import xml.etree.ElementTree as ET
 from benchkit.artifacts import append_jsonl, atomic_write_json
 from benchkit.contracts import ActionSpec, BenchmarkDescriptor, EpisodeSpec, JsonValue, Observation, ObservationSpec, Transition
 from benchkit.errors import CompatibilityError, ProtocolError
-from benchkit.registry import register_benchmark
 
-from .protocol.catalog import COUNTS, HORIZONS, REVISION, file_sha256, native_files, task_catalog
+from .protocol.catalog import COUNTS, HORIZONS, REVISION, fast_selection, file_sha256, native_files, task_catalog
 
 CAMERAS = ("agentview", "robot0_eye_in_hand")
 SETTLE_STEPS = 10
+EVALUATION_MODES = ("fast", "max", "example")  # fast: blog subset; example: first fast episode
+INITIAL_STATE_INDEX = 0  # every mode resets each variant from released state 0
 PACKAGE_PINS = {"robosuite": "1.4.0", "mujoco": "3.2.3", "numpy": "1.24.4", "torch": "2.5.1+cpu",
                 "Wand": "0.6.13", "scikit-image": "0.24.0"}
 IMPORT_SUFFIXES = (".py", ".pyc", ".pyo", ".so", ".pyd", ".dll")
@@ -100,7 +101,7 @@ def verify_native_source(root: Path) -> dict:
         raise CompatibilityError(f"LIBERO-Plus requires its own native checkout at {REVISION}")
     manifest_path = Path(__file__).parents[1] / "environment" / "native_source_manifest.json"
     payload = json.loads(manifest_path.read_text())
-    if (payload.get("schema_version") != "starvla-rsi.libero-plus-native-source/v1"
+    if (payload.get("schema_version") != "starvla-rsi.libero_plus.native-source/v1"
             or payload.get("upstream_revision") != REVISION or not payload.get("files")
             or len(payload["files"]) > 200):
         raise CompatibilityError("native source inventory differs")
@@ -254,6 +255,10 @@ class LiberoPlusEpisode:
         states = np.asarray(initial_states)
         if states.ndim != 2 or not 1 <= len(states) <= 1000 or not 1 <= states.shape[1] <= 10000 or not np.isfinite(states).all():
             raise CompatibilityError("native initial states must be a finite bounded matrix")
+        state_index = self.episode.metadata["initial_state_index"]
+        if (type(state_index) is not int or state_index != INITIAL_STATE_INDEX
+                or not 0 <= state_index < len(states)):
+            raise CompatibilityError("selected LIBERO-Plus initial-state index is outside the released states")
         controller = robosuite.load_controller_config(default_controller="OSC_POSE")
         if (controller["input_min"] != -1 or controller["input_max"] != 1
                 or controller["output_max"] != [0.05, 0.05, 0.05, 0.5, 0.5, 0.5]
@@ -264,11 +269,11 @@ class LiberoPlusEpisode:
             "suite": self.benchmark.suite, "task_order_index": 0, "native_id": task_id,
             "native_name": task.name, "category": row["category"], "difficulty_level": row["difficulty_level"],
             "native_filename_instruction": task.language, "public_instruction_source": "backing BDDL :language",
-            "initial_state_index": 0, "available_initial_states": len(states), "reset_seed": self.episode.seed,
+            "initial_state_index": state_index, "available_initial_states": len(states), "reset_seed": self.episode.seed,
             "bddl_file": paths["bddl"], "virtual_bddl_file": paths["virtual_bddl"],
             "bddl_sha256": row["bddl_sha256"], "initial_file": row["initial_file"],
             "initial_file_sha256": row["initial_file_sha256"],
-            "selected_state_sha256": hashlib.sha256(states[0].tobytes()).hexdigest(),
+            "selected_state_sha256": hashlib.sha256(states[state_index].tobytes()).hexdigest(),
             "declared_settle_steps": SETTLE_STEPS, "controller": controller,
             "native_engine_horizon": self.benchmark.native_engine_horizon,
             "image_transform": "native RGB[::-1,::-1] copied; native sensor perturbations untouched",
@@ -290,7 +295,7 @@ class LiberoPlusEpisode:
         self.env.reset()
         self._event("native_reset_end")
         self._event("native_initial_state_start")
-        raw = self.env.set_init_state(initial_states[0])
+        raw = self.env.set_init_state(initial_states[state_index])
         self._event("native_initial_state_end")
         self.provenance["selected_assets"] = selected_asset_receipt(self.env.env, root, Path(robosuite.__file__).resolve().parent)
         self._write_provenance()
@@ -419,44 +424,31 @@ class LiberoPlusEpisode:
 
 
 class LiberoPlusBenchmarkAdapter:
-    """One explicit fast subset, native order, state 0, one attempt per task."""
-    def __init__(self, *, upstream: str, suite: str = "libero_spatial", task_ids: Sequence[int] = (0,),
-                 evaluation_mode: str = "fast", render_gpu_device_id: int = 0,
-                 budget_mode: str = "horizon", max_policy_calls: int | None = None,
-                 replan_interval: int | None = None):
+    """Fixed variant cells at released state 0, one attempt each."""
+    def __init__(self, *, upstream: str, suite: str = "libero_spatial", evaluation_mode: str = "fast",
+                 render_gpu_device_id: int = 0):
+        if evaluation_mode not in EVALUATION_MODES:
+            raise ValueError(f"evaluation_mode must be one of {', '.join(EVALUATION_MODES)}; got {evaluation_mode!r}")
         if not isinstance(upstream, str) or not Path(upstream).is_absolute():
             raise ValueError("upstream must be an absolute server-local native checkout path")
-        if evaluation_mode != "fast":
-            raise ValueError("only explicit fast selections are supported; full native parity is not validated")
         self.catalog = task_catalog(suite)
-        if (not isinstance(task_ids, (list, tuple)) or not task_ids
-                or any(type(index) is not int or not 0 <= index < COUNTS[suite] for index in task_ids)
-                or list(task_ids) != sorted(set(task_ids))):
-            raise ValueError("task_ids must be a nonempty unique increasing subset of native indices")
+        if evaluation_mode == "max":
+            cells = [(None, row) for row in self.catalog["tasks"]]  # every variant, native order
+        else:
+            cells = fast_selection(suite, self.catalog["tasks"])
+            cells = cells[:1] if evaluation_mode == "example" else cells
         if type(render_gpu_device_id) is not int or render_gpu_device_id < 0:
             raise ValueError("render_gpu_device_id must be a nonnegative integer")
-        if budget_mode not in ("horizon", "decisions"):
-            raise ValueError("budget_mode must be horizon or decisions")
-        if budget_mode == "decisions":
-            if any(type(value) is not int or not 1 <= value <= 10000 for value in (max_policy_calls, replan_interval)):
-                raise ValueError("decision budgets require positive bounded max_policy_calls and replan_interval")
-            cap = max_policy_calls * replan_interval
-            if cap > 10000:
-                raise ValueError("maximum declared environment controls is 10000")
-        else:
-            if max_policy_calls is not None or replan_interval is not None:
-                raise ValueError("adapter decision parameters require budget_mode=decisions")
-            cap = HORIZONS[suite]
+        cap = HORIZONS[suite]
         self.upstream = Path(upstream).resolve()
-        self.suite, self.task_ids = suite, tuple(task_ids)
+        self.suite, self.evaluation_mode, self.cells = suite, evaluation_mode, tuple(cells)
         self.render_gpu_device_id = render_gpu_device_id
-        self.budget_mode, self.max_policy_calls, self.replan_interval = budget_mode, max_policy_calls, replan_interval
         self.environment_step_cap = self.evaluation_horizon = cap
         self.native_engine_horizon = max(1000, cap + SETTLE_STEPS)
         self.opened: set[tuple[str, int]] = set()
-        budget = f"decision-{max_policy_calls}-prefix-{replan_interval}" if budget_mode == "decisions" else "reference-horizon"
-        self.descriptor = BenchmarkDescriptor(name="libero_plus", version="0.1.0",
-            protocol_version=f"libero-plus-fast/{suite}/rgb/{budget}/v1", source_revision=REVISION)
+        self.descriptor = BenchmarkDescriptor(name="libero_plus", version="0.2.0",
+            protocol_version=f"libero-plus-{REVISION[:7]}/{suite}-initial-state-panel-reference-horizon/rgb/{evaluation_mode}/v1",
+            source_revision=REVISION)
         self.observation_spec = ObservationSpec(cameras=CAMERAS, modalities=("language", "rgb"))
         self.action_spec = ActionSpec(mode="normalized_osc_delta_pose", size=7,
             names=("dx_scaled", "dy_scaled", "dz_scaled", "rx_scaled", "ry_scaled", "rz_scaled", "gripper"),
@@ -466,24 +458,23 @@ class LiberoPlusBenchmarkAdapter:
             gripper="-1 open; +1 close; 0 hold native gripper target")
 
     def budget_metadata(self) -> dict[str, JsonValue]:
-        return {"evaluation_mode": "fast", "budget_mode": self.budget_mode,
-                "max_policy_calls": self.max_policy_calls, "replan_interval": self.replan_interval,
-                "environment_step_cap": self.environment_step_cap, "native_horizon": HORIZONS[self.suite],
+        return {"environment_step_cap": self.environment_step_cap, "native_horizon": HORIZONS[self.suite],
                 "native_horizon_source": "retained_starvla_libero_plus_evaluator_reference",
                 "evaluation_horizon": self.evaluation_horizon}
 
     def episodes(self, seed: int, limit: int | None = None) -> Sequence[EpisodeSpec]:
         if type(seed) is not int or not 0 <= seed < 2**32:
             raise ValueError("seed must be a predeclared uint32 integer")
-        if limit is not None and (type(limit) is not int or not 1 <= limit <= len(self.task_ids)):
+        if limit is not None and (type(limit) is not int or not 1 <= limit <= len(self.cells)):
             raise ValueError("limit must select a nonempty prefix without repeats")
-        rows = [self.catalog["tasks"][index] for index in self.task_ids[:limit]]
-        return [EpisodeSpec(id=f"{self.suite}-task{row['native_id']:04d}-init00", seed=seed,
+        state = INITIAL_STATE_INDEX
+        return [EpisodeSpec(id=f"{self.suite}-task{row['native_id']:04d}-init{state:02d}", seed=seed,
             task=f"{self.suite}/task-{row['native_id']}", instruction=row["instruction"],
             metadata={"suite": self.suite, "native_id": row["native_id"], "native_name": row["native_name"],
                       "category": row["category"], "difficulty_level": row["difficulty_level"],
-                      "task_order_index": 0, "initial_state_index": 0, "attempt": 1,
-                      "settle_steps": SETTLE_STEPS, **self.budget_metadata()}) for row in rows]
+                      "task_order_index": 0, "initial_state_index": state, "attempt": 1,
+                      "evaluation_mode": self.evaluation_mode, "sample_slot": slot,  # slot: None in max
+                      "settle_steps": SETTLE_STEPS, **self.budget_metadata()}) for slot, row in self.cells[:limit]]
 
     def open_episode(self, episode: EpisodeSpec) -> LiberoPlusEpisode:
         key = (episode.id, episode.seed)
@@ -493,10 +484,8 @@ class LiberoPlusBenchmarkAdapter:
         return LiberoPlusEpisode(self, episode)
 
 
-@register_benchmark("libero_plus")
 def make_libero_plus(parameters: Mapping[str, JsonValue]) -> LiberoPlusBenchmarkAdapter:
-    allowed = {"upstream", "suite", "task_ids", "evaluation_mode", "render_gpu_device_id",
-               "budget_mode", "max_policy_calls", "replan_interval"}
+    allowed = {"upstream", "suite", "evaluation_mode", "render_gpu_device_id"}
     if not isinstance(parameters, Mapping) or set(parameters) - allowed:
         raise ValueError("unknown LIBERO-Plus adapter parameters")
     return LiberoPlusBenchmarkAdapter(**parameters)

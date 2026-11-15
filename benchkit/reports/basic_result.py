@@ -198,7 +198,7 @@ def _build_result(run_dir, metrics=()):
     require(max_steps > 0, "control budget must be positive")
     max_calls = protocol.get("max_policy_calls")
     if max_calls is not None:
-        require(counter(max_calls, "decision budget") > 0, "decision budget must be positive")
+        require(counter(max_calls, "policy-call budget") > 0, "policy-call budget must be positive")
     for position, row in enumerate(rows):
         row = _object(row, "indexed result")
         require(row.get("schema_version") == "starvla-rsi.eval/v1", "unsupported episode result")
@@ -293,7 +293,7 @@ def _build_result(run_dir, metrics=()):
         if key in summary:
             require(_same(summary[key], outcome[key]), "summary rate mismatch: " + key)
     public_protocol = {key: _text(protocol.get(key), key, optional=True) for key in
-                       ("budget_mode", "primary_budget", "invalid_action_handling", "usage_accounting_version")}
+                       ("invalid_action_handling", "usage_accounting_version")}
     prefix = protocol.get("replan_interval")
     if prefix is not None:
         require(counter(prefix, "action prefix") > 0, "invalid action prefix")

@@ -49,7 +49,7 @@ def run_one(client, decide, *, seed: int, method: dict, output_dir: Path,
             run_id: str, recording: RecordingOptions = RecordingOptions()) -> Path:
     """Own a narrow decision loop around an already connected trusted client.
 
-    This is an educational horizon-track example, not a replacement scheduler.
+    This is an educational single-case example, not a replacement scheduler.
     ``decide(public_input)`` returns a plain dict; it may implement its own model
     composition/IPC/planning. It is responsible for projecting to an isolated
     actor; a Python callback in this process is not a security boundary.
@@ -61,9 +61,8 @@ def run_one(client, decide, *, seed: int, method: dict, output_dir: Path,
     method = normalize_method(method)
     episodes = tuple(client.episodes(seed))  # Fixed entire schedule, before a claim.
     cap, call_cap = client.environment_step_cap, client.max_policy_calls
-    if (len(episodes) != 1 or client.budget_mode != "horizon" or type(cap) is not int or cap <= 0
+    if (len(episodes) != 1 or type(cap) is not int or cap <= 0
             or call_cap is not None and (type(call_cap) is not int or call_cap <= 0)
-            or client.replan_interval not in (None, 1)
             or getattr(client, "required_replan_interval", None) not in (None, 1)):
         raise ValueError("example requires one complete scheduled case and a finite horizon with prefix 1")
     if (client.observation_spec.privileged or
@@ -88,7 +87,7 @@ def run_one(client, decide, *, seed: int, method: dict, output_dir: Path,
         "method_origin": "participant_declaration", "recording": settings,
         "observation_spec": client.observation_spec.to_dict(), "action_spec": client.action_spec.to_dict(),
         "protocol": {"seed": seed, "episode_ids": [episode.id], "max_steps": cap,
-                     "max_policy_calls": call_cap, "replan_interval": 1, "budget_mode": "horizon",
+                     "max_policy_calls": call_cap, "replan_interval": 1,
                      "invalid_action_handling": "terminate", "fail_fast": False,
                      "usage_accounting_version": "starvla-rsi.method-usage/v2"},
         "driver": {"kind": "educational_single_case", "actor_isolation": "not_enforced",

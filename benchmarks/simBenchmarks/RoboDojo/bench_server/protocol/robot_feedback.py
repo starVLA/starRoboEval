@@ -15,7 +15,7 @@ from typing import Any, Mapping, Sequence
 from benchkit.errors import ProtocolError
 
 
-SCHEMA = "robodojo.robot-control-feedback/v1"
+SCHEMA = "starvla-rsi.robodojo.robot-control-feedback/v1"
 _SIDES = ("left", "right")
 _PAYLOAD_KEYS = frozenset(("schema", "control_target", "diagnostic_phase",
     "executed_joint_command", "post_robot_state", "ik_diagnostics"))

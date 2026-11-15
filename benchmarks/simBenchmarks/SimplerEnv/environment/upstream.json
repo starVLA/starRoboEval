@@ -1,5 +1,5 @@
 {
-  "schema_version": "starvla-rsi.upstream/v1",
+  "schema_version": "starvla-rsi.simpler_env.upstream/v1",
   "status": "development_runtime_verified",
   "repository": "https://github.com/allenai/SimplerEnv.git",
   "revision": "c701ea271b16b80616d6fed9713c4a50a0adea3b",

@@ -28,18 +28,20 @@ def digest(path: Path) -> str:
     return value.hexdigest()
 
 
-def inventory(root: Path) -> list[dict]:
+def inventory(root: Path, *, bytecode: bool = True) -> list[dict]:
     rows = []
     for path in sorted(root.rglob("*")):
         if path.is_symlink():
             raise ValueError(f"deployment source must not contain symlinks: {path}")
+        if not bytecode and ("__pycache__" in path.parts or path.suffix in (".pyc", ".pyo")):
+            continue  # interpreter caches in a shared environment, not package identity
         if path.is_file():
             rows.append({"path": path.relative_to(root).as_posix(),
                          "size_bytes": path.stat().st_size, "sha256": digest(path)})
     return rows
 
 
-def verify_rows(root: Path, rows: list[dict], *, exact: bool = True) -> None:
+def verify_rows(root: Path, rows: list[dict], *, exact: bool = True, bytecode: bool = True) -> None:
     names = []
     for row in rows:
         relative = Path(row["path"])
@@ -55,7 +57,7 @@ def verify_rows(root: Path, rows: list[dict], *, exact: bool = True) -> None:
     if len(names) != len(set(names)):
         raise ValueError("duplicate inventory path")
     if exact:
-        actual = [row["path"] for row in inventory(root)]
+        actual = [row["path"] for row in inventory(root, bytecode=bytecode)]
         if sorted(names) != sorted(actual):
             raise ValueError("unrecorded or missing deployment files")
 
@@ -97,7 +99,7 @@ def capture_runtime() -> dict:
         versions[name] = distribution.version
         if name in ("sapien", "mplib", "toppra"):
             root = Path(distribution.locate_file(name)).resolve()
-            packages[name] = {"root": str(root), "files": inventory(root)}
+            packages[name] = {"root": str(root), "files": inventory(root, bytecode=False)}
     return {"python": sys.version.split()[0], "versions": versions, "packages": packages,
             "scope": "listed versions and SAPIEN/MPLib/TOPPRA files, not all dependencies or loaded-memory attestation"}
 
@@ -171,7 +173,7 @@ def prepare(source: Path, source_git: Path, assets: Path, curobo: Path,
         derived.append({"path": name, "template_sha256": digest(template), "sha256": digest(path),
                         "transform": "native ${ASSETS_PATH}/$ASSETS_PATH expansion to deployment repository root only",
                         "verified_asset_paths": asset_paths})
-    manifest = {"schema": "domino.owned-deployment/v1", "native_source": source_identity,
+    manifest = {"schema": "starvla-rsi.domino.owned-deployment/v1", "native_source": source_identity,
                 "curobo_source": curobo_identity, "runtime": runtime, "derived_files": derived,
                 "files": inventory(destination), "asset_scope": "aloha-agilex plus click_bell0/1; no full-suite asset claim"}
     (destination / "deployment.json").write_text(json.dumps(manifest, indent=2) + "\n")

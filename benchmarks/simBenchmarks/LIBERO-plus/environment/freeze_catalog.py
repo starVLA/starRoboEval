@@ -64,7 +64,7 @@ def generate(root: Path, suite: str) -> dict:
             native_instruction = native_instruction[:native_instruction.find(".bddl")]
         rows.append([index, name, instruction, native_instruction, classification["category"], classification["difficulty_level"],
                      sha(bddl), files["initial_file"], sha(native / "init_files" / files["initial_file"])])
-    return {"schema_version": "starvla-rsi.libero-plus-catalog/v1", "upstream_revision": revision,
+    return {"schema_version": "starvla-rsi.libero_plus.catalog/v1", "upstream_revision": revision,
             "suite": suite, "task_count": len(rows), "task_order_index": 0,
             "category_counts": dict(sorted(Counter(row[4] for row in rows).items())),
             "columns": list(catalog.COLUMNS), "tasks": rows}
@@ -83,7 +83,7 @@ def source_manifest(root: Path) -> dict:
         if actual != expected:
             raise ValueError(f"native tracked source differs from pinned revision: {name}")
         rows.append({"path": name, "size_bytes": len(actual), "sha256": catalog.file_sha256(path)})
-    return {"schema_version": "starvla-rsi.libero-plus-native-source/v1", "upstream_revision": catalog.REVISION,
+    return {"schema_version": "starvla-rsi.libero_plus.native-source/v1", "upstream_revision": catalog.REVISION,
             "scope": "tracked Python under libero/libero and native task classification; not all assets",
             "files": rows}
 

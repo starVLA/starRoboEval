@@ -301,7 +301,7 @@
       "size_bytes": 2965
     }
   ],
-  "schema_version": "starvla-rsi.libero-plus-native-source/v1",
+  "schema_version": "starvla-rsi.libero_plus.native-source/v1",
   "scope": "tracked Python under libero/libero and native task classification; not all assets",
   "upstream_revision": "4976dc30028e805ff8094b55501d532c48fec182"
 }

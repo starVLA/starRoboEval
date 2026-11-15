@@ -1,7 +1,7 @@
 """Private one-attempt reference EEF worker; no model, oracle or task policy.
 
 Inherited code is limited to correlated lifecycle artifacts, native joint-target
-execution and the exact pinned evaluator-method loader. The legacy reset,
+execution and the exact pinned evaluator-method loader. The native reset,
 six-task source pins and observation contract are not modified.
 """
 from __future__ import annotations
@@ -19,7 +19,7 @@ import traceback
 from benchmarks.simBenchmarks.RoboDojo.bench_server.native_worker_client import RPC_PROTOCOL
 from benchmarks.simBenchmarks.RoboDojo.bench_server.adapter import (
     CONTROL_ALIGNMENT, HORIZON, INSTRUCTION, NATIVE_INSTRUCTION, TASK, TASK_SPEC,
-    public_state, validate_action,
+    mode_layouts, public_state, validate_action,
 )
 from benchmarks.simBenchmarks.RoboDojo.environment.asset_reference import KNOWN_UNRESOLVED
 from benchmarks.simBenchmarks.RoboDojo.environment.worker_runtime import (
@@ -138,7 +138,6 @@ class ReferenceEEFWorker(Worker):
     native_horizon = HORIZON
     native_instruction = NATIVE_INSTRUCTION
     public_instruction = INSTRUCTION
-    allowed_layout_ids = tuple(TASK_SPEC["panels"]["full"]["layout_ids"])
     candidate_count = TASK_SPEC["layout_binding"]["inventory_count"]
     upstream_eval_num = TASK_SPEC["upstream_configured_episodes"]
     native_eval_seed = TASK_SPEC["native_eval_seed"]
@@ -172,12 +171,16 @@ class ReferenceEEFWorker(Worker):
             raise RuntimeError("reset is permitted once only")
         if ("protocol_track" in request or "robot_feedback" in request
                 or request["task"] != self.task_name or type(request["layout_id"]) is not int
-                or request["layout_id"] not in self.allowed_layout_ids or type(request["gpu_id"]) is not int
-                or request["gpu_id"] < 0 or type(request["diagnostic"]) is not bool):
-            raise ValueError("reset does not match the declared reference task panel")
+                or type(request["gpu_id"]) is not int or request["gpu_id"] < 0):
+            raise ValueError("reset does not match the declared reference task layouts")
+        # Only the requested mode's own layouts; max re-reads its manifest at the startup digest.
+        allowed_layout_ids, _ = mode_layouts(request["evaluation_mode"], self.task_name,
+            stability_manifest=request.get("stability_manifest"),
+            stability_manifest_sha256=request.get("stability_manifest_sha256"))
+        if request["layout_id"] not in allowed_layout_ids:
+            raise ValueError(f"layout {request['layout_id']} is outside evaluation_mode {request['evaluation_mode']}")
         self.output = Path(request["artifact_dir"]).resolve()
-        self.task, self.cap, self.horizon_override = self.task_name, self.native_horizon, None
-        self.diagnostic = request["diagnostic"]
+        self.task = self.task_name
         self.layout_id = request["layout_id"]
         self.event("verifying_reference_runtime")
         manifest = Path(request["runtime_manifest"])
@@ -304,9 +307,6 @@ class ReferenceEEFWorker(Worker):
         env.reward_manager.get_reward = observe_reward
         self.initial_ticks = int(env.sim.unwrapped._sim_step_counter)
         self._bind_robot_kinematics()
-        write_json(self.output / "time_limit_protocol.json", {"budget_mode": "horizon",
-            "reference_native_horizon": self.native_horizon, "effective_step_lim": self.native_horizon,
-            "explicit_override": None, "changes_final_check_timing": False})
         message = self.capture()
         self.asset_manifest()
         self.reset_completed = True
@@ -396,29 +396,18 @@ class ReferenceEEFWorker(Worker):
         self.last_message = message
         return message
 
-    def step(self, action=None, *, hold=False):
+    def step(self, action):
         if not self.reset_completed:
             raise RuntimeError("cannot execute a target before a completed sensor reset")
         if self.finished or self.finalized or self.env is None:
             raise RuntimeError("control outside the live attempt")
         measured = self.measured_robot()
-        if hold:
-            if not self.diagnostic or self.targets:
-                raise RuntimeError("diagnostic hold is only the first evaluator-only control")
-            action = []
-            for side in ("left", "right"):
-                # Hold measured EEF and last native opening command; no new
-                # target selection or sensed finger-gap/contact interpretation.
-                action.extend([*measured[side]["eef"].tolist(), measured[side]["opening"]])
         target = validate_action(action)
         joints, diagnostics = [], {}
         for side, offset in (("left", 0), ("right", 8)):
             m = measured[side]
-            from benchmarks.simBenchmarks.RoboDojo.environment.eef_kinematics import REFERENCE_DLS
-            options = {"execution_mode": REFERENCE_DLS}
             q, info = self.robot_bindings[side]["fk"].bounded_target(m["q"], m["limits"], m["root"],
-                {"position": list(target[offset:offset + 3]), "quaternion_wxyz": list(target[offset + 3:offset + 7])},
-                **options)
+                {"position": list(target[offset:offset + 3]), "quaternion_wxyz": list(target[offset + 3:offset + 7])})
             joints.extend([*q.tolist(), target[offset + 7]])
             diagnostics[side] = {**info, "measured_fk_check": m["fk_check"]}
         import numpy as np
@@ -441,7 +430,7 @@ class ReferenceEEFWorker(Worker):
 
         Called only with this control's robot-only DLS result. The reference
         clips to native soft limits before float32 casting; reapplying the
-        historical RGB/joint14 decimal bounds afterward would spuriously reject
+        RGB/joint14 decimal bounds afterward would spuriously reject
         e.g. float32(3.14). No additional controller, clipping or replay occurs.
         """
         if (not self.reset_completed or self.finished or self.finalized or self.env is None):
@@ -462,6 +451,8 @@ class ReferenceEEFWorker(Worker):
             decoded_action={key: value.tolist() for key, value in decoded.items()}, physics_counter=before)
         self.env.take_action(decoded)
         self.targets += 1
+        if self.env.unstable_envs:  # native in-episode instability: infrastructure error, no spare layout
+            raise RuntimeError("native marked the layout unstable during the episode; no replacement")
         after = int(self.env.sim.unwrapped._sim_step_counter)
         if int(self.env.take_action_cnt[0]) != native_before + 1 or self.reward_evaluations != self.targets:
             raise RuntimeError("native action/scorer call counts disagree")
@@ -501,8 +492,7 @@ class ReferenceEEFWorker(Worker):
             "physics_ticks": None if self.initial_ticks is None else int(self.env.sim.unwrapped._sim_step_counter) - self.initial_ticks,
             "native_physics_counter": int(self.env.sim.unwrapped._sim_step_counter), "reset_physics_ticks": self.initial_ticks,
             "control_target_hz": 25.0, "physics_hz": 250.0,
-            "reference_native_horizon": self.native_horizon, "native_horizon": int(self.env.step_lim),
-            "native_step_lim_override": None, "effective_control_target_cap": self.native_horizon,
+            "native_horizon": int(self.env.step_lim),
             "native_reset_started": self.reset_started, "native_reset_completed": True}
 
     def finalize(self):
@@ -565,8 +555,6 @@ def main(worker_type=ReferenceEEFWorker):
                 result = worker.reset(request)
             elif operation == "step":
                 result = worker.step(request["action"])
-            elif operation == "diagnostic_hold":
-                result = worker.step(hold=True)
             elif operation == "finalize":
                 result = worker.finalize()
             elif operation == "close":

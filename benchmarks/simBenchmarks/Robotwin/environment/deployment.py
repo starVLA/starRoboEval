@@ -12,8 +12,8 @@ import os
 from pathlib import Path, PurePosixPath
 import stat
 
-SNAPSHOT_SCHEMA = "starvla-rsi.robotwin-native-snapshot/v1"
-DEPLOYMENT_SCHEMA = "starvla-rsi.robotwin-deployment/v1"
+SNAPSHOT_SCHEMA = "starvla-rsi.robotwin.native-snapshot/v1"
+DEPLOYMENT_SCHEMA = "starvla-rsi.robotwin.deployment/v1"
 SNAPSHOT_FILE = Path(__file__).with_name("native_snapshot.json")
 CONFIGS = tuple(f"assets/embodiments/aloha-agilex/curobo_{side}.yml" for side in ("left", "right"))
 TEMPLATES = tuple(f"assets/embodiments/aloha-agilex/curobo_{side}_tmp.yml" for side in ("left", "right"))

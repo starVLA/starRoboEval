@@ -1,5 +1,5 @@
 {
-  "schema": "robotwin-oidn-compatibility/v1",
+  "schema": "starvla-rsi.robotwin.oidn-compatibility/v1",
   "renderer_runtime": "oidn_2_3_3_cuda_v1",
   "oidn_version": "2.3.3",
   "base_runtime_snapshot_sha256": "b1b7ecba4723d9fecdcdf79e0323817ccd05cc58cb12cd7af56ad2e4fefd4d28",

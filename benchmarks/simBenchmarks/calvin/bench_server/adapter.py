@@ -1,4 +1,4 @@
-"""One predeclared CALVIN debug sequence: public RGB/language to native relative control."""
+"""CALVIN single-task cases and native five-task chains: public RGB/language to native relative control."""
 from __future__ import annotations
 
 import hashlib
@@ -9,15 +9,18 @@ from benchkit.artifacts import append_jsonl, atomic_write_json
 from benchkit.contracts import (ActionSpec, BenchmarkDescriptor, EpisodeSpec, JsonValue,
                                Observation, ObservationSpec, Transition)
 from benchkit.errors import ProtocolError
-from benchkit.registry import register_benchmark
+from benchmarks.simBenchmarks.calvin.bench_server.protocol import long_horizon, single_task
 from benchmarks.simBenchmarks.calvin.environment import runtime
 
 CAMERAS = ("rgb_static", "rgb_gripper")
 SHAPES = {"rgb_static": (200, 200, 3), "rgb_gripper": (84, 84, 3)}
-SUBTASK_HORIZON = 360
-SEQUENCE_LENGTH = 5
-NATIVE_HORIZON = SUBTASK_HORIZON * SEQUENCE_LENGTH
-PROTOCOL = "calvin-fa03f01/debug-sequence0/rgb-relative7/agent-grouping-v2"
+TASK_HORIZON = 360  # Native evaluate_policy.py EP_LEN per instruction.
+CHAIN_HORIZON = TASK_HORIZON * long_horizon.SEQUENCE_LENGTH  # max: chain ceiling; each subtask still stops at 360
+EVALUATION_MODES = ("fast", "max", "example")  # fast: blog subset; example: first fast episode
+SELECTIONS = {"fast": "single-task-d-validation", "example": "single-task-d-validation",
+              "max": "long-horizon-1000"}
+PROTOCOL = "calvin-fa03f01/{selection}/rgb-relative7/{mode}/v1"
+CHAIN_TASK = "long_horizon_chain"  # Public episode task label in max; never names a future subtask.
 
 
 def policy_observation(raw: Any, step: int, instruction: str) -> Observation:
@@ -46,6 +49,9 @@ def native_action(vector):
 class CalvinEpisode:
     def __init__(self, benchmark: CalvinBenchmarkAdapter, episode: EpisodeSpec):
         self.benchmark, self.episode = benchmark, episode
+        self.case = benchmark.cases[episode.id]
+        self.chain = benchmark.evaluation_mode == "max"  # five subtasks, no reset in between
+        self.tasks = tuple(self.case["tasks"]) if self.chain else (self.case["task"],)
         self.native = self.trace = None
         self.artifact_dir: Path | None = None
         self.writers = {}
@@ -53,10 +59,14 @@ class CalvinEpisode:
         self.finished = self.closed = self.finalized = self.success = self.control_error = False
         self.close_error: BaseException | None = None
         self.step_count = self.started_controls = self.acknowledged_controls = 0
-        self.depth = self.subtask_index = self.subtask_controls = 0
+        self.subtask_index = self.subtask_controls = 0
         self.completed_subtasks = []
         self.native_outcome = "not_started"
         self.start_info = None
+
+    @property
+    def instruction(self):  # Only the current subtask's language is ever public.
+        return self.benchmark.instructions[self.tasks[self.subtask_index]]
 
     def bind_artifact_dir(self, path: Path):
         if self.artifact_dir is not None or self.reset_attempted or self.closed or self.finalized:
@@ -72,19 +82,33 @@ class CalvinEpisode:
 
     def reset(self):
         if self.reset_attempted or self.closed or self.finalized:
-            raise ProtocolError("CALVIN permits one reset attempt for its predeclared sequence")
+            raise ProtocolError("CALVIN permits one reset attempt for its predeclared case")
         self.reset_attempted = True
         try:
             if self.artifact_dir is None:
                 raise ProtocolError("CALVIN reset requires a model-owned artifact directory")
             provenance = runtime.readiness(self.benchmark.source_root, self.benchmark.dataset_root)
-            self.native = runtime.prepare_native(self.benchmark.source_root, self.benchmark.dataset_root)
+            case = self.case
+            if self.chain:  # Native get_env_state_for_initial_condition, recomputed here.
+                robot_obs, scene_obs = long_horizon.env_state(case["initial_condition"])
+                selection = {"selected_case": {**case, "robot_obs": robot_obs, "scene_obs": scene_obs,
+                                               "condition_seed": long_horizon.condition_seed(case["initial_condition"])},
+                             "sequences_sha256": long_horizon.SEQUENCES_SHA256,
+                             "native_subtask_horizon": TASK_HORIZON, "native_horizon": CHAIN_HORIZON,
+                             "policy_memory": "one policy session per five-subtask chain; native model.reset() "
+                                              "per subtask has no service hook"}
+            else:
+                robot_obs, scene_obs = case["robot_obs"], case["scene_obs"]
+                selection = {"selected_case": dict(case), "panel_sha256": single_task.PANEL_SHA256,
+                             "native_horizon": TASK_HORIZON,
+                             "policy_memory": "one fresh policy session per independent task case"}
+            self.native = runtime.prepare_native(self.benchmark.source_root, self.benchmark.dataset_root,
+                                                 {task: self.benchmark.instructions[task] for task in self.tasks})
             self.trace = self.native.trace
-            provenance.update({"protocol_version": PROTOCOL, "evaluation_mode": "fast", "track": "debug-sequence0",
-                               "native_subtask_horizon": SUBTASK_HORIZON, "native_horizon": NATIVE_HORIZON,
+            provenance.update({"protocol_version": self.benchmark.protocol,
+                               "evaluation_mode": self.benchmark.evaluation_mode, **selection,
                                "physics_hz": 240, "control_hz": 30, "physics_ticks_per_control": 8,
                                "action_grouping": "agent_owned",
-                               "policy_memory": "one sequence-level policy; no per-subtask Policy.reset hook; not native model-reset parity",
                                "observation": {"cameras": list(CAMERAS), "shapes": SHAPES,
                                                "image_transform": "none; exact native RGB copies", "state": None},
                                "action": {"mode": self.benchmark.action_spec.mode, "dtype": "float64 writable copy",
@@ -103,17 +127,20 @@ class CalvinEpisode:
             self._log("native_construction_end", physics_ticks=self.trace.completed_ticks["construction"],
                       initialization="native robot/scene load; fixed episode state applied next")
             import numpy as np
-            sequence = self.benchmark.sequence
             self.trace.phase = "reset"
-            self._log("reset_start", sequence_index=0, reset_attempt=1)
-            raw = self.native.env.reset(robot_obs=np.array(sequence["robot_obs"], dtype=np.float64),
-                                        scene_obs=np.array(sequence["scene_obs"], dtype=np.float64))
+            if self.chain:
+                self._log("reset_start", chain=case["chain"], reset_attempt=1)
+            else:
+                self._log("reset_start", task=case["task"], trial=case["trial"], reset_attempt=1)
+            raw = self.native.env.reset(robot_obs=np.array(robot_obs, dtype=np.float64),
+                                        scene_obs=np.array(scene_obs, dtype=np.float64))
             self.native_reset_returned = True
             if self.trace.completed_ticks["reset"] != 1:
                 raise ProtocolError("CALVIN native fixed reset must complete exactly one physics tick")
             self.start_info = self.native.env.get_info()
             self.native_outcome = "in_progress"
-            self._log("subtask_start", index=0, task=sequence["tasks"][0], instruction=sequence["instructions"][0])
+            if self.chain:
+                self._log("subtask_start", index=0, task=self.tasks[0], instruction=self.instruction)
             observation = self._observe(raw)
             self.reset_completed = True
             self._log("reset_end", physics_ticks=self.trace.completed_ticks["reset"], policy_controls=0)
@@ -128,8 +155,7 @@ class CalvinEpisode:
             raise
 
     def _observe(self, raw):
-        instruction = self.benchmark.sequence["instructions"][self.subtask_index]
-        observation = policy_observation(raw, self.step_count, instruction)
+        observation = policy_observation(raw, self.step_count, self.instruction)
         if self.artifact_dir is not None:
             import cv2
             for camera, frame in observation.images.items():
@@ -155,54 +181,60 @@ class CalvinEpisode:
 
     def step(self, action: tuple[float, ...]) -> Transition:
         if self.native is None or not self.reset_completed or self.closed or self.finished or self.finalized:
-            raise ProtocolError("cannot control an uninitialized or finished CALVIN sequence")
+            raise ProtocolError("cannot control an uninitialized or finished CALVIN case")
         vector = self.benchmark.action_spec.validate(action)
         self.trace.phase = "control"
         before = self.trace.completed_ticks["control"]
         self.started_controls += 1
         index = self.subtask_index
-        task = self.benchmark.sequence["tasks"][index]
-        self._log("action_start", control=self.started_controls, subtask_index=index, action=list(vector))
+        task = self.tasks[index]
+        self._log("action_start", control=self.started_controls, action=list(vector),
+                  **({"subtask_index": index} if self.chain else {}))
         try:
             raw, reward, done, current_info = self.native.env.step(native_action(vector))
             self.step_count += 1
             self.subtask_controls += 1
+            controls = self.subtask_controls  # of this subtask, before any advance
             if reward != 0 or done is not False or self.trace.completed_ticks["control"] - before != 8:
                 raise ProtocolError("CALVIN native step contract differs")
+            # Native rollout: the current subtask against the info captured at its start.
             achieved = self.native.oracle.get_task_info_for_set(self.start_info, current_info, {task})
             if not isinstance(achieved, set) or not achieved.issubset({task}):
                 raise ProtocolError("CALVIN native oracle returned an invalid task result")
             if achieved:
-                self.depth += 1
-                row = {"index": index, "task": task, "controls": self.subtask_controls,
-                       "completion_control": self.step_count, "native_success": True}
-                self.completed_subtasks.append(row)
-                self._log("subtask_end", **row)
-                if self.depth == SEQUENCE_LENGTH:
+                self.completed_subtasks.append({"index": index, "task": task, "controls": controls,
+                                                "completion_control": self.step_count})
+                if len(self.completed_subtasks) == len(self.tasks):
                     self.finished = self.success = True
-                    self.native_outcome = "sequence_success"
+                    self.native_outcome = "sequence_success" if self.chain else "task_success"
                 else:
+                    # Native evaluate_sequence: no scene reset, a new private
+                    # baseline and the next annotation. The ACK exposes only the
+                    # new public instruction; the agent driver owns its reaction.
                     self.subtask_index += 1
                     self.subtask_controls = 0
-                    # Native evaluator takes a new private baseline, not a scene
-                    # reset. The ACK exposes only the new public instruction;
-                    # each agent driver owns its reaction and replanning policy.
                     self.start_info = self.native.env.get_info()
-                    self._log("subtask_start", index=self.subtask_index,
-                              task=self.benchmark.sequence["tasks"][self.subtask_index],
-                              instruction=self.benchmark.sequence["instructions"][self.subtask_index])
-            elif self.subtask_controls >= SUBTASK_HORIZON:
-                self.finished = True
-                self.native_outcome = "subtask_horizon_failure"
-                self._log("subtask_end", index=index, task=task, controls=self.subtask_controls,
-                          native_success=False, stop_reason=self.native_outcome)
-            self._log("action_end", control=self.step_count, subtask_index=index,
-                      native_subtask_success=bool(achieved), completion_depth=self.depth,
-                      policy_physics_ticks=self.trace.completed_ticks["control"])
+            elif self.subtask_controls >= TASK_HORIZON:
+                self.finished = True  # A failed subtask ends the chain, as native.
+                self.native_outcome = "subtask_horizon_failure" if self.chain else "task_horizon_failure"
+            if self.chain and (achieved or self.finished):
+                self._log("subtask_end", index=index, task=task, controls=controls, native_success=bool(achieved),
+                          completion_depth=len(self.completed_subtasks), stop_reason=self.native_outcome)
+                if achieved and not self.finished:
+                    self._log("subtask_start", index=self.subtask_index, task=self.tasks[self.subtask_index],
+                              instruction=self.instruction)
+            elif self.finished:
+                self._log("task_end", task=task, controls=self.step_count, native_success=self.success,
+                          stop_reason=self.native_outcome)
+            self._log("action_end", control=self.step_count, native_task_success=bool(achieved),
+                      policy_physics_ticks=self.trace.completed_ticks["control"],
+                      **({"subtask_index": index} if self.chain else {}))
             observation = self._observe(raw)
+            info = ({"native_completion_depth": len(self.completed_subtasks)} if self.chain
+                    else {"native_task_success": self.success})
             result = Transition(observation=observation, reward=float(bool(achieved)),
                                 terminated=self.success, truncated=self.finished and not self.success,
-                                info={"native_completion_depth": self.depth, "native_steps": self.step_count})
+                                info={**info, "native_steps": self.step_count})
             self.acknowledged_controls += 1
             return result
         except BaseException:
@@ -216,21 +248,29 @@ class CalvinEpisode:
     def metrics(self) -> Mapping[str, JsonValue]:
         ticks = dict(self.trace.completed_ticks) if self.trace is not None else {"construction": 0, "reset": 0, "control": 0}
         started_ticks = dict(self.trace.started_ticks) if self.trace is not None else dict(ticks)
-        return {"success": self.success, "completion_depth": self.depth,
-                "success_at_depth": {str(depth): self.depth >= depth for depth in range(1, 6)},
+        if self.chain:  # Native evaluate_sequence result: completed subtasks in a row, 0-5.
+            depth = len(self.completed_subtasks)
+            scope = {"chain": self.case["chain"], "tasks": list(self.tasks), "completion_depth": depth,
+                     "success_at_depth": {str(n): depth >= n for n in range(1, len(self.tasks) + 1)},
+                     "completed_subtasks": list(self.completed_subtasks),
+                     "current_subtask_index": self.subtask_index, "current_subtask_controls": self.subtask_controls,
+                     "native_subtask_horizon": TASK_HORIZON, "native_horizon": CHAIN_HORIZON,
+                     "aggregate_scope": "one native five-subtask chain of get_sequences(1000)",
+                     "reward_semantics": "wrapper numeric encoding of current native subtask completion; "
+                                         "no native shaped reward"}
+        else:
+            scope = {"task": self.case["task"], "trial": self.case["trial"], "native_horizon": TASK_HORIZON,
+                     "aggregate_scope": "one independent task case; not the native 1000-sequence chain score",
+                     "reward_semantics": "wrapper numeric encoding of native task completion; no native shaped reward"}
+        return {"success": self.success, **scope,
                 "native_steps": self.step_count, "started_controls": self.started_controls,
-                "acknowledged_controls": self.acknowledged_controls,
-                "current_subtask_index": self.subtask_index, "current_subtask_controls": self.subtask_controls,
-                "completed_subtasks": list(self.completed_subtasks), "native_outcome": self.native_outcome,
-                "native_subtask_horizon": SUBTASK_HORIZON, "native_horizon": NATIVE_HORIZON,
+                "acknowledged_controls": self.acknowledged_controls, "native_outcome": self.native_outcome,
                 "policy_physics_ticks": ticks["control"], "policy_simulated_seconds": ticks["control"] / 240,
                 "initialization_physics_ticks": ticks["construction"] + ticks["reset"],
                 "completed_physics_ticks_by_phase": ticks, "started_physics_ticks_by_phase": started_ticks,
                 "reset_attempted": self.reset_attempted,
                 "native_reset_returned": self.native_reset_returned, "reset_completed": self.reset_completed,
-                "control_error": self.control_error, "track": "debug-sequence0",
-                "aggregate_scope": "one debug sequence; not native 1000-sequence/full D validation score",
-                "reward_semantics": "wrapper numeric encoding of current native subtask completion; no native shaped reward"}
+                "control_error": self.control_error, "evaluation_mode": self.benchmark.evaluation_mode}
 
     def _close_writers(self):
         writers, self.writers = self.writers, {}
@@ -298,28 +338,38 @@ class CalvinEpisode:
 
 
 class CalvinBenchmarkAdapter:
-    budget_mode = "horizon"
-    # Sequence upper bound; the native 360-control per-subtask limit still
-    # terminates unsuccessful subtasks earlier.
-    environment_step_cap = NATIVE_HORIZON
-
-    def __init__(self, source_root: str, dataset_root: str, track: str = "debug-sequence0",
-                 evaluation_mode: str = "fast"):
+    def __init__(self, source_root: str, dataset_root: str, evaluation_mode: str = "fast"):
+        if evaluation_mode not in EVALUATION_MODES:
+            raise ValueError(f"evaluation_mode must be one of {', '.join(EVALUATION_MODES)}; got {evaluation_mode!r}")
         for name, value in (("source_root", source_root), ("dataset_root", dataset_root)):
             if (not isinstance(value, str) or not value or not Path(value).is_absolute()
                     or ".." in Path(value).parts):
                 raise ValueError(f"{name} must be an explicit absolute path")
-        if track != "debug-sequence0" or evaluation_mode != "fast":
-            raise ValueError("only debug-sequence0 fast is implemented; native full validation is unsupported")
         self.source_root, self.dataset_root = Path(source_root), Path(dataset_root)
-        self.sequence = runtime.selected_sequence()
+        try:
+            scene = runtime.dataset_scene(self.dataset_root)
+        except OSError as exc:
+            raise ValueError(f"dataset_root has no readable CALVIN {runtime.DATASET_CONFIG}") from exc
+        if scene != runtime.SCENE:  # The pinned reset vectors are scene-D validation states.
+            raise ValueError(f"CALVIN cases need scene {runtime.SCENE}; dataset config declares {scene!r}")
+        rows = single_task.panel_record()["cases"]  # Task-major: 34 tasks x 4 trials.
+        self.instructions = {row["task"]: row["instruction"] for row in rows}  # native annotation [task][0]
+        if evaluation_mode == "max":  # Native get_sequences(1000) order.
+            self.cases = {f"calvin-chain{index:04d}": {"chain": index, "initial_condition": condition,
+                                                       "tasks": list(tasks)}
+                          for index, (condition, tasks) in enumerate(long_horizon.sequences())}
+        else:
+            self.cases = {f"{row['task']}-trial{row['trial']:02d}": row
+                          for row in (rows[:1] if evaluation_mode == "example" else rows)}
+        self.evaluation_mode = evaluation_mode
+        self.environment_step_cap = CHAIN_HORIZON if evaluation_mode == "max" else TASK_HORIZON
+        self.protocol = PROTOCOL.format(selection=SELECTIONS[evaluation_mode], mode=evaluation_mode)
         self.claimed = False
 
     @property
     def descriptor(self):
-        return BenchmarkDescriptor(name="calvin", version="debug-fixed-sequence-development",
-                                   protocol_version=PROTOCOL, source_revision=runtime.NATIVE_REVISION)
-
+        return BenchmarkDescriptor(name="calvin", version=SELECTIONS[self.evaluation_mode],
+                                   protocol_version=self.protocol, source_revision=runtime.NATIVE_REVISION)
     @property
     def observation_spec(self):
         return ObservationSpec(cameras=CAMERAS, modalities=("language", "rgb"), privileged=False)
@@ -336,32 +386,47 @@ class CalvinBenchmarkAdapter:
     def episodes(self, seed: int, limit: int | None = None) -> Sequence[EpisodeSpec]:
         if type(seed) is not int or not 0 <= seed < 2**32:
             raise ValueError("harness seed must be an integer in [0, 2**32)")
-        if limit is not None and (type(limit) is not int or limit != 1):
-            raise ValueError("CALVIN debug service permits one fixed sequence episode")
-        return (EpisodeSpec(id="debug-sequence0-episode000", task="long_horizon_manipulation", seed=seed,
-                            instruction=self.sequence["instructions"][0], metadata={
-                                "evaluation_mode": "fast", "track": "debug-sequence0",
-                                "native_horizon": NATIVE_HORIZON, "native_subtask_horizon": SUBTASK_HORIZON,
-                                "native_horizon_source": "native evaluate_policy.py EP_LEN=360, five-subtask fixed sequence",
-                                "sequence_sha256": runtime.SEQUENCE_SHA256, "native_environment_seed": 0,
-                                "sample_selection": "one predeclared sequence; no seed search, retries or success screening",
-                                "policy_memory": "sequence-level; no per-subtask policy reset hook",
-                            }),)
+        if limit is not None and (type(limit) is not int or limit < 1):
+            raise ValueError("episode limit must be a positive integer")
+        if self.evaluation_mode == "max":
+            # The public spec carries only the first instruction; later ones arrive one by one.
+            episodes = tuple(EpisodeSpec(id=episode_id, task=CHAIN_TASK, seed=seed,
+                                         instruction=self.instructions[case["tasks"][0]],
+                                         metadata={
+                                             "evaluation_mode": self.evaluation_mode, "chain": case["chain"],
+                                             "environment_step_cap": CHAIN_HORIZON,
+                                             "native_subtask_horizon": TASK_HORIZON,
+                                             "native_horizon_source": "native evaluate_policy.py EP_LEN=360 per "
+                                                                      "subtask, five subtasks, stop at first failure",
+                                             "sequences_sha256": long_horizon.SEQUENCES_SHA256,
+                                             "native_environment_seed": 0,
+                                             "sample_selection": "native get_sequences(1000) order; no seed search, "
+                                                                 "retries or success screening",
+                                         }) for episode_id, case in self.cases.items())
+            return episodes[:limit]
+        episodes = tuple(EpisodeSpec(id=episode_id, task=case["task"], seed=seed, instruction=case["instruction"],
+                                     metadata={
+                                         "evaluation_mode": self.evaluation_mode, "trial": case["trial"],
+                                         "environment_step_cap": TASK_HORIZON,
+                                         "native_horizon_source": "native evaluate_policy.py EP_LEN=360 per instruction",
+                                         "panel_sha256": single_task.PANEL_SHA256, "native_environment_seed": 0,
+                                         "sample_selection": "pinned D validation reset; no seed search, retries or success screening",
+                                     }) for episode_id, case in self.cases.items())
+        return episodes[:limit]
 
     def open_episode(self, episode):
         if episode not in self.episodes(episode.seed):
             raise ProtocolError("CALVIN episode differs from its declared schedule")
         if self.claimed:
-            raise ProtocolError("CALVIN one-sequence service already claimed; no automatic retry")
+            raise ProtocolError("CALVIN one-case service already claimed; no automatic retry")
         self.claimed = True
         return CalvinEpisode(self, episode)
 
 
-@register_benchmark("calvin")
 def make_calvin(parameters: Mapping[str, JsonValue]):
-    allowed = {"source_root", "dataset_root", "track", "evaluation_mode"}
+    allowed = {"source_root", "dataset_root", "evaluation_mode"}
     if set(parameters) - allowed:
         raise ValueError(f"unknown CALVIN parameters: {sorted(set(parameters) - allowed)}")
     if not {"source_root", "dataset_root"}.issubset(parameters):
-        raise ValueError("CALVIN needs explicit pinned native source and official debug dataset paths")
+        raise ValueError("CALVIN needs explicit pinned native source and official dataset paths")
     return CalvinBenchmarkAdapter(**parameters)

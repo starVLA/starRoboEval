@@ -1,5 +1,5 @@
 {
-  "schema_version": "starvla-rsi.libero-phase2-inventory/v1",
+  "schema_version": "starvla-rsi.libero.task-inventory/v1",
   "status": "read_only_inventory_not_an_execution_manifest",
   "inventory_date": "2026-09-07",
   "sources": {
@@ -1381,8 +1381,6 @@
     "object_coordinates_exported": false
   },
   "limitations": [
-    "An inventory is not a released evaluation protocol or a model score.",
-    "Existing first-two development settings remain unchanged: retained StarVLA horizon520, settle10,40 decisions with up to5 actions each (at most200 policy-controlled steps).",
-    "All-five-suite coverage requires a new adapter protocol/selection; current first-two/first-five adapter must not be advertised as full130-task support."
+    "An inventory is not a released evaluation protocol or a model score."
   ]
 }

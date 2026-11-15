@@ -19,7 +19,7 @@
     "initial_file",
     "initial_file_sha256"
   ],
-  "schema_version": "starvla-rsi.libero-plus-catalog/v1",
+  "schema_version": "starvla-rsi.libero_plus.catalog/v1",
   "suite": "libero_object",
   "task_count": 2518,
   "task_order_index": 0,

@@ -28,7 +28,7 @@ benchmark-owned. Tool/network availability and cross-episode memory restrictions
 must still follow the selected protocol and declared deployment configuration.
 
 Check the selected track before comparing methods. Some existing benchmark
-documents, notably SimplerEnv's single-request development track, still specify
+documents, notably SimplerEnv's single-request track, still specify
 narrower interaction or evidence conditions. The open-method framework does not
 retroactively relax those conditions or relabel their results. Reconciling that
 track requires an explicit version decision before an agentic-method comparison;
@@ -39,7 +39,7 @@ latency and cost when available; do not invent unknown values. There is no new
 universal reasoning/token/decision budget. Existing method-specific timeouts,
 feedback-loop caps and protocol-specific limits remain explicit configuration,
 not silently disabled. In particular the current
-[`codex_native` client](../AgentPolicies/gpt6_astra/README.md) requires
+[`gpt6-astra-codex-native` client](../AgentPolicies/gpt6_astra/README.md) requires
 a finite decision-call cap to bound invalid-action feedback.
 
 ## Connect using the protocol
@@ -131,8 +131,8 @@ another decision. Its trusted driver submits successive single-action `step`
 requests and accounts for each ACK; the server does not run a model-specific
 repeat loop. Native timing, physics substeps, end conditions and total execution
 budget remain benchmark-owned. A method's five-control example is not a universal
-benchmark rule. Retained decision-coupled tracks and declared replan requirements
-must still match until explicitly migrated.
+benchmark rule. A service's declared `required_replan_interval` must still
+match.
 
 Records declare `usage_accounting_version: starvla-rsi.method-usage/v2`:
 one decision may contain several model requests. The current auditor rejects a

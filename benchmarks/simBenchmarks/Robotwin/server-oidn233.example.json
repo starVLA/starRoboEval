@@ -2,7 +2,6 @@
   "source_root": "/absolute/path/to/new-owned-robotwin-deployment",
   "deployment_manifest_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
   "task": "lift_pot",
-  "native_seed": 100000,
   "evaluation_mode": "fast",
   "renderer_runtime": "oidn_2_3_3_cuda_v1"
 }

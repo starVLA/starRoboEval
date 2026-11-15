@@ -38,10 +38,10 @@ Inspect the complete advertised schedule and contracts before a claim.
 [driver.py](driver.py) supports only:
 
 - Exactly one case in the entire service schedule; never truncate a named panel.
-- Horizon mode with a finite, service-advertised control cap, plus any declared
-  call cap. No guessed or extended native budget.
-- One control per decision. Configured or required replan intervals greater than
-  one are rejected before `open`; decision-budget tracks are unsupported.
+- A finite, service-advertised control cap, plus any declared call cap. No
+  guessed or extended native budget.
+- One control per decision. A required replan interval greater than one is
+  rejected before `open`.
 - Declared language, RGB, robot state and control feedback. Privileged observations
   and other modalities are rejected; arbitrary observation metadata is excluded.
 - Termination on invalid input, without feedback retries, resampling or replay.
@@ -51,7 +51,7 @@ RoboDojo's five-/50-layout panels do not fit. For another contract, implement an
 review an appropriate driver rather than weakening guards to force this example
 to run. A method may choose action chunks and replan timing where the selected
 protocol permits them; each service `step` still accepts one sequenced action.
-Preserve existing decision-coupled budgets and required replan intervals.
+Preserve declared required replan intervals.
 For a driver that executes multiple controls per decision, count a decision once
 when at least one control is acknowledged, and count each acknowledged control
 separately. Do not carry over the template's equality between `action_decisions`

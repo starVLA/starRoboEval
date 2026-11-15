@@ -61,7 +61,7 @@ def main(argv=None) -> int:
     args.output.mkdir(parents=True, exist_ok=False)
     previous_directory = Path.cwd()
     report = {
-        "schema_version": "robocasa365.material-reference-diagnostic/v1",
+        "schema_version": "starvla-rsi.robocasa365.material-reference-diagnostic/v1",
         "kind": "independent_xml_material_render_reference", "condition": args.condition,
         "capability_evaluation": False, "benchmark_resets": 0, "physics_steps": 0,
         "controls": 0, "model_calls": 0, "gpu": args.gpu,

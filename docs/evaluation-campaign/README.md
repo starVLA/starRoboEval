@@ -69,8 +69,8 @@ layout ID 或固定初始状态数组，单纯改 seed 不会换案例。以每�
 RoboDojo 的 `classify_objects` 使用任务目录中预定义的五个 fast layouts，不能把前者的 seed 规则照搬过去。
 
 建议将这类实验命名为 `task-panel5`（不足五例时注明实际数量），不要冒充统一的 CLI 模式。
-`fast` 是预选的小样本计划；`full` 是该 benchmark 已核实的原生完整矩阵。
-**每个任务做五例、甚至覆盖全部任务，也不自动等于官方 full。**
+`fast` 是预选的小样本计划；`max` 是该 benchmark 已核实的原生完整矩阵。
+**每个任务做五例、甚至覆盖全部任务，也不自动等于官方 max。**
 
 运行前保存案例清单，至少含：benchmark、协议/观测动作 track、task、原生 case/layout/init-state/seed、
 预算、方法版本、模型配置、run ID 和资源位置。清单归可信评测端，私有案例信息不进入模型输入。
@@ -95,7 +95,7 @@ python -B -m benchkit.sim_server.cli serve --benchmark simpler_env --help
 - 固定 agent 配置和源码；先完成无模型依赖检查。运行期间不修改活动快照。
 - 将 server、可信 client 驱动放在可持续托管的进程中，保留日志和退出状态；不要依赖短命 SSH 会话。
 
-当前参考客户端是 [codex_native](../../AgentPolicies/gpt6_astra/README.md)（`codex-native/v2`），入口为
+当前参考客户端是 [gpt6-astra-codex-native](../../AgentPolicies/gpt6_astra/README.md)，入口为
 `python -m AgentPolicies.gpt6_astra.run`。它使用已配置的 Codex 登录；本指南不要求另建 API key。
 模型、推理配置和 CLI 路径按 [profile 说明](../../AgentPolicies/gpt6_astra/README.md) 配置并记录。
 `--method-file` 是方法声明，不会自动把任意声明值变成实际运行配置；它经规范化后按声明记录，不与策略有效配置比对。
@@ -113,7 +113,6 @@ python -B -m benchkit.sim_server.cli serve --benchmark simpler_env --help
   "proprioception": false,
   "interaction_mode": "agent_method",
   "action_rejection_feedback": true,
-  "budget_mode": "horizon",
   "horizon_multiplier": 1
 }
 ```

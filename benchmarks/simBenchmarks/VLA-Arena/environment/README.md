@@ -60,7 +60,7 @@ do not enable those features; this track checks the built-in Panda OSC config.
 If a node cannot reach public indexes, transfer exact target-platform wheels
 from an authorized connected machine, then install with `--no-index --find-links
 /absolute/wheelhouse`. Preserve download/build hashes and rerun the verifier.
-Do not change versions while retaining the old protocol ID.
+Changing a pinned version requires a new protocol ID.
 
 ## Isolated config and read-only preflight
 
@@ -106,7 +106,7 @@ process-owned setup artifacts, not pinned source or model observations.
 ## Launch and verify the service
 
 Copy [server.example.json](../server.example.json) into an operator-owned config,
-set the pinned native path and predeclare task keys that share one control cap. Set a private
+set the pinned native path and choose `evaluation_mode`. Set a private
 evaluator-only `RSI_SIM_SERVER_TOKEN`, then launch from the RSI checkout:
 
 ```sh
@@ -115,7 +115,7 @@ export NUMBA_CACHE_DIR=/absolute/new-vla-arena-server-cache
 /absolute/new-vla-arena-env/bin/python -B \
   -m benchmarks.simBenchmarks.VLA-Arena.server \
   --parameters /absolute/vla-arena-server.json \
-  --seed 7 --episodes 1 --port 8765 \
+  --seed 20261031 --episodes 1 --port 8765 \
   --output-dir /absolute/new-vla-arena-run/server
 ```
 
@@ -129,6 +129,7 @@ model decisions through the same public interface.
 
 The [protocol](../EVALUATION_PROTOCOL.md) specifies one reset attempt, ten
 setup controls, the 300 policy-control cap (600 for long-horizon L1/L2), image orientation and separate
-success/cost/safe-success fields. This service selects L0–L2 tasks at
-initial-state index zero; other state indices are not selectable. Results,
+success/cost/safe-success fields. `evaluation_mode` selects all 170 L0–L2 tasks
+× 5 trials at saved states 0–4 (`fast`, default), × 10 trials at state 0
+(`max`), or the first `fast` case (`example`). Results,
 credentials, host paths and case diaries do not belong in this directory.

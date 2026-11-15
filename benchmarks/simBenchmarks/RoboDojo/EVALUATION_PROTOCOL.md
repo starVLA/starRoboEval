@@ -33,13 +33,18 @@ Horizon and success conditions are task-specific. For example, the native
 sets 1100 controls and checks category placement, settling and arm return.
 That horizon and those predicates are not rules for all RoboDojo tasks.
 
-The pinned native evaluation loop can exclude unstable scenes and consume
-replacement layouts to reach its configured episode count. The current Bench
-Server instead fixes its complete case list and retains initialization errors
-without automatic replacement. State the selected, attempted and completed
-denominators; these different error-handling conditions must not be hidden in
-an aggregate. See the native
-[evaluation loop](https://github.com/RoboDojo-Benchmark/RoboDojo/blob/ee67a1468510da7624a089164402359f2afc72c8/src/eval_client/main.py).
+The pinned native [evaluation loop](https://github.com/RoboDojo-Benchmark/RoboDojo/blob/ee67a1468510da7624a089164402359f2afc72c8/src/eval_client/main.py#L348-L436)
+takes layouts in order and keeps going until success plus failure counts reach
+the configured episode count. It skips a layout whose reset raises
+`UnStableError` (lines 371–372), skips one after any other reset or episode
+exception, and refills batches after a PhysX-broken report. Tasks that call
+`mark_env_unstable` during an episode also drop that layout from the total
+([`eval_env.py`](https://github.com/RoboDojo-Benchmark/RoboDojo/blob/ee67a1468510da7624a089164402359f2afc72c8/src/eval_client/eval_env.py#L467-L473)). When layouts run
+out, the loop stops short. The Bench Server instead fixes its complete case
+list before execution and retains every later error without replacement; see
+[`max`](#max-first-reset-stable-layouts). State the selected, attempted and
+completed denominators; these different error-handling conditions must not be
+hidden in an aggregate.
 
 ## Current service scope
 
@@ -56,25 +61,93 @@ entire native task suite. Only `classify_objects` is currently exposed.
   end-effector poses
 - Launch seed: 20260907
 - Native evaluation/simulator seed: 0
-- Layout selections: 0–4 (5 cases) or 0–49 (50 cases), in order
+- `evaluation_mode`: `fast` (default) layouts 0–4 (5 cases), `max` the first
+  50 reset-stable layouts of a reset-stability manifest (50 cases),
+  `example` layout 0 (1 case), in order
 - Attempts: exactly one per selected layout; no automatic retry or replacement
 - Native horizon: 1100 acknowledged controls per layout
 
 The service catalog enables one task and binds 55 stored layouts. The service selects
-5 or 50 of them; the latter matches the native configured episode count for
-this task. Neither selection includes layouts 50–54 or other RoboDojo tasks.
-Choose a named selection before execution; this service does not accept
-arbitrary layout subsets. The launch seed is fixed at 20260907; native startup
+1, 5 or 50 of them; `max` matches the native configured episode count for
+this task and can reach the spare layouts 50–54 only when earlier layouts were
+reset-unstable. No mode includes other RoboDojo tasks. `fast` and `example`
+layouts are not stability-screened, so an unstable reset stays in their
+denominator as an infrastructure error.
+Choose the mode before execution; this service does not accept
+arbitrary layout subsets. The launcher rejects `--episodes` and the adapter
+rejects any schedule limit, so a service schedule is always the complete mode
+schedule. A gateway case service selects one case with `--episode-id` and
+records the schedule size; the gateway refuses case files and limits, so an
+evaluation still covers the whole schedule. The protocol identity is
+`robodojo-ee67a14/classify-objects-fixed-layouts/rgb-proprio28-eef16/<mode>/v1`
+for `fast` and `example`, and
+`robodojo-ee67a14/classify-objects-reset-stable-layouts/rgb-proprio28-eef16/max/v1`
+for `max`. The launch seed is fixed at 20260907; native startup
 and evaluation use seed 0. Stored layout IDs, not changes to these fixed seeds,
 select the reset data.
 
 Case metadata describes the configured layout count, native reference episode
-count, fixed-catalog selection and retention of invalid cases without
-replacement under `robodojo.fixed-layout-selection/v2`. The actual selected
-denominator is the returned schedule length, not the configured panel size.
-`official_full_protocol` is false for both selections: matching 50 cases does
-not reproduce the upstream evaluator's sampling and replacement behavior.
+count, selection and retention of invalid cases without replacement, under
+`starvla-rsi.robodojo.fixed-layout-selection/v1` for `fast`/`example` and
+`starvla-rsi.robodojo.reset-stable-layout-selection/v1` for `max` (which also
+records `stability_manifest` `{sha256, pinned}` and its screening counts). The selected
+denominator is the complete mode schedule; report attempted and completed counts separately.
+`official_full_protocol` is false for every mode: `max` reproduces the native
+reset-stability skip but not the replacement after in-episode, PhysX-broken or
+other errors, and its public instruction and EEF interface differ from native.
 This metadata does not change the robot interface or native scoring.
+
+### `max`: first reset-stable layouts
+
+`max` needs the operator-supplied `stability_manifest` (absolute path without
+`..` parts); `stability_manifest_sha256` is optional. At startup the service
+computes the manifest's SHA-256. With a supplied hash it refuses a mismatch;
+without one it records the observed digest with `"pinned": false` instead of
+refusing. Either way it refuses a `max` launch unless the manifest is a
+complete record:
+
+| Field | Requirement |
+| --- | --- |
+| `schema` | `starvla-rsi.robodojo.reset-stability/v1`; no other top-level fields |
+| `task` | `classify_objects` |
+| `native_revision` | `ee67a1468510da7624a089164402359f2afc72c8` |
+| `layout_inventory_sha256` | the pinned 55-layout inventory digest from `environment/reference_eef_snapshot.json` |
+| `native_eval_seed`, `required_stable` | 0, 50 |
+| `screened` | `{layout_id, result}` rows for layouts 0, 1, 2, … in order, at most 55; `result` is `stable`, `unstable` or `exception`; exactly 50 `stable`, the last row being the 50th |
+| `preparation` | at least non-empty `runtime_manifest_sha256`, `created_at`, `procedure` strings (recorded, not compared) |
+
+The schedule is the 50 `stable` layout IDs in order, with one attempt each.
+If the 55 layouts hold fewer than 50 stable ones, no complete manifest exists
+and `max` cannot run; upstream would stop short instead. Rejected layouts are
+preparation provenance, never policy results. The service never screens,
+searches or edits the manifest. Each native worker re-reads it at the digest
+observed at startup and refuses a layout outside the schedule.
+
+The screen resets each layout in order, with no policy and no action, in a
+fresh native worker process per layout using the evaluated runtime. A layout
+is `stable` when that reset completes the worker's post-reset check (native
+`setup_scene` stability check passed, environment alive and not ended), and
+`unstable` when the reset raises native `UnStableError` or fails that check.
+The screen records any other reset error as `exception` (upstream also skips
+it), stops at the 50th stable layout and is never rerun to improve a result.
+**This preparation has not yet been performed**, and no preparation tool is
+shipped; see [environment setup](environment/README.md#max-mode-reset-stability-preparation).
+
+During a policy episode, a reset that is unstable although the manifest marked
+it stable, or a native in-episode instability mark, is an infrastructure error
+without a spare layout, never a policy failure. `classify_objects` never calls
+`mark_env_unstable`, and the PhysX monitor stays disabled as upstream enables
+it only for tasks with an `Articulation` section. Whether a reset-stability
+result reproduces across processes, GPUs or runtimes is UNVERIFIED.
+
+The benchmark-scope `max` set follows `_task.yml` `eval_nums`: 30 task
+configurations × 50 plus the 12 Generalization tasks × (25 standard + 25
+`_random`), 2,100 episodes over the 54 configuration files at the pinned
+revision. Only `classify_objects` has a native Direct worker now. The other
+tasks need their own workers; `imitate_sorting_sequence`, `make_kong` and
+`play_tic_tac_toe` also use the `dual_x5_and_franka_competition` robot
+configuration and mark in-episode instability. Whether the generalization
+pairs share the screen procedure unchanged is UNVERIFIED.
 
 The machine-readable definition is [bench_server/protocol/task_catalog.json](bench_server/protocol/task_catalog.json),
 validated by [bench_server/protocol/task_catalog.py](bench_server/protocol/task_catalog.py). It is benchmark
@@ -94,7 +167,7 @@ At reset and after each acknowledged control the model receives:
   per arm, followed by each measured link6 world pose as `x,y,z,qw,qx,qy,qz`.
 
 After a control, the observation additionally contains the closed
-`robodojo.robot-control-feedback/v1` acknowledgement: executed joint command,
+`starvla-rsi.robodojo.robot-control-feedback/v1` acknowledgement: executed joint command,
 post-control public robot state, and robot-only DLS/FK diagnostics. Reset has no
 acknowledgement.
 
@@ -150,9 +223,10 @@ The result fields have different meanings:
 | `native_benchmark_score` | Score on a 0–100 scale: 100 on native success, otherwise cached progress or 0 after a native reward check; `null` if no reward check occurred |
 
 A score of 60 is not a 60% success rate. Report success count over the
-selected layout denominator (5 or 50), plus native
+selected layout denominator (1, 5 or 50), plus native
 scores and all infrastructure or policy errors. Do not remove failures or
-replace layouts.
+replace layouts; `max` excludes only the layouts its stability manifest
+recorded before execution.
 
 ### Agent access
 

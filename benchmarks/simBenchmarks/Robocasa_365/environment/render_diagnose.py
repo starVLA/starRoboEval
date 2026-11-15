@@ -40,7 +40,7 @@ def main(argv=None) -> int:
         parser.error("gpu must be nonnegative")
     args.output.mkdir(parents=True, exist_ok=False)
     report = {
-        "schema_version": "robocasa365.render-lifecycle-geometry-diagnostic/v1",
+        "schema_version": "starvla-rsi.robocasa365.render-lifecycle-geometry-diagnostic/v1",
         "render_track": args.render_track, "injection": args.injection,
         "kind": "geometry_only_infrastructure_diagnostic", "capability_evaluation": False,
         "benchmark_resets": 0, "physics_steps": 0, "controls": 0, "model_calls": 0,

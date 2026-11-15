@@ -1,7 +1,7 @@
 {
   "schema_version": "starvla-rsi.model-profile/v2",
   "id": "gpt6_astra",
-  "display_name": "GPT6Astra",
+  "display_name": "Native GPT-6-Astra Policy",
   "factory": "AgentPolicies.gpt6_astra.codex_native:create_policy",
   "config": "configs/codex_native_config.json",
   "configuration_schema": "configs/configuration.schema.json",

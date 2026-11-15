@@ -1,97 +1,33 @@
-"""Small explicit registry for installed benchmark and policy adapters."""
+"""Shared diagnostic policies selectable with ``--policy``; benchmarks come from their services."""
 
 from __future__ import annotations
 
 from collections.abc import Callable
-from importlib import import_module
-from typing import Any, Mapping, TypeVar
+from typing import Mapping
 
 from benchkit.contracts import JsonValue
-from benchkit.interfaces import BenchmarkAdapter, Policy
+from benchkit.interfaces import Policy
 
-T = TypeVar("T")
-Factory = Callable[[Mapping[str, JsonValue]], T]
-
-_BENCHMARKS: dict[str, Factory[BenchmarkAdapter]] = {}
-_POLICIES: dict[str, Factory[Policy]] = {}
-_BUILTINS_LOADED = False
+PolicyFactory = Callable[[Mapping[str, JsonValue]], Policy]
 
 
-def _register(registry: dict[str, Factory[Any]], name: str, factory: Factory[Any]) -> None:
-    normalized = name.strip().lower()
-    if not normalized:
-        raise ValueError("registry name must not be empty")
-    if normalized in registry:
-        raise ValueError(f"duplicate registry entry: {normalized}")
-    registry[normalized] = factory
+def _policies() -> dict[str, PolicyFactory]:
+    # Imported on use; both fixtures are dependency-free.
+    from benchkit.diagnostics.constant import make_constant
+    from benchkit.diagnostics.smoke import make_scripted_policy
 
-
-def register_benchmark(name: str) -> Callable[[Factory[BenchmarkAdapter]], Factory[BenchmarkAdapter]]:
-    """Register a benchmark factory under a stable CLI name."""
-
-    def decorator(factory: Factory[BenchmarkAdapter]) -> Factory[BenchmarkAdapter]:
-        _register(_BENCHMARKS, name, factory)
-        return factory
-
-    return decorator
-
-
-def register_policy(name: str) -> Callable[[Factory[Policy]], Factory[Policy]]:
-    """Register a policy factory under a stable CLI name."""
-
-    def decorator(factory: Factory[Policy]) -> Factory[Policy]:
-        _register(_POLICIES, name, factory)
-        return factory
-
-    return decorator
-
-
-def load_builtins() -> None:
-    """Import dependency-free built-ins exactly once."""
-    global _BUILTINS_LOADED
-    if not _BUILTINS_LOADED:
-        import benchkit.diagnostics.constant  # noqa: F401
-        import benchkit.diagnostics.smoke  # noqa: F401
-        import benchmarks.simBenchmarks.SimplerEnv.bench_server.adapter  # noqa: F401
-        import benchmarks.simBenchmarks.LIBERO.bench_server.adapter  # noqa: F401
-        import benchmarks.simBenchmarks.Robocasa_365.bench_server.adapter  # noqa: F401
-        import benchmarks.simBenchmarks.SIMPLE.bench_server.adapter  # noqa: F401
-        import benchmarks.simBenchmarks.Robocasa_tabletop.bench_server.adapter  # noqa: F401
-        import benchmarks.simBenchmarks.MetaWorld.bench_server.adapter  # noqa: F401
-        import benchmarks.simBenchmarks.Robotwin.bench_server.adapter  # noqa: F401
-        import benchmarks.simBenchmarks.DOMINO.bench_server.adapter  # noqa: F401
-        import benchmarks.simBenchmarks.Behavior.bench_server.adapter  # noqa: F401
-        import benchmarks.simBenchmarks.calvin.bench_server.adapter  # noqa: F401
-        # Keep the user-facing benchmark directory name; importlib supports it.
-        import_module("benchmarks.simBenchmarks.LIBERO-plus.bench_server.adapter")
-        import_module("benchmarks.simBenchmarks.VLA-Arena.bench_server.adapter")
-
-        _BUILTINS_LOADED = True
-
-
-def create_benchmark(name: str, parameters: Mapping[str, JsonValue] | None = None) -> BenchmarkAdapter:
-    """Construct a registered benchmark or report available names."""
-    load_builtins()
-    normalized = name.strip().lower()
-    if normalized not in _BENCHMARKS:
-        from benchkit.catalog import load_catalog
-
-        if normalized in {entry.id for entry in load_catalog()}:
-            raise KeyError(f"benchmark {name!r} is served only by its SIM server; run it with --sim-server")
-        raise KeyError(f"unknown benchmark {name!r}; installed: {', '.join(sorted(_BENCHMARKS))}")
-    return _BENCHMARKS[normalized](parameters or {})
+    return {"constant": make_constant, "scripted": make_scripted_policy}
 
 
 def create_policy(name: str, parameters: Mapping[str, JsonValue] | None = None) -> Policy:
-    """Construct a registered policy or report available names."""
-    load_builtins()
+    """Construct a diagnostic policy or report the available names."""
+    policies = _policies()
     normalized = name.strip().lower()
-    if normalized not in _POLICIES:
-        raise KeyError(f"unknown policy {name!r}; installed: {', '.join(sorted(_POLICIES))}")
-    return _POLICIES[normalized](parameters or {})
+    if normalized not in policies:
+        raise KeyError(f"unknown policy {name!r}; available: {', '.join(sorted(policies))}")
+    return policies[normalized](parameters or {})
 
 
-def registered() -> dict[str, list[str]]:
-    """Return registered names without exposing mutable registry state."""
-    load_builtins()
-    return {"benchmarks": sorted(_BENCHMARKS), "policies": sorted(_POLICIES)}
+def policy_names() -> list[str]:
+    """Names accepted by ``--policy``."""
+    return sorted(_policies())

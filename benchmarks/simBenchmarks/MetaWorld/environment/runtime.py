@@ -18,7 +18,7 @@ def package_pin() -> dict:
     pin = json.loads(Path(__file__).with_name("package_pin.json").read_text(encoding="utf-8"))
     rows = pin.get("files", [])
     digest = hashlib.sha256(json.dumps(rows, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
-    if (pin.get("schema_version") != "starvla-rsi.metaworld-package-pin/v1"
+    if (pin.get("schema_version") != "starvla-rsi.metaworld.package-pin/v1"
             or pin.get("distribution") != "metaworld" or pin.get("version") != "3.1.1"
             or digest != PACKAGE_INVENTORY_SHA256
             or pin.get("file_inventory_sha256") != digest):

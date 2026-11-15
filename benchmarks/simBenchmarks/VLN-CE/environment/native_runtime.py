@@ -19,7 +19,9 @@ HORIZON = 500
 SUCCESS_DISTANCE = 3.0
 VIDEO_FPS = 10  # Presentation speed only, never a native control frequency.
 ACTION_NAMES = ("stop", "move_forward", "turn_left", "turn_right")
-MAX_DATASET_BYTES = 256 * 1024 * 1024
+# Decompressed bound for one split or GT JSON, shared with the service adapter;
+# it caps memory in both processes against an oversized or hostile gzip file.
+MAX_DATASET_BYTES = 64 * 1024 * 1024
 
 
 def file_digest(path):
@@ -188,7 +190,7 @@ class NativeRuntime:
                             "tasks/nav/nav.py", "tasks/vln/vln.py",
                             "config/default.py", "config/default_structured_configs.py",
                             "config/benchmark/nav/vln_r2r.yaml", "config/habitat/task/vln_r2r.yaml")
-        provenance.update(schema_version="vlnce.habitat033-native-provenance/v1",
+        provenance.update(schema_version="starvla-rsi.vln_ce.habitat033-native-provenance/v1",
             process_id=os.getpid(),
             python_executable=sys.executable, python_version=sys.version,
             package_versions={name: importlib.metadata.version(name) for name in

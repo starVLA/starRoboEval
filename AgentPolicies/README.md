@@ -41,7 +41,7 @@ and profile-registry integration are optional. The existing
 ## Existing clients
 
 - [`gpt6_astra/`](gpt6_astra/README.md): one Bench Server validation client,
-  `codex_native` (`codex-native/v2`), preserving persistent Direct control and its
+  `gpt6-astra-codex-native`, preserving persistent Direct control and its
   optional completion and repeated-command settings;
   no alternate active methods or method-selection step.
 - `gpt6_astra/tools/runner.py`: reusable execution loop, also used by the

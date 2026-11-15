@@ -18,33 +18,68 @@ pairs feasible task chains with initial conditions covering light, drawer,
 slider and block states. Its deterministic selection pairs an initial condition
 and ordered task chain as one evaluation case.
 
-## Available service binding
+## Evaluation modes
 
-The current service exposes **one fixed sequence with one fixed initial state**:
+`evaluation_mode` selects the schedule:
 
-| Order | Task |
-| --- | --- |
-| 1 | `rotate_blue_block_right` |
-| 2 | `move_slider_right` |
-| 3 | `lift_red_block_slider` |
-| 4 | `place_in_slider` |
-| 5 | `turn_off_lightbulb` |
+| Mode | Selection | Episodes | Cap per episode |
+| --- | --- | --- | --- |
+| `fast` (default) | All 34 tasks × trials 0–3, one instruction per reset | 136 | 360 controls |
+| `max` | Native `get_sequences(1000)`: five-subtask chains, no reset between subtasks | 1,000 | 360 controls per subtask, at most 1,800 per chain |
+| `example` | `close_drawer` trial 0 (first `fast` case) | 1 | 360 controls |
 
-The evaluator-private [sequence definition](bench_server/protocol/selected_sequence.json)
-contains the initial condition, exact 15-value robot and 24-value scene reset
-vectors, ordered tasks and native language annotations. Changing the run seed
-does not select another layout. Additional sequences and independent evaluation
-of all 34 task definitions are not exposed by this service.
+Protocol IDs:
 
-An episode resets once before the first subtask. The scene is not reset between
-instructions, and initialization physics is separate from scored controls.
+- `fast`, `example`: `calvin-fa03f01/single-task-d-validation/rgb-relative7/<mode>/v1`
+- `max`: `calvin-fa03f01/long-horizon-1000/rgb-relative7/max/v1`
+
+### Single-task cases (`fast`, `example`)
+
+Episode IDs are `<task>-trial<NN>`, in task-major order. The public, hash-pinned
+[case panel](bench_server/protocol/single_task_panel.json) holds each case's
+15-value robot and 24-value scene reset vectors from the D validation data, its
+native instruction (`new_playtable_validation.yaml[task][0]`) and extraction
+provenance. For each task, validation annotation segments are sorted by
+(start, end, index); a segment is accepted when it starts after the previous
+accepted segment ends, and trial *k* resets at the start frame of the *k*-th
+accepted segment. There is no scoring, success screening or expert replay in this
+selection. The run seed does not change the reset.
+
+### Native five-subtask chains (`max`)
+
+Episode IDs are `calvin-chain0000` to `calvin-chain0999`, in the native
+`get_sequences(1000)` order. The tracked
+[chain list](bench_server/protocol/long_horizon_sequences.json) holds each
+chain's symbolic initial condition and five subtasks. Startup checks it against
+a pinned SHA-256 and checks that every chain is feasible under the native
+symbolic task table. `long_horizon.verify_regeneration()` reproduces the list
+from the native algorithm (192 initial conditions, NumPy legacy MT19937 seeded
+per condition, final shuffle under seed 0) in pure Python; it takes about a
+minute, so startup does not run it.
+
+Reset applies the native `get_env_state_for_initial_condition`: a fixed robot
+pose, and slider, drawer, lights and block positions from the condition. Block
+table placement and z rotations come from a NumPy legacy RNG seeded with
+pyhash `fnv1_32` of `str(initial_condition.values())`; the service recomputes
+both in pure Python and records the vectors and seed in provenance. The run
+seed does not change the chain or its reset.
+
+The service never sends the panel, the chain list or reset vectors to the
+actor. Because they are public, this is an interface boundary, not secrecy;
+disclose any method tuned with knowledge of them. Initialization physics is
+separate from scored controls.
 
 ## Observations
 
-The actor receives current task language and two native uint8 RGB views:
+The actor receives the current instruction and two native uint8 RGB views:
 `rgb_static` at 200×200×3 and `rgb_gripper` at 84×84×3. Images are copied without
 flipping, resizing, cropping or overlays. Robot/scene state, object/goal poses,
 contacts, future instructions, reset data and scoring internals are not exposed.
+
+In `max`, the public episode task is `long_horizon_chain` and the episode
+instruction is the first subtask's annotation. When a subtask succeeds, the
+acknowledged observation carries the next subtask's annotation
+(`new_playtable_validation.yaml[task][0]`), as the native `rollout` does.
 
 ## 7-dimensional action
 
@@ -66,57 +101,74 @@ executed decisions, native controls and physics ticks are separate counts.
 
 ## Execution budget and success
 
-Each subtask permits **360 controls**. After every control, the native task
-oracle tests the current subtask against the state captured at that subtask's
-start. On success, the evaluator records completion, captures the next baseline
-and supplies the next instruction without a scene reset. An unsuccessful
-360-control subtask ends the sequence; completing all five ends successfully.
-The sequence ceiling is **5 × 360 = 1,800 controls**, often shorter when subtasks
-complete early.
+Each instruction permits **360 controls**, the native `EP_LEN`. After every
+control, the native task oracle tests the current task against the state
+captured when that instruction started.
+
+- Single-task case: success ends the episode; reaching 360 controls without
+  success is a native timeout.
+- Chain: a subtask success captures a new start state and continues in the same
+  scene with the next instruction; the counter restarts at zero. The chain ends
+  after the fifth success or at the first subtask that reaches 360 controls
+  without success, as native `evaluate_sequence` does. The episode cap is
+  therefore at most 1,800 controls.
 
 These are execution limits, not a required number of model calls. A participant
 that chooses a smaller external limit must distinguish that stop from a native
-timeout. Partial completion does not make the whole five-subtask sequence a
-success.
-
-The current `agent-grouping-v2` interface declares no mandatory action prefix.
-An agent may issue successive controls from one decision. It receives the
-current public instruction after every acknowledged control, including a new
-instruction when a subtask completes. Its driver owns action grouping and when
-to request another decision; the service does not require a model call at that
-boundary. Future instructions and private subtask scores are not actor inputs.
-Controller timing, the 360-control subtask limit, native checks and sequence
-selection are unchanged. Report the returned protocol identity.
+timeout. The interface declares no mandatory action prefix: an agent may issue
+successive controls from one decision, and its driver owns action grouping.
+Report the returned protocol identity.
 
 ## Scoring and result statistics
 
-The native outputs are:
+For single-task cases, the native output per case is task success and the
+number of executed controls. Report success rates per task and overall, with the
+number of evaluated cases.
 
-- completed sequence depth, from 0 to 5;
-- whether at least 1, 2, 3, 4 or 5 subtasks were completed;
-- per-subtask and total executed controls.
+For chains, the native output per chain is the completion depth: the number of
+subtasks completed in a row, 0–5 (`completion_depth`; episode `success` means all
+five). Report the native `count_success` rates, the fraction of chains with depth
+≥ *n* for *n* = 1–5, and the average depth (`avg_seq_len`), with the number of
+evaluated chains. Per-task counts follow native `print_and_save`: each completed
+subtask counts as a success and the subtask that ended the chain as a failure.
 
-Across a selected set of sequences, report mean completed depth and the fraction
-reaching each depth, together with the number of evaluated sequences.
-Infrastructure errors and externally shortened attempts are distinct from
-native task failures.
+Infrastructure errors and externally shortened attempts are distinct from native
+task failures.
 
 Optional interaction and video recording uses the
 [shared recording settings](../../../docs/recording.md).
 
 ## Current integration limits
 
-- Only the fixed sequence and initial state above are selectable.
-- The runtime uses the official `calvin_debug_dataset` setup configuration and
-  omits tactile rendering. Its equivalence to D-validation setup is not established.
+- Only the cases above are selectable.
+- Native `rollout` calls `model.reset()` before every subtask. The service has no
+  hook for that, so one policy session spans the whole chain; it sees the
+  instruction change and owns its reaction.
+- The pure-Python chain reproduction matches a retained copy of the native
+  `get_sequences(1000)` output, but has not been cross-checked against a live
+  NumPy/pyhash run of the pinned code. The block-placement seed follows
+  pyfasthash 0.9.3 (`Hash.h`): on Linux x86-64 a Python 3 `str` is hashed as
+  UTF-16-LE without a byte-order mark. CALVIN does not pin `pyhash`.
+- In `max`, the public remaining-control count covers the whole chain
+  (1,800 controls). The native 360-control limit per instruction is not shown to
+  the policy, as in native CALVIN, which gives policies no budget.
+- A voluntary task-complete stop ends the whole chain, not the current subtask;
+  it is recorded as an external stop.
+- Chain metrics after an infrastructure error or external stop still report the
+  partial completion depth. Filter on `native_outcome` before averaging sequence
+  length.
+- `fast` keeps four resets per task; no fifth reset is pinned.
+- The runtime reads only `validation/.hydra/merged_config.yaml` from the official
+  `calvin_debug_dataset` and omits tactile rendering. That file (SHA-256
+  `75c1c150…`) matches the same member of the official D→D archive
+  `task_D_D.zip` by size and CRC-32, and declares scene `calvin_scene_D`; the ABC→D member was not
+  compared. Construction rejects a dataset whose configuration declares another
+  scene.
 - The seven-input `[-1,1]` bounds are service validation. The native controller
   itself does not clip the first six inputs to that range.
-- Native evaluation invokes a model-state reset per subtask; the current
-  sequence-level agent session has no corresponding callback. Disclose memory
-  behavior when comparing results.
 - EGL/PyBullet requires a fresh, dedicated native process with simulator client
   0. Sharing that process with another simulator is unsupported.
 
 Source revisions, configuration assets and runtime dependencies are documented
 in [environment preparation](environment/README.md). Setup configuration, fixed
-reset vectors and private scoring data never become additional actor inputs.
+reset vectors and native scorer state never become actor inputs.

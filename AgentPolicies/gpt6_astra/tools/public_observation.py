@@ -7,6 +7,7 @@ import math
 from numbers import Real
 
 def image_edge(value):
+    """Check image_max_edge: the longest attached side in pixels; 0 keeps originals."""
     if type(value) is not int or not 0 <= value <= 4096:
         raise ValueError("image_max_edge must be an integer in [0,4096]")
     return value
@@ -32,13 +33,15 @@ def image_attachment(original_png, max_edge):
             return original_png, {"size": size, "original_size": size,
                                   "resized": False, "resampling": None}
         preview = original.copy()
-        preview.thumbnail((edge, edge), Image.Resampling.LANCZOS)
+        preview.thumbnail((edge, edge), Image.Resampling.LANCZOS)  # shrinks in place, keeping the aspect ratio
         encoded = io.BytesIO()
         preview.save(encoded, format="PNG")
         return encoded.getvalue(), {"size": list(preview.size), "original_size": size,
                                    "resized": True, "resampling": "LANCZOS"}
 
 
+# PersistentRuntime.compatibility_errors: run.py and the runner check it before the run,
+# and start_episode checks it again for each episode.
 def compatibility_errors(observation_spec, action_spec):
     errors = []
     if observation_spec.privileged:
@@ -54,6 +57,7 @@ def compatibility_errors(observation_spec, action_spec):
 
 def public_state(observation, spec):
     """Keep missing sensors missing; state names never imply all values measured."""
+    # Called for every observation; the result becomes the packet's "state".
     if spec.state_names:
         if (observation.state is None or len(observation.state) != len(spec.state_names)
                 or any(isinstance(value, bool) or not isinstance(value, Real) or not math.isfinite(value)
@@ -75,20 +79,20 @@ def public_images(observation, cameras, directory, *, config, remember):
         if (not isinstance(rgb, np.ndarray) or rgb.dtype != np.uint8 or rgb.ndim != 3 or rgb.shape[2] != 3
                 or not rgb.shape[0] or not rgb.shape[1]):
             raise ValueError("expected original RGB pixels")
-        pixels += rgb.shape[0] * rgb.shape[1]
+        pixels += rgb.shape[0] * rgb.shape[1]  # summed over all cameras of this observation
         if pixels > config["max_image_pixels"]:
             raise ValueError("image size outside declared bounds")
         buffer = io.BytesIO()
         Image.fromarray(rgb).save(buffer, format="PNG")
         payload = buffer.getvalue()
-        path = directory / f"camera-{index:03d}.png"
+        path = directory / f"camera-{index:03d}.png"  # full-resolution original; the model may read this folder
         with path.open("xb") as stream:
             stream.write(payload)
-        remember(path, payload)
-        attachment, dimensions = image_attachment(payload, config["image_max_edge"])
+        remember(path, payload)  # records size and hash for the exported public manifest
+        attachment, dimensions = image_attachment(payload, config["image_max_edge"])  # the image the model gets
         descriptor = {"camera": name, "path": str(path), "sha256": hashlib.sha256(payload).hexdigest(),
                       "size": dimensions["original_size"]}
-        if dimensions["resized"]:
+        if dimensions["resized"]:  # also save the downscaled copy; the descriptor points to both files
             preview = directory / f"camera-{index:03d}-preview.png"
             with preview.open("xb") as stream:
                 stream.write(attachment)
@@ -97,4 +101,4 @@ def public_images(observation, cameras, directory, *, config, remember):
                 "sha256": hashlib.sha256(attachment).hexdigest(), **dimensions}
         attachments.append(attachment)
         descriptors.append(descriptor)
-    return attachments, descriptors
+    return attachments, descriptors  # both in camera order

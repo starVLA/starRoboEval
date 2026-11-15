@@ -52,7 +52,8 @@ See [task selection](../benchmarks/simBenchmarks/TASK_COVERAGE.md).
 
 RoboDojo declares its schedules in
 [`bench_server/protocol/task_catalog.json`](../benchmarks/simBenchmarks/RoboDojo/bench_server/protocol/task_catalog.json).
-Its server configuration selects a fixed set of five or 50 layouts for
+Its server configuration selects layouts 0–4 (`fast`) or the first 50
+reset-stable layouts of a reset-stability manifest (`max`) for
 `classify_objects`, each once. These are two sample counts for the same task.
 The catalog is protocol data; runtime
 assets belong to `environment/`, and deployment paths/GPU selection belong to
@@ -87,12 +88,23 @@ Changing the agent method does not change the benchmark interface. Never copy
 one robot's end-effector space or execution budget to another robot.
 
 An independent driver can implement the [wire protocol](../benchmarks/simBenchmarks/SERVER_PROTOCOL.md)
-without joining the reference factory registry or using Python `Policy`.
+without a reference model profile or Python `Policy`.
 Keep claims, metrics, finalization and credentials on the trusted side; project
 only protocol-allowed inputs to the actor. See [method integration](agent-methods.md).
 The optional `benchkit run --sim-server` command uses the same agent-side runner,
-not a separate benchmark-control implementation. It takes a registered `--policy`,
-not a model profile; run a model profile such as `gpt6_astra` with its own driver.
+not a separate benchmark-control implementation. It requires `--sim-server` and
+takes a diagnostic `--policy` (see `benchkit list`), not a model profile; run a
+model profile such as `gpt6_astra` with its own driver.
+
+Check a running service's readiness without a policy:
+
+```sh
+python -B -m benchkit probe --sim-server http://127.0.0.1:8765 --benchmark <descriptor.name>
+```
+
+It describes the service, claims and resets one episode, closes it and prints a
+JSON summary; it sends no action. Probe a dedicated launch, because the claim is
+permanent. See the [readiness probe](../benchmarks/simBenchmarks/SERVER_PROTOCOL.md#readiness-probe).
 
 For local diagnostics without a benchmark or request:
 
@@ -127,10 +139,9 @@ native end can execute fewer. Native physics substeps and the total execution
 budget remain benchmark-owned. The reference driver stops the remaining chunk
 when the next acknowledged observation changes the public instruction and
 replans from that observation; it never uses private scores for this decision.
-Existing decision-coupled tracks and any older service's declared
-`required_replan_interval` still require matching configuration. Current SIMPLE
-defaults to task-horizon budgeting, and current CALVIN/DOMINO protocols do not
-require prefix one. Do not reinterpret a historical record with these new rules.
+A service's declared `required_replan_interval` still requires matching
+configuration; no current service declares one. Services advertise their
+native execution horizon.
 
 Model-call recovery is separate from case scheduling and belongs to the method.
 Record such recovery and available usage without inventing executed controls.

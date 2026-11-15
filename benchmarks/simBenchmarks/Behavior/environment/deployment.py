@@ -23,25 +23,21 @@ ASSET_FILES = {
     "2026-challenge-task-instances/metadata/task.jsonl": TASK_METADATA_SHA256,
     "omnigibson-robot-assets/models/r1pro/r1pro.yaml": "63f841cffd5c499102416a797a22fa5b4cbaf146539df7dde8a4a1053e2326f1",
     "omnigibson-robot-assets/models/r1pro/urdf/r1pro.urdf": "b0d76760cbedfbcbe1ddc280380dd5f497bbca380313bc096d7239a2c50dae61",
-    "2026-challenge-task-instances/scene_test/public/house_double_floor_lower/json/house_double_floor_lower_task_turning_on_radio_instances/house_double_floor_lower_task_turning_on_radio_0_301_template-tro_state.json": "30a0fe101da1cbf6eb3683d3f9da716399ccd7409974b459dc12a580d2c8ad13",
 }
+SCHEMA = "starvla-rsi.behavior.deployment/v1"
 PACKAGES = ("omnigibson", "bddl", "joylo", "torch", "numpy", "isaacsim", "omegaconf", "hydra-core", "imageio", "imageio-ffmpeg")
 
 
 def selected_asset_files(task=TASK):
     selected = task_definition(task)
-    common = {name: sha for name, sha in ASSET_FILES.items() if name != task_definition().instance_path}
-    return {**common, selected.instance_path: selected.instance_sha256}
+    return {**ASSET_FILES, **selected.instance_files}
 
 
 def validate_manifest_task(recorded, task=TASK):
     """Bind the selected case before spawning/importing the native runtime."""
     selected = task_definition(task)
-    if selected.name == TASK:
-        if recorded.get("schema") != "behavior2026-deployment/v1" or "task" in recorded:
-            raise ValueError("radio requires its original deployment v1")
-    elif recorded.get("schema") != "behavior2026-deployment/v2" or recorded.get("task") != selected.name:
-        raise ValueError("selected task requires its matching deployment v2")
+    if recorded.get("schema") != SCHEMA or recorded.get("task") != selected.name:
+        raise ValueError("deployment schema or selected task differs")
     if recorded.get("selected_asset_files") != selected_asset_files(task):
         raise ValueError("deployment selected task asset identities differ")
 
@@ -138,13 +134,11 @@ def capture(source_root, data_root, receipts, task=TASK):
     source = source_identity(source_root)
     runtime = runtime_identity(source_root)
     assets = asset_identity(data_root, receipts, selected.name)
-    record = {"schema": "behavior2026-deployment/v1", "source_root": str(absolute(source_root)),
+    return {"schema": SCHEMA, "source_root": str(absolute(source_root)),
             "data_root": str(absolute(data_root)), "source": source, "runtime": runtime,
             "asset_receipts": assets, "selected_asset_files": selected_asset_files(selected.name),
-            "asset_attestation_scope": "verified archive extraction receipts and selected files; not all live asset bytes"}
-    if selected.name != TASK:
-        record.update(schema="behavior2026-deployment/v2", task=selected.name)
-    return record
+            "asset_attestation_scope": "verified archive extraction receipts and selected files; not all live asset bytes",
+            "task": selected.name}
 
 
 def verify(path, expected_sha256, task=TASK):
@@ -167,7 +161,7 @@ def main():
     parser.add_argument("--receipts", required=True, help="JSON mapping asset directory name to extraction receipt path")
     parser.add_argument("--output", required=True)
     parser.add_argument("--task", choices=tuple(TASKS), default=TASK,
-                        help="fixed public-index-0 task; radio keeps deployment v1, selected new tasks use v2")
+                        help="task bound into the manifest")
     args = parser.parse_args()
     record = capture(args.source_root, args.data_root, json.loads(Path(args.receipts).read_text()), args.task)
     with absolute(args.output).open("x") as stream:

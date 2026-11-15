@@ -44,23 +44,38 @@ cap shared by every task.
 
 ## Current Bench Server selection
 
-[The adapter](bench_server/adapter.py) exposes the target scene split only.
-The default `task_scope="pilot"` uses local indices 0=OpenDrawer and
-1=NavigateKitchen; `task_scope="target50"` uses target-set ordinals, including
-4=NavigateKitchen and 6=OpenDrawer. See [service support](../SERVICE_SUPPORT.md).
+[The adapter](bench_server/adapter.py) exposes the target scene split only,
+with task IDs as target-set ordinals 0–49 (4=NavigateKitchen, 6=OpenDrawer).
+The launch seed is always 20260907. In `fast`, every case uses that seed, so all
+attempts on a task share one natively sampled scenario. In `max`, scenario `k`
+of every task resets with seed 20260907 + `k`. See
+[service support](../SERVICE_SUPPORT.md).
 
-The current service selects one scenario per chosen task at seed 20260907.
-`task_ids` must be an increasing, unique subset of the chosen scope's indices;
-an episode limit selects a prefix without repeating tasks. There is no public
-layout/style override, arbitrary seed selector or multi-seed panel. The native
+| `evaluation_mode` | Tasks | Scenario / attempts | Episodes |
+| --- | --- | --- | ---: |
+| `fast` (default) | All 50 | Seed 20260907, attempts 1–5 | 250 |
+| `max` | All 50 | Scenarios 0–49, seed 20260907 + scenario, one attempt each | 2500 |
+| `example` | Task 0 | Seed 20260907, attempt 1 | 1 |
+
+`fast` is ordered by attempt and `max` by scenario. `fast` uses
+`robocasa365-target50-task{TT}-attempt{AA}` for attempt 1 over tasks 0–49, then
+attempt 2, and so on. `max` uses `robocasa365-target50-task{TT}-scenario{KK}`
+for scenario 00 over tasks 0–49, then scenario 01, through scenario 49.
+`--episodes` selects a prefix and `--episode-id` selects cases within the chosen
+mode. There is no public layout/style override or seed selector. The native
 sampler determines the actual kitchen/object placement, so seed and layout are
-not interchangeable identifiers. The 50-scenario-per-task reference schedule
-needs additional sampling support; selecting all 50 task names gives 50 cases,
-not 2500 cases or coverage of all 365 implemented tasks.
+not interchangeable identifiers.
 
-The `task_ids` default is `[0,1]` in either scope. Selecting `target50` changes
-the index namespace, not the selected list length; supply all desired indices
-explicitly before launching.
+The descriptor protocol is
+`robocasa365-b4684e6/target50-single-scenario-native-horizons/rgb/{mode}/v1`
+for `fast` and `example`, and
+`robocasa365-b4684e6/target50-seeded-scenarios-native-horizons/rgb/max/v1`
+for `max`, both with `native-v1`; the other tracks extend the `rgb` segment as
+listed below. Its step cap is the largest reference horizon in the schedule
+(4350 for both fast and max);
+each episode still stops at its own task's reference horizon. That per-task cap
+is the episode metadata's `environment_step_cap`, and the runner uses it as the
+episode's control budget, so the policy's remaining controls are per task.
 
 The pinned dataset registry has horizon metadata for 317 task entries
 (65 atomic, 252 composite); 48 implemented composite classes lack that metadata.
@@ -75,9 +90,9 @@ Rendering is an explicit protocol choice:
 
 | `render_track` | Meaning and result identity |
 | --- | --- |
-| `native-v1` | Default native renderer, descriptor suffix `/v1`; the pinned EGL lifecycle defect is present |
-| `egl-owner-restore-v1` | Linux/EGL ownership and readback checks; suffix `/egl-owner-restore-v1/v2` |
-| `egl-owner-material-clamp-v1` | Ownership repair plus temporary clamping of finite out-of-range scene shininess; suffix `/egl-owner-material-clamp-v1/v3` |
+| `native-v1` | Default native renderer, observation segment `rgb`; the pinned EGL lifecycle defect is present |
+| `egl-owner-restore-v1` | Linux/EGL ownership and readback checks; observation segment `rgb-egl-owner-restore` |
+| `egl-owner-material-clamp-v1` | Ownership repair plus temporary clamping of finite out-of-range scene shininess; observation segment `rgb-egl-owner-material-clamp` |
 
 The first two tracks preserve the native scene/camera/pixel operations. The
 third, selected by the service example, **can change pixels** and is not
@@ -87,7 +102,34 @@ with matching rendering settings. Use a fresh single-thread process; tracks
 cannot be mixed in one process. Setup and renderer details are in
 [environment/RENDERING.md](environment/RENDERING.md).
 
-The selected reset uses seed 20260907 and the target split. Native construction may initialize a scene before the explicit seeded reset; retain this upstream behavior and record the actual reset. Do not search seeds, replace assets, resample initial success or force an easier kitchen.
+Every selected reset uses the target split and the episode's seed: 20260907 in `fast`/`example`, 20260907 + scenario in `max`. Native construction may initialize a scene before the explicit seeded reset; retain this upstream behavior and record the actual reset. Do not search seeds, replace assets, resample initial success or force an easier kitchen.
+
+### Max-mode scenarios
+
+The upstream evaluation script that the RoboCasa benchmarking docs link to,
+`scripts/run_eval.py` in the GR00T `robocasa-benchmark` fork (inspected at
+`9d7d7a9eb7ad30bd8ce30448d9ab53a918b45b10`), runs `--n_episodes` 50 per task
+with `max_episode_steps` from the task horizon. Its `gr00t/eval/simulation.py`
+constructs the environment and resets it without a seed, so its 50 scenarios
+are an unseeded random stream that cannot be replayed.
+
+`max` replaces that stream with a deterministic stand-in. Each episode
+constructs a fresh environment and passes seed 20260907 + `k` to native
+construction and `reset(seed=...)`. In the pinned RoboCasa, `RoboCasaGymEnv.reset`
+sets the kitchen's `rng` from that seed. The kitchen then draws (layout, style)
+from the target pairs that remain after the task's `EXCLUDE_LAYOUTS` and
+`EXCLUDE_STYLES`, and the native samplers place objects. The adapter never
+forces a layout, style or object. The drawn layout and style are recorded in
+evaluator-side native provenance only; the scenario index and launch seed are
+also in the episode metadata.
+
+Distinct seeds do not guarantee distinct kitchens. The target split has only
+ten kitchens, and some tasks exclude several, so the 50 scenarios of one task
+repeat kitchens and vary mainly in object selection and placement. That
+seed-to-scene determinism is from source inspection, not a replay check.
+`max` results are comparable with each other. They match the upstream
+procedure in task set, scenario count, horizons and scoring, but not in the
+exact scenarios drawn.
 
 ## Observation contract
 
@@ -108,29 +150,28 @@ The native 20 Hz controller is `HYBRID_MOBILE_BASE`, with right-arm `OSC_POSE`, 
 | `[10]` | Normalized torso delta, ±0.05 m; native joint range 0–0.34 m |
 | `[11]` | Exact binary base mode: 0 arm/achieved-goal update, 1 base/desired-goal update |
 
-Base mode does not zero the other command dimensions. Preserve the native X-forward base transformation and native controller clipping behavior; do not insert a different frame conversion or high-level policy heuristic. Reject malformed, non-finite, out-of-bound or non-binary public commands instead of thresholding binary fields.
+Base mode does not zero the other command dimensions. Preserve the native X-forward base transformation and native controller clipping behavior; do not insert a different frame conversion or high-level policy heuristic. Reject malformed, non-finite, out-of-bound or non-binary public commands instead of thresholding binary fields; a fractional `[6]` or `[11]` is an ordinary action rejection before execution, not a session fault.
 
 ## Budgets and native scoring
 
-The native engine retains horizon 1000 with `ignore_done=True`. The adapter's `budget_mode="horizon"` instead enforces the task reference: OpenDrawer 750 and NavigateKitchen 450. Target-set reference horizons range from 450 to 4350; 33 exceed 1000.
-
-The explicit decision track permits D up to 200 maximum policy calls and K up to 5 controls per response, with cap D × K and matching runner settings. D=200/K=5 gives 1000 controls; it both extends and shortens different native task references. Record actual budgets and references separately, not as native leaderboard parity.
+The native engine retains horizon 1000 with `ignore_done=True`. The adapter instead enforces the task reference horizon: OpenDrawer 750 and NavigateKitchen 450. Target-set reference horizons range from 450 to 4350; 33 exceed 1000. The service sets no policy-call or per-decision control limit; a trusted driver's own limits or step-cap override are recorded with the run, not reported as native leaderboard parity.
 
 Native Gym returns `info.success` and sparse reward 1/0; require their agreement. Preserve native reward/scorer invocation multiplicity without an additional oracle query. Stop at first native success. Keep current native success, success-ever, termination and truncation distinct. Initial native success is an error before policy control, not a reset-search opportunity.
 
-Count policy calls, action decisions and controls independently. A stop-only response has no action decision; a chunk can execute fewer than K controls. Record first-success control and its policy-call index from events. Voluntary-stop persistence belongs to the model profile and cannot delay evaluator caps or native termination.
+Count policy calls, action decisions and controls independently. A stop-only response has no action decision; a chunk can execute fewer controls than it proposes. Record first-success control and its policy-call index from events. Voluntary-stop persistence belongs to the model profile and cannot delay evaluator caps or native termination.
 
 ## Results and sample coverage
 
-Report the selected scope/task IDs, seed, rendering and budget settings, native
+Report the evaluation mode, selected cases, seed, rendering and budget settings, native
 success, decisions, controls and termination/error reason. Success rate uses the
 declared selected cases; distinguish native failures from infrastructure errors
 and unattempted cases. Per-task reference horizons can differ, so report the
 actual cap as well as the reference.
 
-The service supports the two-task list or target50, each with one sample at
-seed 20260907. It does not implement the native 50-scenario-per-task sampler or
-the other 315 implemented task names. Exact source/asset and rendering
+The service supports target50 with one seeded scenario per task and repeated
+attempts (`fast`), or 50 seeded scenarios per task (`max`). It does not replay
+upstream's unseeded scenario stream or expose the other 315 implemented task
+names. Exact source/asset and rendering
 requirements are in [environment setup](environment/README.md).
 
 Optional interaction/media retention is described in

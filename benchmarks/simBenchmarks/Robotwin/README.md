@@ -44,18 +44,29 @@ See [service support](../SERVICE_SUPPORT.md).
 | `lift_pot` | Lift the pot | 400 target controls |
 | `click_bell` | Press the bell | 400 target controls |
 
-The configured `task` and unscreened `native_seed` define the service's single
-episode. The native expert-screened repetition schedule is not exposed.
+`evaluation_mode` selects the native seeds for the configured `task`; omit it
+for `fast`. Each episode is one attempt at one native seed.
 
-Both native object variants for each supported task are retained. Task
-instructions use the native fixed `full_description`; there is no expert
-execution or outcome-driven seed selection during the participant attempt.
+| Mode | Selection per task | Episodes | Cap |
+| --- | --- | ---: | ---: |
+| `fast` (default) | native seeds 100000–100004, `demo_clean` | 5 | 400 |
+| `max` | 100 accepted seeds from a hash-bound accepted-seed manifest | 100 | 400 |
+| `example` | native seed 100000 | 1 | 400 |
 
-`native_seed` accepts a uint32 integer and controls native scene generation;
-it is not a layout or object-variant ID. `lift_pot` keeps pot variants 0 and 1;
-`click_bell` keeps bell variants 0 and 1. Native seeded sampling selects the
-variant/placement. The service has no independent layout, object-variant or
-multi-seed selector: one deployment represents one task/seed pair.
+The `task` selector narrows within the chosen mode to one task per service.
+One process claims one episode: launch each episode with `--episode-id`.
+
+`fast` and `example` seeds are unscreened, unlike native sampling, and use the
+native fixed `full_description`. `max` reads the native screening record
+prepared offline: 100 accepted seeds, every rejection, and the native
+instruction drawn for each accepted seed. Startup refuses an incomplete record
+and names the preparation step; see the [protocol](EVALUATION_PROTOCOL.md#max-accepted-seed-manifest).
+No expert runs and no seed is selected by outcome during a participant attempt.
+Both native object variants for each supported task are retained.
+
+The native seed controls native scene generation; it is not a layout or
+object-variant ID. `lift_pot` keeps pot variants 0 and 1; `click_bell` keeps
+bell variants 0 and 1. Native seeded sampling selects the variant/placement.
 
 ## Service robot interface
 
@@ -98,7 +109,9 @@ Prepare the matching deployment and native environment using
 [environment/README.md](environment/README.md). Copy
 [server.example.json](server.example.json) to an operator-owned file and replace
 `source_root` and `deployment_manifest_sha256` with its verified values. Select
-`task`, `native_seed` and renderer track before launching. The all-zero digest
+`task`, `evaluation_mode` and renderer track before launching. For `max`, also
+add `seed_manifest` (absolute path) and, to pin it, `seed_manifest_sha256`: a
+given pin must match; without one the observed hash is recorded unpinned. The all-zero digest
 is a placeholder, not a runnable deployment identity.
 
 Set `RSI_SIM_SERVER_TOKEN` privately in the server and trusted evaluator
@@ -108,12 +121,12 @@ From the repository root, using the prepared native interpreter:
 ```sh
 python -B -m benchmarks.simBenchmarks.Robotwin.server \
   --parameters /absolute/robotwin-server.json \
-  --seed 20260907 --episodes 1 --port 8771 \
+  --seed 20260907 --episode-id lift_pot-native-seed100000-episode000 --port 8771 \
   --output-dir /absolute/new-robotwin-run/server
 ```
 
-The launch `--seed` is recorded separately from the native scene seed in the
-JSON. The service binds loopback; use SSH forwarding for a remote evaluator.
+The launch `--seed` is recorded separately from each episode's native scene
+seed. `--list-episodes` prints the episode IDs of the selected mode. The service binds loopback; use SSH forwarding for a remote evaluator.
 Startup/description performs zero resets. A trusted participant driver connects
 through the shared protocol and gives its agent only the declared observations.
 Its model, prompts, tools and decision loop are independent of this package.
@@ -139,8 +152,8 @@ default server media ownership and optional frame retention.
 ## Runtime requirements
 
 The source pin is an archive content inventory, not a verified upstream Git
-revision. Fresh upstream bootstrapping and the 50-task accepted-seed schedule
-remain unsupported. The bundled OIDN 2.0.1 and opt-in OIDN 2.3.3 renderer tracks have
+revision. Fresh upstream bootstrapping, accepted-seed preparation and the other
+48 tasks remain unsupported. The bundled OIDN 2.0.1 and opt-in OIDN 2.3.3 renderer tracks have
 different protocol identities and do not claim interchangeable pixels/scores.
 Validate rendering and controls on the intended deployment before evaluation.
 

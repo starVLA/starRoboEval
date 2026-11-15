@@ -1,5 +1,5 @@
 {
-  "schema_version": "starvla-rsi.metaworld-task-catalog/v1",
+  "schema_version": "starvla-rsi.metaworld.task-catalog/v1",
   "native_distribution": "metaworld",
   "native_version": "3.1.1",
   "task_order_source": "metaworld.env_dict.ALL_V3_ENVIRONMENTS",

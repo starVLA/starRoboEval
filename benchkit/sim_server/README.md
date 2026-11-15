@@ -51,7 +51,7 @@ deployment each: service ID, Python, source snapshot, parameters, seed):
 {"schema_version": "starvla-rsi.gateway-catalog/v1",
  "slots": [{"id": "gpu0", "port": 18801, "env": {"CUDA_VISIBLE_DEVICES": "0"}}],
  "profiles": {"vln_ce": {"service": "vln_ce", "python": "/abs/env/bin/python",
-   "source": "/abs/source-snapshot", "parameters": "/abs/vln_ce-full.json", "seed": 0,
+   "source": "/abs/source-snapshot", "parameters": "/abs/vln_ce-max.json", "seed": 0,
    "default_per_task": null}}}
 ```
 
@@ -138,7 +138,8 @@ Generic contracts remain in `benchkit/contracts.py` and
 `benchkit/interfaces.py`.
 
 `python -B -m benchkit.sim_server` starts only the dependency-free synthetic
-diagnostic service. It is not a native robot benchmark or capability evidence.
+diagnostic service; `make smoke` starts it on an ephemeral port and runs its
+self-check through it. It is not a native robot benchmark or capability evidence.
 For a native benchmark, use its own
 `benchmarks.simBenchmarks.<benchmark>.server` entrypoint.
 
@@ -149,7 +150,6 @@ record their git revision and dirty flag. Existing inventories are unchanged.
 Run only from a stable versioned source snapshot;
 never update files inside an active or historical run.
 
-The former cross-benchmark CPU regression runner and acceptance fixtures are
-no longer included in the active source tree; recover matching versions from
-Git history when needed. New changes still need independent contract validation.
-Offline validation does not replace native readiness or model-sample checks.
+Cross-benchmark contract checks stay local and untracked. New changes need
+independent contract validation and a connect-level check through a running
+service. Offline validation does not replace native readiness or model-sample checks.

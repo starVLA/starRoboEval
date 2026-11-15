@@ -19,7 +19,6 @@ from benchkit.contracts import (
     Transition,
     Usage,
 )
-from benchkit.registry import register_benchmark, register_policy
 
 
 class ReachEpisode:
@@ -139,14 +138,13 @@ class ScriptedReachPolicy:
         return None
 
 
-@register_benchmark("smoke")
 def make_smoke_benchmark(parameters: Mapping[str, JsonValue]) -> ReachBenchmark:
+    """Service factory behind ``python -m benchkit.sim_server``."""
     if parameters:
         raise ValueError(f"smoke benchmark has no parameters: {sorted(parameters)}")
     return ReachBenchmark()
 
 
-@register_policy("scripted")
 def make_scripted_policy(parameters: Mapping[str, JsonValue]) -> ScriptedReachPolicy:
     if parameters:
         raise ValueError(f"scripted policy has no parameters: {sorted(parameters)}")

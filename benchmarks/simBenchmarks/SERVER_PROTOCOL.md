@@ -60,13 +60,14 @@ target is a new control at the next sequence, not a retry after an uncertain ACK
 The number of native physics substeps, control timing and protocol-fixed
 interpolation inside one action are not policy-owned repeat settings.
 
-Existing tracks are not all decoupled: explicitly selected `budget_mode=decisions`
-contracts still couple `max_policy_calls` and `replan_interval` to an execution
-cap, with adapter/client agreement checks. SIMPLE now defaults to a task-horizon
-protocol without these method caps. Current CALVIN/DOMINO protocols no longer
-declare `required_replan_interval`. The shared field remains readable for older
-services; it is not a requirement to impose on new integrations. Historical
-records and explicitly selected older contracts are not reinterpreted.
+The description's budget object advertises the native execution horizon
+`environment_step_cap` and, where the benchmark limits model calls,
+`max_policy_calls`. A driver may override either and records the override; no
+service couples call or prefix settings to the execution cap. When an episode's
+metadata declares a smaller `environment_step_cap` than the run's step budget,
+the runner applies that episode cap, so the policy's remaining controls match
+the native horizon of the episode it is playing. No current
+service declares `required_replan_interval`; see below.
 
 Process separation makes deployment ownership explicit; it is not an OS security
 sandbox. Run an untrusted policy separately without evaluator credentials or
@@ -76,10 +77,8 @@ does not enforce that restriction.
 Robot state is not automatically privileged: measured joints, end-effector
 poses or other proprioception may be declared by the benchmark's public sensor
 contract. Undeclared object truth, private scoring predicates and hypothetical
-simulator rollouts remain outside the policy interface. The selected service
-workflow enforces this division through an evaluator-held client; legacy
-in-process adapter factories remain available for explicitly selected local
-workflows and tests, not as a second capability granted to the remote policy.
+simulator rollouts remain outside the policy interface. Benchmarks run only as
+services, and the evaluator-held client enforces this division.
 
 ## Launch and connect
 
@@ -90,8 +89,8 @@ rsi-bench list
 rsi-bench serve --benchmark simpler_env --help
 ```
 
-Source-checkout equivalent: `python -B -m benchkit.sim_server.cli`. The explicit
-registry delegates to the selected benchmark's `server.main(argv)`; it does not
+Source-checkout equivalent: `python -B -m benchkit.sim_server.cli`. Its explicit
+service table delegates to the selected benchmark's `server.main(argv)`; it does not
 replace its factory, schedule constraints or source/asset capture. Generic help
 and listing import no benchmark modules. Selecting a service for help loads its
 import-safe wrapper, but does not create a service or reset an environment.
@@ -120,11 +119,12 @@ canonical IDs and repository-relative setup guides. Per-benchmark module entrypo
 `python -B -m benchmarks.simBenchmarks.SimplerEnv.server`, remain valid. Neither
 route changes the existing benchmark contract or implies native parity.
 
-Schedule selection is benchmark-owned. RoboDojo requires a complete named
-`panel` from [its protocol catalog](RoboDojo/bench_server/protocol/task_catalog.json) and rejects
+Schedule selection is benchmark-owned. RoboDojo serves the complete
+`evaluation_mode` schedule from [its protocol catalog](RoboDojo/bench_server/protocol/task_catalog.json) and rejects
 server-side `--episodes` truncation: `classify_objects` offers fixed selections
-of 5 or 50 layouts, each attempted once. Through the gateway, its panels are the
-whole named selection and `remote-run` refuses case-file or limit subsets. See its
+of 1, 5 or 50 layouts, each attempted once; the 50 `max` layouts are the first
+reset-stable ones in its reset-stability manifest. Through the gateway, its panels are the
+whole mode schedule and `remote-run` refuses case-file or limit subsets. See its
 [launch example](RoboDojo/README.md#start-the-benchmark-server).
 
 The server binds **only `127.0.0.1`**. For another node use an authenticated SSH
@@ -144,13 +144,42 @@ for client commands.
 Server-interface versions and method versions are independent. For example,
 RoboDojo's Direct v2 names a robot-interface contract, not a required model
 implementation. Neither changes the shared `starvla-rsi.sim-server/v1` wire
-protocol. Legacy decision-budget tracks still require matching adapter/client
-budget settings. For the optional reference CLI, `--benchmark` must match the
-server's `descriptor.name`, not a registry alias; remote runs reject
-`--benchmark-args` because only the server controls native construction.
+protocol. For the optional reference CLI, `--benchmark` must match the
+server's `descriptor.name`, not a service ID alias. Only the server controls
+native construction; the client passes no benchmark parameters.
 
 `python -B -m benchkit.sim_server` launches only the synthetic smoke world with
 the same flags. It needs no simulator and is not capability evaluation.
+
+### Readiness probe
+
+Every service shares one connect-level readiness check, with no model or policy:
+
+```sh
+python -B -m benchkit probe --sim-server http://127.0.0.1:8765 --benchmark <descriptor.name>
+```
+
+It reads the token from `RSI_SIM_SERVER_TOKEN` (`--sim-server-token-env` selects
+another variable) and never prints it. The probe calls `describe`, checks that
+`--benchmark` equals `descriptor.name`, claims one episode (the first, or
+`--episode-id`), resets it and calls `finish`. It sends no action, because the
+protocol declares no neutral action, so it stops after reset.
+
+It prints one JSON summary: service identity, a SHA-256 of the described
+`source`, the declared `evaluation_mode`, served and scheduled episode counts,
+budgets, the episode's `environment_step_cap`, reset camera shapes, state size
+and per-phase timings. `--expect-source-sha256` compares that hash with a pin;
+without a pin the hash is recorded as `unpinned` and the probe continues. A
+failure reports its class (`infrastructure`, `protocol` or `compatibility`), a
+closed error code and the phase. An unreachable service or a rejected token is
+an infrastructure error. The exit status is 0 only for a passed probe. The closed
+receipt goes to a new directory under `--output-dir` (default `results/rsi-probe`).
+
+The claim is permanent. Probe a dedicated launch with its own output directory,
+for example with `evaluation_mode: example` or `--episodes 1` where the service
+allows truncation, then start a new service for evaluation. A passing probe shows
+connectivity, identity and one native reset with its observation. It does not
+validate control execution, task success or model capability.
 
 ## Evaluator RPC, version 1
 
@@ -249,10 +278,10 @@ other benchmarks without that channel. Model notes, preview images and target se
 remain under `AgentPolicies/<profile>/`; native RGB and evaluator-private records are
 not replaced by model-side previews.
 
-Older services may declare a positive integer `required_replan_interval` in
-their description's budget object. Matching clients continue to reject a
-mismatched prefix before claiming an episode; do not silently override an old
-declared contract. New integrations should leave decision cadence to the agent.
+A service may declare a positive integer `required_replan_interval` in its
+description's budget object; no current service does. Clients then cap each
+chunk at that length and reject a mismatched setting before claiming an
+episode. Integrations should leave decision cadence to the agent.
 The wire always acknowledges one control at a time, so an agent can inspect
 each returned public instruction while executing a multi-control chunk.
 
@@ -293,9 +322,9 @@ unsafe paths and overwritten destinations are rejected. V1 bounds each episode
 to 100,000 files / 16 GiB; exceeding a bound is an explicit infrastructure error,
 not silent truncation. A benchmark launcher may declare runtime-only directories
 to omit from transfer; this is benchmark-owned storage classification, not a
-policy option or permission to omit outcome evidence. SIMPLE and RoboDojo exclude
-only their episode-local `cache/` directories; RoboTwin uses the same rule for
-native CUDA build outputs. The exclusion is recorded in the
+policy option or permission to omit outcome evidence. Behavior, DOMINO,
+RoboDojo, RoboTwin, SIMPLE and VLN-CE exclude only their episode-local `cache/`
+directories (runtime and native JIT build caches). The exclusion is recorded in the
 session receipts and the captured benchmark launcher. Observations, actions, native logs, metrics, source
 provenance and videos are not excluded. Canonical server videos remain retained;
 artifact downloads never delete or relocate them. Changed export declarations
@@ -315,8 +344,6 @@ file, but missing optional history does not prevent basic result publication.
 See [recording settings](../../docs/recording.md).
 
 The local `sim_server_receipt.json` records server identity, source references and
-the closed artifact inventory without credentials. Legacy benchmark artifact
-auditors assume older directory layouts; they are not yet validators of this
-new server layout. Transport regression, native execution and model capability
-are separate evidence claims. Task/case selection and model persistence rules
-are independent of this communication protocol.
+the closed artifact inventory without credentials. Transport regression, native
+execution and model capability are separate evidence claims. Task/case selection
+and model persistence rules are independent of this communication protocol.

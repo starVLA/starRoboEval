@@ -46,8 +46,9 @@ python -B -m benchkit list
 python -B -m benchkit smoke --episodes 3 --seed 7
 ```
 
-The smoke check is a dependency-free synthetic fixture, not a robot capability
-score. It writes records under `results/rsi-smoke/`. Install the environment
+The smoke check starts a dependency-free synthetic benchmark service on a local
+port and runs a scripted fixture through it; it is not a robot capability score.
+It writes the client run and the service records under `results/rsi-smoke/`. Install the environment
 described by the selected benchmark before attempting a native task.
 
 - [Declare and connect an agent method](docs/agent-methods.md)
@@ -157,9 +158,11 @@ make smoke
 ```
 
 `make check` validates the catalog. `make smoke` runs the dependency-free
-evaluation self-check without native simulator or model calls. Contract tests
-are local working checks and stay outside the public tree. Neither command
-establishes native evaluation or model capability. See the [integration guide](docs/benchmark-server-guide.md#7-按证据层级验收)
+evaluation self-check through a local synthetic service, without native
+simulator or model calls. Cleanup and
+integration work is verified with these two commands plus a connect-level check
+through a running benchmark service. Test and check files stay local and
+untracked. Neither command establishes native evaluation or model capability. See the [integration guide](docs/benchmark-server-guide.md#7-按证据层级验收)
 for the implementation, independent-review and regression loop.
 
 To add a benchmark, implement [BenchmarkAdapter and EpisodeSession](benchkit/interfaces.py)
@@ -176,9 +179,8 @@ reports and indices, are local and Git-ignored, as are credentials and local
 environment artifacts. Publish selected result summaries in documentation or
 the website.
 
-The grouped [.gitignore](.gitignore) excludes generated artifacts and local
-check/test files, with an explicit exception for the maintained public CPU
-contract suite, as well as the runtime data described above.
+The grouped [.gitignore](.gitignore) excludes generated artifacts, local
+check/test files and the runtime data described above.
 `git status --short --ignored` marks ignored paths with `!!`;
 `git check-ignore -v -- PATH` identifies the matching rule.
 Ignored files can remain on disk. Editors may show them dimmed rather than hide

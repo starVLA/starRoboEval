@@ -17,7 +17,7 @@ loaded source files and effective configuration rather than inventing a commit.
 
 Habitat 0.3.3 uses structured configuration. This service starts from
 `benchmark/nav/vln_r2r.yaml` and explicitly sets the contract in
-[EVALUATION_PROTOCOL.md](EVALUATION_PROTOCOL.md): 500 actions, 0.25-metre forward,
+[EVALUATION_PROTOCOL.md](../EVALUATION_PROTOCOL.md): 500 actions, 0.25-metre forward,
 15° turns, sliding enabled, RGB 512×512 / 90° FOV, instruction-only task sensing
 and native success distance 3 m. It exposes only current RGB and instruction.
 Do not reuse a model evaluation script that adds GPS, oracle sensors, extra
@@ -43,10 +43,18 @@ scene_data/
 ```
 
 Set `dataset_path` to the split JSON and `scenes_dir` to `scene_data`, since
-episode scene IDs already contain `mp3d/`. Select `episode_ids` from the whole
-split before inspecting outcomes or filtering by available scenes. Missing
-selected assets block initialization; they never select replacement episodes.
+episode scene IDs already contain `mp3d/`. `evaluation_mode` fixes the episodes
+from the whole split before any outcome is seen. Missing selected assets block
+initialization; they never select replacement episodes.
 Use `val_seen` or `val_unseen` for local scoring; test goals are withheld.
+`split` must name the file's split: the service rejects a dataset whose episode
+count differs from the released count of that split.
+
+To pin the data, run `shasum -a 256` (or `sha256sum`) on
+`<split>/<split>.json.gz` and `<split>/<split>_gt.json.gz` from a copy unpacked
+from the official `R2R_VLNCE_v1-3_preprocessed.zip`, then fill the matching
+`DATASET_SHA256` and `GT_SHA256` entries in [bench_server/adapter.py](../bench_server/adapter.py). A pinned
+mismatch blocks startup; an unset pin records the observed hash as `unpinned`.
 
 The preprocessed package supplies validation GT paths/actions. Optional
 `gt_path` validates matching entries and records their origin; this version
@@ -57,15 +65,19 @@ reports native success, SPL and distance and does not compute nDTW.
 1. Check interpreter resolution, package versions, complete split/GT coverage
    and required GLB/navmesh files before claiming a case.
 2. Set explicit native interpreter, data paths, selected IDs and GPU in a copy
-   of [server.example.json](server.example.json). Keep local paths out of Git.
-3. Verify the configured GPU is available. Start the service from stable source
-   and use a trusted client for a separate, labelled no-model diagnostic:
-   describe, claim, reset, inspect RGB, execute a valid action, execute STOP,
-   read metrics and finish. Invalid actions must not move the simulator.
-4. Confirm finalization, video decoding and owned worker cleanup. Only then
-   declare model evaluation cases. A diagnostic STOP failure is not a model
+   of [server.example.json](../server.example.json). Keep local paths out of Git.
+3. Verify the configured GPU is available. Start a dedicated `example` service
+   from stable source and run the shared
+   [readiness probe](../../SERVER_PROTOCOL.md#readiness-probe). It describes,
+   claims, resets and finishes one episode with no model or action, and reports
+   the RGB shape.
+4. Confirm finalization and owned worker cleanup. Only then declare model
+   evaluation cases. A failed probe is an infrastructure result, not a model
    capability result, and a successful reset alone is not control validation.
+   Actions, STOP, metrics and video decoding are first checked in the closed
+   records of a separately authorized sample; invalid actions must not move
+   the simulator.
 
-Keep diagnostic output separate from scored model runs. Use the shared
-[server interface](../SERVER_PROTOCOL.md); do not give simulator handles,
+Keep probe output separate from scored model runs. Use the shared
+[server interface](../../SERVER_PROTOCOL.md); do not give simulator handles,
 scenes, private route/goal fields or evaluator credentials to the model.

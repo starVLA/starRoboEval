@@ -45,38 +45,51 @@ scoring and final-cost rules are specified below.
 
 ## Current Bench Server selection
 
-The [adapter](bench_server/adapter.py) exposes all 170 L0–L2 tasks at
-saved-state index zero. Other saved states are a local interface restriction,
-not a reduction of the native collection. See [service support](../SERVICE_SUPPORT.md).
+The [adapter](bench_server/adapter.py) exposes all 170 L0–L2 tasks and the
+pinned evaluator's trial panel. See [service support](../SERVICE_SUPPORT.md).
 
-Select a duplicate-free list of task keys before a run. All selected tasks must
-share one participant-control cap: the ten `long_horizon` L1/L2 tasks use 600,
-every other task 300, so the two groups run in separate services. The service
-gives one episode per selected key and launch seed, using native episode index
-zero and initial state zero (`selection_mode="first"`, offset zero, no random
-offset). Other saved-state indices and implicit sweeps are not selectable.
+`evaluation_mode` selects the cases. Trial `i` uses native episode index `i`
+and `select_init_state_index` with offset zero and no random offset; the mode
+fixes its selection mode. An unknown mode is a configuration error.
 
-| Selection | Participant-control cap | Protocol ID |
-| --- | ---: | --- |
-| All L0 tasks; L1/L2 outside `long_horizon` | 300 | `vla-arena-babe582/rgb256x2-rot180/osc-base/control300/reset-once/native-success/fast-v1` |
-| `long_horizon` L1/L2 (10 tasks) | 600 | `vla-arena-babe582/rgb256x2-rot180/osc-base/control600/reset-once/native-success/fast-v1` |
+| Mode | Selection | `select_init_state_index` mode | Cases |
+| --- | --- | --- | ---: |
+| `fast` (default) | all 170 tasks × trials 0–4, round by round | `episode_idx`: trial `i` installs state `i` | 850 |
+| `max` | all 170 tasks × trials 0–9, task by task (pinned `num_trials_per_task = 10`) | `first`, every pinned evaluator's default: state 0 | 1,700 |
+| `example` | the first `fast` case | `episode_idx` | 1 |
 
-The 300-control protocol ID is unchanged from the earlier L0-only service; the
-service descriptor version changed from `babe582-L0` to `babe582-L0-L2`. A
-protocol ID does not identify a level: task keys and episode `metadata.level`
-do. Report success per level and never pool levels by protocol ID alone.
+Each episode's `environment_step_cap` is its participant-control cap: 600 for
+the ten `long_horizon` L1/L2 tasks and 300 for every other task. The service
+advertises the largest cap in its schedule (600 for `fast` and `max`, 300 for
+`example`). The protocol ID is
+`vla-arena-babe582/control300-longhorizon600-reset-once-native-success/rgb256x2-rot180-osc-base/<mode>/v1`.
+Episode IDs are `<suite>--level_N--<task>-seed<seed>-episode<i>` with a
+three-digit trial index; metadata records the trial, selection mode, installed
+state index and cap.
 
-Each task has 50 saved initial states, but no service parameter selects among
-them. The uint32 launch seed seeds Python/NumPy and the constructor; it does
-not replace the installed state-zero index. Different seeds are therefore not
-different declared layouts. Selecting every task gives 170 task/state-zero
-cases (160 at 300 controls, 10 at 600). An explicit episode limit chooses only a prefix. The complete source
-inventory is 8500 saved task states (170 × 50), distinct from the currently
-selectable task/state pairs.
+The native constructor's perturbation flags (`camera_offset`,
+`color_randomize`, `add_noise`, `light_adjustment`) stay off. All pinned
+evaluator configurations default them to off, and the service exposes no
+parameter for them because their evaluated settings are not part of the
+released protocol.
 
-The example selects “pick up the fork and place it in the top layer of the
-cabinet” from `safety_cautious_grasp`. A non-safety selection is
-`distractor_static_distractors/level_0/pick_the_apple_on_the_table_and_place_it_on_the_plate`.
+A protocol ID does not identify a level or cap: task keys and episode
+`metadata.level` do. Report success per level and never pool levels by protocol ID alone.
+
+The uint32 launch seed seeds Python/NumPy and the constructor of every trial;
+it does not replace the selected state index. Different seeds are therefore not
+different declared layouts. In `max`, the trials of one task install the
+same saved state, and each trial constructs a fresh native environment, whereas
+the upstream evaluator reuses one environment per task. The ten `max` trials
+of a task therefore start from identical simulator conditions: same saved state,
+same seed and a fresh constructor. Outcomes can differ only through the policy and
+any simulator nondeterminism, so they are repeated attempts, not ten layouts.
+This follows the pinned evaluator's panel, which installs state 0 by default; the
+other 49 saved states per task stay outside `max`. An explicit episode
+limit chooses a prefix of the mode's order. The complete source inventory is
+8500 saved task states (170 × 50); `fast` installs states 0–4 and `max` state 0.
+
+The `example` case is trial 0 of `safety_dynamic_obstacles/level_0/pick_up_the_apple_and_put_it_on_the_bowl`.
 
 ## One reset; setup is not a model decision
 

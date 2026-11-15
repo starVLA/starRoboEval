@@ -11,6 +11,10 @@ from benchkit.errors import CompatibilityError
 REVISION = "4976dc30028e805ff8094b55501d532c48fec182"
 COUNTS = {"libero_spatial": 2402, "libero_object": 2518, "libero_goal": 2591, "libero_10": 2519}
 HORIZONS = {"libero_spatial": 220, "libero_object": 280, "libero_goal": 300, "libero_10": 520}
+CATEGORIES = ("Background Textures", "Camera Viewpoints", "Language Instructions", "Light Conditions",
+              "Objects Layout", "Robot Initial States", "Sensor Noise")
+FAST_SELECTION_SEED = 20261026  # ranking salt of the fast variant selection
+FAST_SAMPLES = 5  # variants per (base task, category) group
 COLUMNS = ("native_id", "native_name", "instruction", "native_instruction", "category", "difficulty_level",
            "bddl_sha256", "initial_file", "initial_file_sha256")
 
@@ -52,7 +56,7 @@ def task_catalog(suite: str) -> dict:
     if suite not in COUNTS:
         raise ValueError("suite must be one of the four LIBERO-Plus suites; libero_90 is excluded")
     payload = json.loads(Path(__file__).with_name("catalogs").joinpath(suite + ".json").read_text())
-    if (payload.get("schema_version") != "starvla-rsi.libero-plus-catalog/v1"
+    if (payload.get("schema_version") != "starvla-rsi.libero_plus.catalog/v1"
             or payload.get("upstream_revision") != REVISION or payload.get("suite") != suite
             or payload.get("task_order_index") != 0 or payload.get("columns") != list(COLUMNS)
             or payload.get("task_count") != COUNTS[suite] or len(payload.get("tasks", [])) != COUNTS[suite]):
@@ -74,6 +78,39 @@ def task_catalog(suite: str) -> dict:
         names.add(item["native_name"])
         rows.append(item)
     return {**payload, "tasks": rows}
+
+
+def fast_selection(suite: str, rows: list[dict]) -> list[tuple[int, dict]]:
+    """Return (sample slot, row) pairs of the fast variant selection, in run order.
+
+    Within each (base task, category) group, variants are ranked by ascending
+    SHA256("20261026/suite/base_task/category/native_id"), native ID breaking
+    ties, and the first five are kept. Order: slot, category, then the ten base
+    tasks in order of first appearance among Background Textures variants.
+    """
+    bases = []
+    for row in rows:
+        if row["category"] == "Background Textures":
+            match = re.fullmatch(r"(.+)_(?:table|tb)_\d+", row["native_name"])
+            if match is None:
+                raise CompatibilityError("LIBERO-Plus background variant name has no table suffix")
+            if match.group(1) not in bases:
+                bases.append(match.group(1))
+    if len(bases) != 10:
+        raise CompatibilityError("LIBERO-Plus suite must contain exactly ten base tasks")
+    groups = {(base, category): [] for base in bases for category in CATEGORIES}
+    for row in rows:
+        matches = [base for base in bases if row["native_name"].startswith(base + "_")]
+        if len(matches) != 1 or row["category"] not in CATEGORIES:
+            raise CompatibilityError("LIBERO-Plus variant needs exactly one base task and a known category")
+        groups[matches[0], row["category"]].append(row)
+    selected = {}
+    for (base, category), members in groups.items():
+        prefix = f"{FAST_SELECTION_SEED}/{suite}/{base}/{category}/"
+        selected[base, category] = sorted(members, key=lambda row: (
+            hashlib.sha256(f"{prefix}{row['native_id']}".encode("utf-8")).digest(), row["native_id"]))[:FAST_SAMPLES]
+    return [(slot, selected[base, category][slot]) for slot in range(FAST_SAMPLES)
+            for category in CATEGORIES for base in bases if slot < len(selected[base, category])]
 
 
 def file_sha256(path: Path, *, max_bytes: int = 64 * 1024 * 1024) -> str:

@@ -1,8 +1,8 @@
 # CALVIN native environment
 
 The public service uses a dedicated Python 3.10 RGB runtime and the official
-`calvin_debug_dataset` configuration. Equivalence with D-validation setup has
-not been established. See the
+`calvin_debug_dataset` configuration, which matches the D→D validation
+configuration by size and CRC-32. See the
 [evaluation protocol](../EVALUATION_PROTOCOL.md).
 
 ## Native source and licenses
@@ -53,8 +53,13 @@ into a new directory, retaining its checksum receipt.
 Set `dataset_root` to the extracted `calvin_debug_dataset` directory.
 The required `validation/.hydra/merged_config.yaml` is 7,287 bytes, SHA-256
 `75c1c15067e4bd543d1b69a654769836f6cbbf55c4e44ae30da255c45609523f`.
-Do not modify this file. The runtime reads its setup configuration, not
-demonstrations or sampled dataset states. Dataset files and reset vectors are
+Do not modify this file. It matches
+`task_D_D/validation/.hydra/merged_config.yaml` in the official
+[D→D archive](http://calvin.cs.uni-freiburg.de/dataset/task_D_D.zip)
+by size and member CRC-32 (the 177 GB archive was not hashed whole) and declares
+`scene.name: calvin_scene_D`. Adapter construction reads that scene name and
+rejects any other scene as a configuration error. The runtime reads its setup
+configuration, not demonstrations or sampled dataset states. Dataset files and reset vectors are
 not actor inputs.
 
 ## RGB runtime
@@ -119,6 +124,9 @@ use `-B` with the clean native source.
 
 Then follow the [server launch guide](../README.md#prepare-and-launch).
 Check the fixed reset, both RGB views, control timing and clean disconnect on
-the selected installation before collecting task scores. Reset derivation and
-its dependency assumptions are stored in the evaluator-private
-[sequence definition](../bench_server/protocol/selected_sequence.json).
+the selected installation before collecting task scores. The reset vectors and
+their extraction provenance are stored in the public, hash-pinned
+[case panel](../bench_server/protocol/single_task_panel.json). `max` chains use
+the hash-pinned [chain list](../bench_server/protocol/long_horizon_sequences.json)
+and compute each reset from its initial condition. The service never sends
+either file or the reset vectors to the actor.

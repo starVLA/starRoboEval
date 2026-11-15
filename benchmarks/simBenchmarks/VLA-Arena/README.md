@@ -47,20 +47,31 @@ task success must not be confused with that safety-qualified outcome.
 
 ## Current Bench Server integration
 
-The current service accepts explicitly selected tasks from **all three levels,
-L0–L2**. Each task uses native initial-state index zero and one attempt. Although
-each released init file contains 50 states, the service exposes only index zero;
-it has no initial-state selector. Following the pinned evaluators, the ten
-long-horizon L1/L2 tasks permit 600 participant controls and every other task
-300. One service run selects tasks that share a cap, so run those ten in their
-own service. See [service support](../SERVICE_SUPPORT.md).
+`evaluation_mode` selects the cases; one service runs all three levels.
+
+| Mode | Selection | Cases | Cap per case |
+| --- | --- | --- | --- |
+| `fast` (default) | all 170 tasks × 5 trials; trial `k` installs saved state `k` | 850 | 300, or 600 for long-horizon L1/L2 |
+| `max` | all 170 tasks × 10 trials at saved state 0, as in the pinned evaluator | 1,700 | 300, or 600 for long-horizon L1/L2 |
+| `example` | the first `fast` case | 1 | 300 |
+
+Each episode carries its own participant-control cap, following the pinned
+evaluators; the service advertises the largest cap in its schedule. `fast` runs
+round by round (all tasks at trial 0, then trial 1, ...); `max` runs task by
+task. See [service support](../SERVICE_SUPPORT.md).
 
 The configurable uint32 launch seed seeds Python/NumPy and the native
-constructor. It does not select a different saved initial state or layout:
-the same task still installs state zero. A selected list of N distinct task
-keys produces N cases; an episode limit selects a prefix without repetitions.
-The service can select all 170 task/state-zero pairs; other saved states remain
-outside its present interface boundary.
+constructor for every trial. It does not select a different saved initial state
+or layout. In `max`, the trials of one task install the same saved state;
+they differ only through the participant's decisions. Each trial starts a fresh
+native environment, whereas the upstream evaluator reuses one per task. An
+episode limit selects a prefix of the mode's order.
+
+The native constructor's perturbation flags (`camera_offset`,
+`color_randomize`, `add_noise`, `light_adjustment`) stay off. All pinned
+evaluator configurations default them to off, and the service exposes no
+parameter for them because their evaluated settings are not part of the
+released protocol.
 
 ## Service robot interface and native metrics
 
@@ -98,9 +109,8 @@ task predicates or private costs enter the agent observation.
 Prepare [the native environment](environment/README.md), including its private
 `LIBERO_CONFIG_PATH`, EGL settings and a fresh empty `NUMBA_CACHE_DIR` outside
 pinned sources. Copy [server.example.json](server.example.json) to an
-operator-owned file, set `native_root`, and preselect duplicate-free
-`task_names` from the catalog that share one control cap. The example selects a fork-placement task from
-`safety_cautious_grasp`.
+operator-owned file, set `native_root`, and choose `evaluation_mode`. The
+example runs the `fast` cases.
 
 Supply `RSI_SIM_SERVER_TOKEN` only to the trusted server/evaluator environments.
 From the RSI repository root using the prepared native interpreter:
@@ -108,7 +118,7 @@ From the RSI repository root using the prepared native interpreter:
 ```sh
 python -B -m benchmarks.simBenchmarks.VLA-Arena.server \
   --parameters /absolute/vla-arena-server.json \
-  --seed 7 --episodes 1 --port 8765 \
+  --seed 20261031 --episodes 1 --port 8765 \
   --output-dir /absolute/new-vla-arena-run/server
 ```
 
@@ -127,7 +137,7 @@ decisions, controls and errors. Keep optional interaction/media records with
 participant results; see [recording guidance](../../../docs/recording.md).
 The service differs from the upstream wrapper in its single reset attempt and
 explicit constructor seeding; the protocol documents these initialization
-conditions. Additional initial-state selection is not implemented.
+conditions.
 
 `server.py` is the launcher. `bench_server/adapter.py` owns observations,
 actions and scoring; `bench_server/protocol/task_catalog.json` holds immutable

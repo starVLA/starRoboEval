@@ -23,13 +23,33 @@ The native timeout is task-specific, based on 1.5 times mean human length.
 
 The current integration uses BEHAVIOR-1K v3.9.2, source revision
 `b1979916ec1549b10a4e65e630bc6504a9af1b00`. One deployment selects one of the
-seven task bindings below and **one fixed instance**: public index 0 → native
-instance 301, rollout 0. Native evaluation seed is 0; changing the run seed does
-not select another layout. Other tasks and instance indices are not exposed.
+seven task bindings below; `evaluation_mode` selects its instances:
+
+| Mode | Selection | Episodes per task | Cap |
+| --- | --- | ---: | --- |
+| `fast` (default) | Public indices 0–4 → native instances 301–305, rollout 0 | 5 | Native H + 1 |
+| `max` | Public indices 0–9 → native instances 301–310, rollout 0 | 10 | Native H + 1 |
+| `example` | Public index 0 → native instance 301 | 1 | Native H + 1 |
+
+`max` is the native per-task schedule above: `--instance-indices 0 1 2 3 4 5 6 7 8 9`,
+one rollout each, default 1.5× mean-human-length timeout. Native
+`eval/utils/eval_utils.py` maps public index *i* to instance 301 + *i*
+(`TEST_INSTANCE_IDS = range(301, 341)`, first 20 public). One deployment covers
+one task, so the benchmark-scope max panel (100 tasks × 10 = 1,000 trials) is
+the union over deployments of all 100 tasks. Only the seven tasks below are
+bound; the other 93 are unavailable until they are bound and reset-verified.
+A union of the seven bound tasks (70 trials) is not the challenge panel.
+
+Protocol ID: `behavior-b197991/2026-selected-tasks/defaultwrapper-rgb-proprio/<mode>/v1`. Native
+evaluation seed is 0; changing the run seed does not select another layout.
+A pinned instance state file must match its hash; only instance 301 is pinned.
+Instances 302–310 come from the hash-pinned instance archive, and reset records
+their observed state hash as unpinned in `loaded_contract.json`. Service reset
+of instances 306–310 is UNVERIFIED.
 
 | Task | Catalog name | Selected scene | Service control cap |
 | --- | --- | --- | ---: |
-| Task 0: Turning On Radio | `turning_on_radio` | `house_double_floor_lower` | 3224 |
+| Task 0: Turning On Radio | `turning_on_radio` | `house_double_floor_lower` | 3225 |
 | Task 1: Picking Up Trash | `picking_up_trash` | `house_double_floor_lower` | 7902 |
 | Task 29: Clean Up Your Desk | `clean_up_your_desk` | `house_single_floor` | 32127 |
 | Task 83: Store Honey | `store_honey` | `Rs_int` | 10151 |
@@ -39,7 +59,7 @@ not select another layout. Other tasks and instance indices are not exposed.
 
 Task labels follow the [2026 task gallery](https://behavior.stanford.edu/challenge/tasks/index.html).
 The [service task definitions](bench_server/protocol/__init__.py) bind each
-selection's scene, instruction and instance.
+selection's scene, instruction and pinned instance hashes.
 
 ## Observations
 
@@ -85,10 +105,7 @@ autonomously advance while the agent reasons.
 An agent may choose several controls in one decision and submit them as
 successive sequenced requests. Reasoning frequency and action grouping belong
 to the method; native timing, termination and the total control budget do not.
-
-**Current integration constraint:** radio requires a new observation/decision
-after each control. The other six tasks do not impose that prefix-one setting.
-It is a service constraint, not a native BEHAVIOR rule. Report model calls,
+The service declares no required replanning interval. Report model calls,
 executed decisions and native controls separately; they need not be 1:1.
 
 Invalid input does not execute a control. Native success or termination ends execution even when a submitted
@@ -111,9 +128,7 @@ native timeout occurs on executed control **H + 1**, unless the task ends earlie
 | Putting Shoes On Rack | 7726.145 | 11589 | 11590 |
 | Hanging Pictures | 2387.415 | 3581 | 3582 |
 
-The current radio service cap is 3224, one control before its native timeout;
-that cap must be reported as an external truncation if native success has not
-occurred. The other six service caps match the native timeout control count.
+Each service control cap matches the native timeout control count, H + 1.
 These are execution budgets, not limits on reasoning calls.
 
 ## Native scoring and result statistics
@@ -126,10 +141,7 @@ does not replace native success.
 Report task/instance, binary success, final Q, actual controls and stop reason.
 For several selected cases, report successes and the selected/attempted case
 counts alongside Q statistics. Native failure, external truncation and
-infrastructure error are separate result categories. The radio cap stop is
-recorded as metric `external_cap_truncated: true` with native `truncated: false`.
-`termination_reason` reads `environment:truncated` for both, so separate them
-by `metrics.external_cap_truncated`.
+infrastructure error are separate result categories.
 
 Optional interactions and video recording use
 [shared recording settings](../../../docs/recording.md). Environment/controller

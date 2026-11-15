@@ -105,7 +105,7 @@ def extract(archive: Path, destination: Path, receipt_path: Path, progress=None)
     if (identity.st_dev, identity.st_ino, identity.st_size, identity.st_mtime_ns) != (
             after.st_dev, after.st_ino, after.st_size, after.st_mtime_ns):
         raise ValueError("archive changed during extraction; preserve partial output for inspection")
-    receipt = {"schema_version": "starvla-rsi.libero-plus-asset-extraction/v1",
+    receipt = {"schema_version": "starvla-rsi.libero_plus.asset-extraction/v1",
                "dataset_revision": DATASET_REVISION, "archive_url": ARCHIVE_URL,
                "archive_path": str(archive), "archive_sha256": ARCHIVE_SHA256,
                "archive_size_bytes": ARCHIVE_SIZE, "archive_entries": len(entries),

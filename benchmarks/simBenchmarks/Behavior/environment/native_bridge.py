@@ -7,7 +7,7 @@ from benchkit.contracts import Observation
 from benchkit.errors import ProtocolError
 from benchmarks.simBenchmarks.Behavior.bench_server.protocol import (
     ACTION_SPEC, CAMERA_KEYS, CONTROLLER_INDICES,
-    INSTANCE, PROPRIO_FIELDS, STATE_NAMES, TASK, task_definition,
+    PROPRIO_FIELDS, STATE_NAMES, TASK, task_definition,
 )
 
 
@@ -79,12 +79,12 @@ class ExternalAction:
             raise ProtocolError("reset cannot discard a queued action")
 
 
-def initialize_evaluator(evaluator, task=TASK):
+def initialize_evaluator(evaluator, instance):
     """Exactly the native CLI preparation, not one reset per actor action."""
     evaluator.reset()
-    evaluator.load_task_instance(INSTANCE)
+    evaluator.load_task_instance(instance)
     evaluator.reset()
-    if task != TASK and evaluator.env.episode_steps != 0:
+    if evaluator.env.episode_steps != 0:
         raise ProtocolError("native episode counter must start at zero after reset")
 
 
@@ -105,7 +105,7 @@ def validate_loaded(evaluator, sim, task=TASK):
         raise ProtocolError("loaded native task/scene differs from selected case")
     if evaluator.env.task._termination_config["max_steps"] != selected.native_timeout_steps:
         raise ProtocolError("loaded native timeout differs from configured task threshold")
-    if task != TASK and evaluator.env._automatic_reset is not False:
+    if evaluator.env._automatic_reset is not False:
         raise ProtocolError("native automatic reset must remain disabled")
     if not math.isclose(sim.get_physics_dt(), 1 / 120) or not math.isclose(sim.get_sim_step_dt(), 1 / 30):
         raise ProtocolError("native timing differs from declared 120/30 Hz")
@@ -121,8 +121,7 @@ def validate_loaded(evaluator, sim, task=TASK):
             raise ProtocolError("native gripper controller mismatch")
     if cfg["base"]["name"] != "HolonomicBaseJointController":
         raise ProtocolError("native base controller mismatch")
-    budget = ({"native_horizon": selected.native_timeout_steps} if task == TASK else
-              {"native_timeout_steps": selected.native_timeout_steps, "native_control_cap": selected.control_cap})
     return {"action_indices": indices, "action_dimension": 23, "proprio_dimension": len(STATE_NAMES),
-            **budget, "physics_hz": 120, "control_hz": 30,
+            "native_timeout_steps": selected.native_timeout_steps, "native_control_cap": selected.control_cap,
+            "physics_hz": 120, "control_hz": 30,
             "grasping_mode": "assisted", "robot_model": robot.model}

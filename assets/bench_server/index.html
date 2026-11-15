@@ -634,10 +634,10 @@ rsi-bench serve --benchmark robodojo --help
           </p>
         </div>
 
-        <p class="small">这里的 Direct v2 是 <strong>benchmark 服务协议</strong>，不是 agent 方法版本。下方示例由当前 <code>codex_native</code> 方法（记录版本 <code>codex-native/v2</code>）连接该服务；方法可以变化，服务的观测、动作和原生评分契约保持独立。</p>
+        <p class="small">这里的 Direct v2 是 <strong>benchmark 服务协议</strong>，不是 agent 方法版本。下方示例由当前 <code>gpt6-astra-codex-native</code> 方法连接该服务；方法可以变化，服务的观测、动作和原生评分契约保持独立。</p>
 
         <div class="contract-grid">
-          <article class="contract-card wide"><h3>协议身份</h3><span class="value" style="font-size:1.12rem;letter-spacing:-.02em">robodojo-direct-v2-rgb-proprio28-eef16-robot-feedback-v1</span><span class="unit">改观测或动作语义必须产生新协议，不是在 server JSON 中换 selector。</span></article>
+          <article class="contract-card wide"><h3>协议身份</h3><span class="value" style="font-size:1.12rem;letter-spacing:-.02em">robodojo-ee67a14/classify-objects-fixed-layouts/rgb-proprio28-eef16/&lt;mode&gt;/v1</span><span class="unit">max 的选择段为 classify-objects-reset-stable-layouts。改观测或动作语义必须产生新协议，不是在 server JSON 中换 selector。</span></article>
           <article class="contract-card"><h3>公开 RGB</h3><span class="value">3 × 640×480</span><span class="unit">head + left wrist + right wrist，原始 uint8</span></article>
           <article class="contract-card"><h3>机器人状态</h3><span class="value">28 values</span><span class="unit">双臂实测 joints / link6 poses + 上次命令的 gripper opening；并非全部实测</span></article>
           <article class="contract-card"><h3>动作</h3><span class="value">EEF 16</span><span class="unit">双臂绝对 world-frame pose + opening</span></article>
@@ -649,7 +649,7 @@ rsi-bench serve --benchmark robodojo --help
         <div class="panel-switcher">
           <div class="tabs" role="tablist" aria-label="panel 选择">
             <button class="active" id="tab-fast" role="tab" aria-selected="true" aria-controls="panel-detail" tabindex="0" data-panel="fast">fast · 开发对比</button>
-            <button id="tab-full" role="tab" aria-selected="false" aria-controls="panel-detail" tabindex="-1" data-panel="full">full · 原生任务评测</button>
+            <button id="tab-max" role="tab" aria-selected="false" aria-controls="panel-detail" tabindex="-1" data-panel="max">max · 原生任务评测</button>
           </div>
           <div class="panel-detail" id="panel-detail" role="tabpanel" aria-labelledby="tab-fast" aria-live="polite">
             <span class="big" id="panel-count">5</span>
@@ -730,7 +730,7 @@ rsi-bench serve --benchmark robodojo --help
             <h3>2. 在评测节点启动 server</h3>
             <pre><code>export RSI_SIM_SERVER_TOKEN='&lt;32+ char secret&gt;'
 rsi-bench serve --benchmark robodojo \
-  --parameters /absolute/robodojo-direct-v2.json \
+  --parameters /absolute/robodojo-server.json \
   --seed 20260907 --port 8765 \
   --output-dir AgentPolicies/gpt6_astra/results/robodojo/raw/my-new-run/server</code></pre>
           </div>
@@ -808,7 +808,7 @@ rsi-bench serve --benchmark robodojo \
 │   ├── adapter.py                  # 公开接口与原生评分衔接
 │   ├── native_worker_client.py     # 通往私有 native worker 的 RPC
 │   └── protocol/                  # 服务的评测协议定义
-│       ├── task_catalog.json       # task / fast / full 固定计划
+│       ├── task_catalog.json       # task / fast / max 固定计划
 │       ├── task_catalog.py         # 读取并校验协议数据
 │       └── robot_feedback.py       # 公开机器人 ACK 定义
 └── environment/                    # 原生仿真运行层
@@ -882,13 +882,13 @@ rsi-bench serve --benchmark robodojo \
           <article class="principle"><div class="icon">A</div><h3>协议与服务回归</h3><p>离线检查接口协议、会话生命周期、观测白名单和错误记录，验证服务行为符合声明的契约。</p></article>
           <article class="principle"><div class="icon">B</div><h3>原生环境验证</h3><p>通过无模型短交互检查环境初始化、1–2 次控制、渲染画面与状态反馈，确认原生运行链路。</p></article>
           <article class="principle"><div class="icon">C</div><h3>Agent 单例评测</h3><p>预先声明任务与预算，通过服务完成一次方法评测，分别保留原生成功、任务失败和工程错误。</p></article>
-          <article class="principle"><div class="icon">D</div><h3>完整协议覆盖</h3><p>按原生协议核实任务、变体、种子、episode 计划与控制条件，逐项推进 full 评测的覆盖和对齐。</p></article>
+          <article class="principle"><div class="icon">D</div><h3>完整协议覆盖</h3><p>按原生协议核实任务、变体、种子、episode 计划与控制条件，逐项推进 max 评测的覆盖和对齐。</p></article>
         </div>
         <div class="table-scroll" style="margin-top:20px">
           <table aria-label="Benchmark 服务集成与评测覆盖范围">
             <thead><tr><th>Benchmark</th><th>服务集成</th><th>评测覆盖说明</th></tr></thead>
             <tbody>
-              <tr><td>RoboDojo</td><td>服务协议 Direct v2；classify_objects 提供 fast 5 / full 50 layouts 的固定计划。</td><td>当前开放物体分类任务；更多 Dojo 任务与参考成绩的对齐仍待拓展。</td></tr>
+              <tr><td>RoboDojo</td><td>服务协议 Direct v2；classify_objects 提供 fast 5 / max 50 layouts 的固定计划。</td><td>当前开放物体分类任务；更多 Dojo 任务与参考成绩的对齐仍待拓展。</td></tr>
               <tr><td>SimplerEnv / LIBERO / SIMPLE</td><td>采用统一的服务组织方式，各自保留观测与动作契约。</td><td>分别使用对应机器人的原生控制频率与 horizon；SIMPLE 保留人形控制接口。</td></tr>
               <tr><td>其他已集成仿真服务</td><td>RoboCasa365、RoboCasa Tabletop、MetaWorld、LIBERO-Plus、RoboTwin、DOMINO、BEHAVIOR-1K、VLA-Arena、CALVIN。</td><td>开发态服务已接入，任务支持范围和原生验证进度按 Benchmark 单独记录。</td></tr>
               <tr><td>VLN-CE / 真实机器人</td><td>VLN-CE 等待已授权的导航资产；真机接入正在拓展。</td><td>属于后续接入范围；硬件服务仍需实现与验证，未计入已集成的 13 个仿真 Benchmark。</td></tr>
@@ -974,7 +974,7 @@ rsi-bench serve --benchmark robodojo \
           </table>
         </div>
         <p class="small">RoboCasa365、RoboTwin、SIMPLE、Tabletop 是关闭策略自愿 safety stop 后的独立实验，原始停止、失败与初始化修复记录保留。CALVIN 此前的 32／31／31 工程中断也保留，未用最新尝试覆盖。请求的模型名称不构成提供商身份认证。</p>
-        <p class="small">VLA-Arena 本轮为 300 控制的 Level-0 预算，底层引擎 horizon 为 1000；Tabletop 的 1000 控制为开发范围，CALVIN 使用 debug 资产，RoboCasa365 使用 <code>egl-owner-material-clamp-v1</code>。这些条件不构成完整官方 full 对齐；DOMINO 的 MS 29.35 是 manipulation score，不是 29.35% 成功率。</p>
+        <p class="small">VLA-Arena 本轮为 300 控制的 Level-0 预算，底层引擎 horizon 为 1000；Tabletop 的 1000 控制为开发范围，CALVIN 使用 debug 资产，RoboCasa365 使用 <code>egl-owner-material-clamp-v1</code>。这些条件不构成完整官方 max 对齐；DOMINO 的 MS 29.35 是 manipulation score，不是 29.35% 成功率。</p>
         <div class="callout warning" style="margin-top:20px">
           <h3>截至快照仍待完成</h3>
           <p>CALVIN 与 Tabletop 尚未完成这轮正常验收，输出已导出、服务已清理；现有记录不能证明其他 Benchmark 已完成全任务各五例。Planned 跨 Benchmark 批量轮次因 CALVIN 前置检查未通过而未启动；历史独立 RoboDojo Planned 单例（40/100、未成功）另行保留。VLN-CE 仍缺少已授权资产和验证条件，真实机器人不在本轮仿真结果中。</p>
@@ -1026,7 +1026,7 @@ rsi-bench serve --benchmark robodojo \
           title: "固定 layouts 0–4，每个一次",
           copy: "用于接口回归和参考结果对比。它是预先声明的五布局 panel，不是从完整结果中挑出的五个，也不是整个 RoboDojo benchmark 的分数。"
         },
-        full: {
+        max: {
           count: "50",
           title: "固定 layouts 0–49，每个一次",
           copy: "与 classify_objects 上游配置的 50 episodes 对齐。它是这个任务的完整命名 panel，仍然不是 RoboDojo 多任务矩阵的全部。失败和基础设施错误都保留在分母中。"

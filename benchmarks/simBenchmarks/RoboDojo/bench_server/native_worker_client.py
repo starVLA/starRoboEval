@@ -23,11 +23,11 @@ from benchkit.errors import ProtocolError
 
 SEED = 20260907
 CAMERAS = ("cam_head", "cam_left_wrist", "cam_right_wrist")
-CLOSE_PROTOCOL = "robodojo-close/v1"
+CLOSE_PROTOCOL = "starvla-rsi.robodojo.close/v1"
 CLOSE_WAIT_SECONDS = 30
 CLOSE_TERMINATE_SECONDS = 10
 RPC_MAX_RESPONSE_BYTES = 1024 * 1024
-RPC_PROTOCOL = "robodojo-private-rpc/v2"
+RPC_PROTOCOL = "starvla-rsi.robodojo.private-rpc/v1"
 
 
 def _group_alive(pgid: int) -> bool:

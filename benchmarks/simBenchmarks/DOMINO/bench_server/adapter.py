@@ -9,10 +9,10 @@ from typing import Mapping
 from benchkit.artifacts import append_jsonl, atomic_write_json
 from benchkit.contracts import ActionSpec, BenchmarkDescriptor, EpisodeSpec, Observation, ObservationSpec, Transition
 from benchkit.errors import ProtocolError
-from benchkit.registry import register_benchmark
+from benchkit.validation import validate_action_vector
 from benchmarks.simBenchmarks.DOMINO.bench_server.protocol import (
-    ACTION_NAMES, CAMERAS, IMAGE_SHAPE, INSTRUCTION, NATIVE_HORIZON,
-    NATIVE_REVISION, PROTOCOL, STATE_NAMES, TASK, TASK_CONFIG,
+    ACTION_NAMES, CAMERAS, EVALUATION_MODES, FAST_ENTRY_ORDINALS, IMAGE_SHAPE, INSTRUCTION,
+    NATIVE_HORIZON, NATIVE_REVISION, PROTOCOL, STATE_NAMES, TASK, TASK_CONFIG,
 )
 from benchmarks.simBenchmarks.DOMINO.environment import runtime
 from benchmarks.simBenchmarks.DOMINO.environment.native_outcome import NativeOutcome
@@ -52,6 +52,7 @@ class DOMINOEpisode:
         self.close_error = None
         self.step_count = self.acknowledged_controls = self.native_steps = self.physics_ticks = 0
         self.native_metrics = {"success": False, "manipulation_score": None, "route_completion": None}
+        self.native_seed = None  # read from the claimed manifest entry at reset
 
     def bind_artifact_dir(self, path):
         if self.artifact_dir is not None or self.reset_attempted or self.closed:
@@ -79,11 +80,14 @@ class DOMINOEpisode:
             with runtime.native_directory(benchmark.source_root, self.cache):
                 config = runtime.resolved_config(benchmark.source_root)
                 task_class, tracker_class, manifest_class = runtime.import_native(benchmark.source_root)
+                ordinal = self.episode.metadata["manifest_entry_ordinal"]
                 entry = runtime.load_entry(benchmark.episode_manifest, benchmark.episode_manifest_sha256,
-                                           benchmark.native_seed, config, manifest_class)
+                                           ordinal, config, manifest_class)
+                self.native_seed = entry["seed"]
                 self.env = task_class()
-                self._log("reset_start", native_seed=benchmark.native_seed, expert_called=False)
-                self.env.setup_demo(now_ep_num=0, seed=benchmark.native_seed, is_test=True, **config)
+                self._log("reset_start", manifest_entry_ordinal=ordinal, native_seed=self.native_seed,
+                          expert_called=False)
+                self.env.setup_demo(now_ep_num=0, seed=self.native_seed, is_test=True, **config)
                 self.env._saved_dynamic_motion_info = entry["dynamic_motion_info"]
                 self.env.set_instruction(INSTRUCTION)
                 if not self.env.init_dynamic_motion_for_eval():
@@ -92,9 +96,13 @@ class DOMINOEpisode:
                 self.outcome = NativeOutcome(self.env, config, tracker_class)
                 self.counter = runtime.SceneStepCounter(self.env.scene)
                 self.env.scene = self.counter
-                provenance.update({"protocol_version": PROTOCOL, "compiled_contract": compiled,
+                provenance.update({"protocol_version": benchmark.descriptor.protocol_version,
+                                   "compiled_contract": compiled,
                                    "episode_manifest_sha256": benchmark.episode_manifest_sha256,
-                                   "native_seed": benchmark.native_seed, "expert_called": False,
+                                   "evaluation_mode": benchmark.evaluation_mode,
+                                   "manifest_entry_ordinal": ordinal,
+                                   "manifest_screening": benchmark.manifest_screening,
+                                   "native_seed": self.native_seed, "expert_called": False,
                                    "instruction_selection": "fixed native full_description, not randomized episode wording",
                                    "state_provenance": "native commanded targets; not encoders",
                                    "initialization_physics_ticks": None,
@@ -102,7 +110,7 @@ class DOMINOEpisode:
                 observation = self._observe()
                 provenance["loaded_oidn_files"] = runtime.verify_loaded_renderer(provenance)
                 atomic_write_json(self.artifact_dir / "native_provenance.json", provenance)
-                self.native_metrics = self.outcome.metrics(benchmark.native_seed)
+                self.native_metrics = self.outcome.metrics(self.native_seed)
             self.reset_completed = True
             self._log("reset_end", native_controls=0, initialization_physics_ticks=None)
             return observation
@@ -152,7 +160,7 @@ class DOMINOEpisode:
                 self.outcome.after_action()
                 self.finished = self.outcome.finished
                 self.native_terminal = self.finished
-                self.native_metrics = self.outcome.metrics(self.benchmark.native_seed)
+                self.native_metrics = self.outcome.metrics(self.native_seed)
                 if self.native_metrics["metrics_tracker_steps"] != self.native_steps:
                     raise ProtocolError("native metrics tracker count differs from completed controls")
                 observation = self._observe()
@@ -254,29 +262,35 @@ class DOMINOEpisode:
 
 
 class DOMINOBenchmarkAdapter:
-    budget_mode = "horizon"
     environment_step_cap = NATIVE_HORIZON
 
     def __init__(self, source_root, deployment_manifest_sha256, episode_manifest,
-                 episode_manifest_sha256, native_seed=100000, task=TASK, evaluation_mode="fast"):
-        if task != TASK or evaluation_mode != "fast":
-            raise ValueError("DOMINO supports only the declared fixed click_bell case")
+                 episode_manifest_sha256, task=TASK, evaluation_mode="fast"):
+        if evaluation_mode not in EVALUATION_MODES:
+            raise ValueError(f"evaluation_mode must be one of {', '.join(EVALUATION_MODES)}; got {evaluation_mode!r}")
+        if task != TASK:
+            raise ValueError("DOMINO supports only the click_bell task")
         for value in (source_root, episode_manifest):
             if not isinstance(value, str) or not Path(value).is_absolute() or ".." in Path(value).parts:
                 raise ValueError("DOMINO source and trusted manifest require explicit absolute paths")
         for value in (deployment_manifest_sha256, episode_manifest_sha256):
             if not isinstance(value, str) or len(value) != 64 or any(c not in "0123456789abcdef" for c in value):
                 raise ValueError("DOMINO requires SHA256-pinned deployment and trusted manifest")
-        if type(native_seed) is not int or not 0 <= native_seed < 2**32:
-            raise ValueError("native_seed must be a uint32 integer")
         self.source_root, self.episode_manifest = Path(source_root), Path(episode_manifest)
         self.deployment_manifest_sha256 = deployment_manifest_sha256
-        self.episode_manifest_sha256, self.native_seed = episode_manifest_sha256, native_seed
+        self.episode_manifest_sha256, self.evaluation_mode = episode_manifest_sha256, evaluation_mode
+        self.manifest_screening = None  # max only: preparation provenance, not policy results
+        if evaluation_mode == "max":
+            self.manifest_screening = runtime.require_complete_manifest(self.episode_manifest, episode_manifest_sha256)
+            self.entry_ordinals = tuple(range(1, runtime.MAX_ACCEPTED_COUNT + 1))
+        else:
+            self.entry_ordinals = FAST_ENTRY_ORDINALS[:1] if evaluation_mode == "example" else FAST_ENTRY_ORDINALS
         self.claimed = False
 
     @property
     def descriptor(self):
-        return BenchmarkDescriptor("domino", "9c94f2d-fixed-manifest-sm120", PROTOCOL, NATIVE_REVISION)
+        return BenchmarkDescriptor("domino", "9c94f2d-fixed-manifest",
+                                   PROTOCOL.format(mode=self.evaluation_mode), NATIVE_REVISION)
 
     @property
     def observation_spec(self):
@@ -289,28 +303,33 @@ class DOMINOBenchmarkAdapter:
                           rotation="joint coordinates; no EEF or task planner RPC",
                           gripper="native normalized absolute command, nominal 0 closed/1 open; native mapping/clipping unchanged")
 
+    def validate_action_input(self, values):
+        # Length/type/finite only; no low/high, joint limits stay native.
+        return validate_action_vector(self.action_spec, values)
+
     def episodes(self, seed, limit=None):
         if type(seed) is not int or not 0 <= seed < 2**32:
             raise ValueError("harness seed must be uint32")
-        if limit is not None and (type(limit) is not int or limit != 1):
-            raise ValueError("DOMINO fixed task service contains exactly one selected case")
-        return (EpisodeSpec(f"{TASK}-native-seed{self.native_seed}-episode000", TASK, seed, INSTRUCTION,
-                            {"native_seed": self.native_seed, "native_horizon": NATIVE_HORIZON,
-                             "task_config": TASK_CONFIG, "evaluation_mode": "fast",
-                             "episode_manifest_sha256": self.episode_manifest_sha256,
-                             "sample_selection": "one predeclared private fixed-manifest entry; no online expert or retry"}),)
+        if limit is not None and (type(limit) is not int or not 1 <= limit <= len(self.entry_ordinals)):
+            raise ValueError(f"episode limit must be an integer in [1, {len(self.entry_ordinals)}]")
+        return tuple(EpisodeSpec(f"{TASK}-manifest-entry{ordinal:03d}-episode000", TASK, seed, INSTRUCTION,
+                                 {"manifest_entry_ordinal": ordinal, "native_horizon": NATIVE_HORIZON,
+                                  "environment_step_cap": NATIVE_HORIZON,
+                                  "task_config": TASK_CONFIG, "evaluation_mode": self.evaluation_mode,
+                                  "episode_manifest_sha256": self.episode_manifest_sha256,
+                                  "sample_selection": "one predeclared fixed-manifest entry; no online expert or retry"})
+                     for ordinal in self.entry_ordinals[:limit])
 
     def open_episode(self, episode):
         if episode not in self.episodes(episode.seed) or self.claimed:
-            raise ProtocolError("DOMINO case mismatched or already claimed")
+            raise ProtocolError("DOMINO case mismatched or already claimed; one episode per process")
         self.claimed = True
         return DOMINOEpisode(self, episode)
 
 
-@register_benchmark("domino")
 def make_domino(parameters):
     allowed = {"source_root", "deployment_manifest_sha256", "episode_manifest",
-               "episode_manifest_sha256", "native_seed", "task", "evaluation_mode"}
+               "episode_manifest_sha256", "task", "evaluation_mode"}
     if set(parameters) - allowed:
         raise ValueError("unknown DOMINO server parameters")
     return DOMINOBenchmarkAdapter(**parameters)

@@ -12,16 +12,39 @@ Several instructions may describe one trajectory. Scene counts overlap across
 splits; they are not a count of unique buildings when summed.
 See the [dataset definition](https://jacobkrantz.github.io/vlnce/data).
 
-This service supports explicit episode IDs from a complete `val_seen` or
-`val_unseen` split. Dataset path, scene root, ordered episode IDs and reset seed
-are operator inputs fixed before any claim. The server validates selected scenes
+This service evaluates a complete `val_seen` or `val_unseen` split, or a
+fixed subset of it chosen by `evaluation_mode`:
+
+| `evaluation_mode` | Episodes | Selection | Per-episode cap |
+| --- | ---: | --- | ---: |
+| `fast` (default) | 373 on `val_unseen` | One ranked instruction per route, ranked routes 1–40 of each scene | 500 actions |
+| `max` | 1,839 / 778 | The complete declared split, in dataset order | 500 actions |
+| `example` | 1 | The first `fast` episode | 500 actions |
+
+`fast` groups episodes by scene and route, keeps the instruction with the
+lowest `sha256("vlnce-panel55-20261028:instruction:<episode_id>")`, ranks each
+scene's routes by `sha256("vlnce-panel55-20261028:<scene_id>:<trajectory_id>")`,
+keeps ranks 1–40 and orders them rank-major over sorted scene IDs. Dataset path, scene root, split, mode and
+reset seed are operator inputs fixed before any claim. The server validates selected scenes
 without choosing substitute episodes. Native IDs, starting poses, routes, goals
 and scene paths remain evaluator-private; actor episode labels are opaque.
+The native episode ID is recorded in each episode's metadata and metrics.
+
+At construction the dataset file must hold exactly the released episode count of
+the declared `split` (778 or 1,839); any other count is a configuration error,
+not a policy failure. The adapter compares the sha256 of the raw
+`<split>.json.gz` (and optional `<split>_gt.json.gz`) bytes with the
+`DATASET_SHA256`/`GT_SHA256` pins in `bench_server/adapter.py`. The VLN-CE data
+page publishes no checksums, so the pins start unset: until an operator records
+them from a verified copy of `R2R_VLNCE_v1-3_preprocessed.zip`, the observed
+dataset hash is recorded in the descriptor `source_revision` and marked
+`unpinned`. Each split or GT JSON is limited to 64 MiB decompressed in both the
+service and the native worker, a memory guard against an oversized gzip file.
 The test split needs its separate official scoring process and is not supported.
 
 ## Runtime identity
 
-Protocol: `vlnce-r2r-habitat033/rgb512/native500/v1`.
+Protocol: `vln-ce-habitat033/r2r-native500/rgb512/{mode}/v1`.
 
 The native worker uses Habitat-Lab and Habitat-Sim reporting version 0.3.3 and
 the installed `benchmark/nav/vln_r2r.yaml` configuration. It records package
@@ -95,7 +118,8 @@ Metrics are taken from native `get_metrics()`:
 
 The wire reward is a neutral 0.0, not a task progress signal. Metrics and
 native result metadata remain with the evaluator and are never included in
-policy observations. Non-finite or missing required metrics are explicit
+policy observations. Per-step transition info carries only native success and
+the step count; distance and SPL are reported once, in final metrics. Non-finite or missing required metrics are explicit
 infrastructure errors. nDTW, oracle success/SPL and path-length reports from
 the older extended evaluator are not currently implemented; their absence is
 not a zero score. Optional GT files are checked and retained as provenance,
@@ -103,7 +127,7 @@ but do not imply that additional metrics were computed.
 
 ## Recording and reports
 
-Report the split, selected episodes/scenes, seed, runtime/protocol, success rate
+Report the split, `evaluation_mode`, seed, runtime/protocol, success rate
 denominator, SPL, final distance, actual decisions/controls and termination.
 Keep infrastructure errors distinct from unsuccessful completed routes.
 RGB videos contain the same camera observations, without oracle overlays;

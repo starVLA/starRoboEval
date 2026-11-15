@@ -8,20 +8,22 @@ not by itself prove identical model context, assets, rendering or success rate.
 ## Fixed scope
 
 - Task: `classify_objects`
-- Layout selections: 0–4 (5 cases) or 0–49 (50 cases), once each
+- Layout selections: 0–4 (5 cases) or the first 50 reset-stable layouts of a
+  stability manifest (50 cases), once each
 - Native horizon: 1100 controls
 - Cameras: head, left wrist and right wrist, original 640×480 RGB
 - Public state: six measured joints and one last commanded gripper opening per
   arm (14 values), followed by the two measured link6 poses (14 values)
 - Public action: absolute dual-arm EEF16 in world coordinates
 - Execution: robot-only numerical Jacobian DLS, no cuRobo planner
-- Feedback: mandatory `robodojo.robot-control-feedback/v1`
+- Feedback: mandatory `starvla-rsi.robodojo.robot-control-feedback/v1`
 
 The worker sets the native execution count to one selected reset while retaining
-the upstream configured count and 55-layout inventory. The
-50-layout selection matches this task's 50 configured native episodes; the
-five-layout selection chooses its first five cases.
-Both schedules are fixed in [../bench_server/protocol/task_catalog.json](../bench_server/protocol/task_catalog.json).
+the upstream configured count and 55-layout inventory; it accepts only the
+layouts of the requested `evaluation_mode`. The `max` 50-layout selection
+matches this task's 50 configured native episodes, taken from the operator's
+reset-stability manifest; `fast` chooses layouts 0–4 and `example` the first.
+These schedules are declared in [../bench_server/protocol/task_catalog.json](../bench_server/protocol/task_catalog.json).
 
 ## Numerical execution
 
@@ -45,18 +47,21 @@ The worker repeats critical checks after native setup and retains the used-USD
 dependency audit.
 
 Use [server.example.json](../server.example.json) with the manifest path and
-SHA-256 emitted by preparation. The server configuration selects a named `panel`
+SHA-256 emitted by preparation. The server configuration selects an `evaluation_mode`
 and a GPU. Arbitrary layout subsets, `--episodes` truncation and protocol
 selectors are rejected.
 
 ```sh
-python -B -m benchmarks.simBenchmarks.RoboDojo.server \
-  --parameters /absolute/robodojo-direct-v2.json \
+export RSI_SIM_SERVER_TOKEN='replace-with-a-url-safe-secret-of-at-least-32-characters'
+rsi-bench serve --benchmark robodojo \
+  --parameters /absolute/robodojo-server.json \
   --seed 20260907 --port 8765 \
   --output-dir /absolute/new-run/server
 ```
 
-Use a fresh output directory. Starting the service does not reset Isaac. Once a
+Use a fresh output directory. Starting the service does not reset Isaac. A
+`rsi-bench gateway` host serves the same schedule as per-case services, one
+`--episode-id` each; see [README.md](../README.md). Once a
 layout is claimed, any failed reset or uncertain action is retained and cannot
 be replaced automatically.
 

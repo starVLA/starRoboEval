@@ -108,7 +108,7 @@ multiplies scene shininess by 128; [OpenGL](https://github.com/KhronosGroup/Open
 accepts an exponent from 0 to 128. This is distinct from the retired-context/FBO
 bug, and is not grounds to ignore error 1281 or reinterpret recorded pixels.
 
-`egl-owner-material-clamp-v1` (`/v3`) explicitly adds a visual conversion: during
+`egl-owner-material-clamp-v1` (`rgb-egl-owner-material-clamp`) explicitly adds a visual conversion: during
 one managed native draw, finite expanded-scene shininess is clamped to `[0,1]`,
 then restored even when native rendering raises. All active geometries are
 validated before any assignment, legal values are never rewritten, and a scene
@@ -117,7 +117,7 @@ values, any GL errors, or restoration failures remain fatal. The native model,
 XML, physics and cameras are untouched. The earlier `native-v1` and
 `egl-owner-restore-v1` tracks do not install the material hook.
 
-This conversion **can change visual appearance**, so v3 is not a claim of native
+This conversion **can change visual appearance**, so this track is not a claim of native
 pixel parity. Its private receipt records material-transform attempts, draw calls
 and clamped geometry counts, in addition to lifecycle/GL errors. Validation must
 compare mixed negative/legal/positive materials against a separately authored

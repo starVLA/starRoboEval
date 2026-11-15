@@ -39,7 +39,7 @@ show recorded inputs, outputs, actions and acknowledged feedback. Recording is
 default on, not a participation/publication gate. Service source snapshots remain internal support;
 recorded upstream/environment/asset provenance can support reproducibility.
 
-An in-process native adapter inside the service is permitted; a second worker
+A native adapter running inside the service process is permitted; a second worker
 process is needed only for runtime isolation. Do not add empty layers or duplicate
 servers merely to make file lists identical. Migrated integrations use only
 `bench_server/adapter.py` and, when needed, protocol data under `bench_server/protocol/`.
@@ -101,6 +101,16 @@ Editing prose must not silently redefine a runtime contract or historical result
 2. Configuration is validated before native initialization. Select only supported
    tracks/tasks; freeze the resolved schedule and budgets before the first claim.
    Deployment paths are operator inputs, not unreviewed protocol overrides.
+   One `evaluation_mode` key selects the schedule: `fast` (the default when
+   omitted) is the documented evaluation subset, `max` is the benchmark's
+   official scope, and `example` is one episode, the first of `fast`. Any other
+   value is a configuration error, and a guide marks a `max` scope that the
+   service rejects as not implemented. Remaining selectors, such as one task per
+   service, only narrow the chosen mode. The protocol identity names the mode:
+   `<benchmark>-<upstream pin>/<selection>/<observation-action>/<mode>/v1`.
+   Step caps are the simulator's native horizons, never an evaluation budget;
+   when they differ by task, each episode's metadata carries its own
+   `environment_step_cap` and the described budget is the maximum.
 3. Each selected case is claimed once, including failed initialization. No hidden
    retries, reset search, branch rollouts or replay after an uncertain control ACK.
 4. The declared public observation is an allowlist. Robot state is permitted when
@@ -127,13 +137,13 @@ identity attestation. Apply deployment isolation separately.
 | --- | --- | --- |
 | Observation/action | Declared, versioned, validated | EEF16, three cameras, robot ACK payload |
 | Native runtime | Service-owned and lazily initialized | Isaac Sim, worker topology, fixed IK |
-| Schedule | Fixed selected cases, each once | Selections of 5 or 50 layouts |
+| Schedule | Fixed selected cases, each once | Dojo's 5-layout `fast` and 50-layout `max` |
 | Budget | Explicit units and resolved caps | 1100 controls, number of ticks per control |
 | Scoring | Native rule, never model self-report | Dojo's success conjunction or 0–100 score |
 | Rejection | Never execute invalid input | A track's feedback/fail-fast selection |
 
-Dojo requires its complete named panel. Other services allow an explicit
-selection fixed at startup. Do not enable
+Dojo requires the complete schedule of its selected mode. Other services allow
+`--episodes` or `--episode-id` to narrow the schedule fixed at startup. Do not enable
 `require_complete_schedule` without defining the benchmark's complete schedule.
 SimplerEnv retains final-step scoring and separately selected rejection feedback;
 LIBERO retains its selected task/init-state contract; SIMPLE retains its native
@@ -148,17 +158,17 @@ own timing, watchdog, safety, calibration and scoring validation.
 | Gate | Required evidence | Does not establish |
 | --- | --- | --- |
 | Source/contract review | Native evaluator pins, task inventory, sensor/action/scorer mapping | A working environment |
-| Offline regression | Import-safe entrypoint; no-reset startup; captured source; shared lifecycle/error tests plus native contract fixtures | Rendering or task success |
-| Native readiness | Separate authorized no-model check of reset, RGB, one valid control and cleanup through the service | Model capability |
+| Offline regression | Import-safe entrypoint; no-reset startup; captured source; local lifecycle/error checks against native contracts | Rendering or task success |
+| Native readiness | Separate authorized [readiness probe](SERVER_PROTOCOL.md#readiness-probe) through the service: describe, claim, reset, RGB and cleanup, with no model or action | Control execution or model capability |
 | Model sample | Preselected task/case once through the same server, with score, counts, errors and declared optional recording | Scores for tasks or cases not evaluated |
 | Expansion | Independent review, fixes, regression; then predeclare broader coverage | Permission to silently retry failures |
 
 Offline validation should cover benchmark entrypoints, observation boundaries,
-session lifecycle, execution counters and error handling. Former check suites
-and fixtures remain recoverable from Git history. Model samples must be separately
-authorized; structural refactoring and offline tests do not start one. A valid completed
+session lifecycle, execution counters and error handling. These checks stay
+local and untracked. Model samples must be separately
+authorized; structural refactoring and offline checks do not start one. A valid completed
 failure is useful acceptance evidence, not a reason to rewrite the scorer.
 
 See [the wire protocol](SERVER_PROTOCOL.md) and [support matrix](SERVICE_SUPPORT.md)
-for current implementation limits. A passing conformance test is not a claim that
+for current implementation limits. A passing conformance check is not a claim that
 all native, sensor, provider or sampling checks have passed.

@@ -10,8 +10,8 @@ steps the method uses. Report results per benchmark/protocol/method/configuratio
 
 The repository evaluates direct control by general-purpose models. VLA-assisted
 hybrid control, learned action proposals, fallback task policies and automatic
-task-solving skill services are out of scope. Retained legacy material or an
-external comparison does not enable these methods in the current framework.
+task-solving skill services are out of scope. An external comparison does not
+enable these methods in the current framework.
 
 ## Protocol-first integration; optional Python loop
 
@@ -56,8 +56,7 @@ The shared `Policy` interface can host:
 2. a fixed program or generated policy that was frozen before scored episodes;
 3. scripted policies used only for environment and adapter validation.
 
-Diagnostics are not model capability scores. Conventional-policy legacy files
-are retained references, not an enabled hybrid-control path.
+Diagnostics are not model capability scores.
 The method family and exact construction must be declared. Code generation,
 planning and tool use inside the method are method differences to disclose,
 not an automatic change to the benchmark's execution protocol.
@@ -90,10 +89,9 @@ and control frequency.
 
 Invalid actions are rejected without execution or silent clipping. The method
 chooses chunk length and when to replan; the trusted driver submits controls
-individually and stops on native termination or the declared budget. Some
-existing tracks additionally require a fixed replan interval or couple it to
-their execution cap; those versioned constraints remain binding until explicitly
-migrated. Protocol-fixed image conversion, units,
+individually and stops on native termination or the declared budget. A service
+that declares a fixed `required_replan_interval` binds that prefix until its
+protocol is explicitly migrated. Protocol-fixed image conversion, units,
 joint order, interpolation and native low-level control belong to the benchmark
 adapter. They must remain identical within a comparable track. Model-specific
 planning, grasp heuristics, motion generation or auxiliary IK belong to the

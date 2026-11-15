@@ -49,10 +49,12 @@ See the [evaluation protocol](../EVALUATION_PROTOCOL.md).
 `deployment.py` verifies the public Git blob identities of DOMINO and CuRobo,
 copies only those verified source paths, copies the selected aloha/bell assets,
 and derives only the two native CuRobo asset-root substitutions. It captures
-selected runtime package versions and SAPIEN/MPLib/TOPPRA file hashes.
+selected runtime package versions and SAPIEN/MPLib/TOPPRA file hashes,
+excluding interpreter bytecode caches that other users of a shared environment
+may add.
 It never invokes an installer, expert, simulator or model. Existing destinations
 are refused. Untracked compiled CuRobo extensions are not copied; new JIT builds
-belong to an episode-owned cache, never source or a colleague's environment.
+belong to an episode-owned cache, never source or a shared environment.
 
 With the declared SM120 interpreter and verified owned SAPIEN/OIDN2.3.3
 overlay already selected on `PYTHONPATH`:
@@ -86,14 +88,40 @@ No ready-made DOMINO fixed manifests are shipped in the inspected source.
 Upstream `screen_episodes.py` can search many candidates and run multiple resets;
 do not execute it under permission for one diagnostic task attempt.
 
-A separately authorized, bounded preparation may inspect exactly one declared
-candidate and preserve rejection without scanning for a replacement. It must
-retain expert preparation and dynamic-validation reset counts, source/deployment
-identities and any failure, then freeze a trusted manifest before policy use.
-The server accepts only a manifest pinned to the native revision and checks the
-chosen seed and dynamic-motion payload. It never prepares, edits or searches
-the manifest while a policy runs. A manifest is private native reset data;
-pickle requires a trusted local origin and hash, not arbitrary policy input.
+A separately authorized, bounded preparation walks native candidate seeds from
+100000 in order until the manifest holds the first five accepted entries, which
+the `fast` mode uses. It must retain every rejection, expert preparation and
+dynamic-validation reset count, source/deployment identities and any failure,
+then freeze a trusted manifest before policy use.
+
+`max` needs the complete native record instead; this preparation has not yet
+been performed. Run the native screener once, from a clean Git checkout of the
+pinned revision with the verified assets and runtime, so that native
+`git rev-parse HEAD` records `git_commit`:
+
+```sh
+python script/screen_episodes.py --task_name click_bell \
+  --task_config demo_clean_dynamic --seed 0 --test_num 100 \
+  --manifest_path /absolute/private/click_bell-demo_clean_dynamic-seed0.pkl
+```
+
+Upstream `screen_episodes` runs the expert (`setup_demo` + `play_once`) on
+each candidate seed from `st_seed = 100000`. It re-initializes each accepted
+dynamic candidate through `init_dynamic_motion_for_eval`, logs every rejected
+seed with its reason and stops at the 100th acceptance. Keep the pickle and its
+JSON summary. Record the pickle SHA256, the runtime used, the deployment
+manifest SHA256 and any failure; never rerun it to improve a result. Whether
+screening under the SM120 compatibility runtime accepts the same seeds as the
+upstream runtime is UNVERIFIED.
+
+The server's `max` startup gate checks the metadata, the 100 entries and the
+contiguous accepted-plus-rejected seed walk; see the
+[protocol](../EVALUATION_PROTOCOL.md). At reset, every mode also checks that
+the manifest is pinned to the native revision and that the selected entry has
+a unique seed and a dynamic-motion payload. The server never prepares, edits or
+searches the manifest while a policy runs. A manifest is private native reset
+data; pickle requires a trusted local origin and hash, not arbitrary policy
+input.
 
 The current native import path still initializes CuRobo planners even though
 policy controls use qpos/TOPP. The SM120 environment needs a compatible
@@ -122,3 +150,8 @@ Build/import readiness, synthetic rendering,
 robot-only planner warmup and a task reset are separate checks. Native source
 and assets must remain unchanged; isolate JIT, Warp and driver caches in owned
 diagnostic storage. These setup checks are not policy trials or task scores.
+
+Check the task reset through the service with the shared
+[readiness probe](../../SERVER_PROTOCOL.md#readiness-probe) against a dedicated
+`example` launch. It claims, resets and finishes one episode, with no model or
+action, and records any failure as an infrastructure error.

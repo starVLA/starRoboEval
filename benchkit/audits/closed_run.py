@@ -9,6 +9,8 @@ import json
 import math
 from pathlib import Path
 
+from benchkit.contracts import episode_step_limit
+
 
 class AuditError(ValueError):
     pass
@@ -186,9 +188,10 @@ def audit_episode(result: dict, events: list, protocol: dict) -> dict:
             "episode boundary/result mismatch")
     calls = counter(result["policy_calls"], "policy")
     controls = counter(result["environment_steps"], "control")
-    require(controls <= protocol["max_steps"], "control budget exceeded")
+    step_limit = episode_step_limit(protocol["max_steps"], result["episode"]["metadata"])  # runner's per-episode cap
+    require(controls <= step_limit, "control budget exceeded")
     require(protocol["max_policy_calls"] is None or calls <= protocol["max_policy_calls"],
-            "decision budget exceeded")
+            "policy-call budget exceeded")
     completed = result["status"] == "completed"
     require(protocol.get("execution_feedback_version") == "starvla-rsi.execution-feedback/v1",
             "unknown execution feedback contract")
@@ -287,7 +290,7 @@ def audit_episode(result: dict, events: list, protocol: dict) -> dict:
             actions = event["actions"]
             require(isinstance(actions, list) and len(actions) == decision["chunk_length"] > 0,
                     "decision/action chunk length mismatch")
-            expected = min(len(actions), protocol["max_steps"] - step)
+            expected = min(len(actions), step_limit - step)
             if protocol["replan_interval"] is not None:
                 expected = min(expected, protocol["replan_interval"])
             require(counter(event["maximum_executed_prefix"], "prefix") == expected,
@@ -455,16 +458,13 @@ def audit_episode(result: dict, events: list, protocol: dict) -> dict:
         if stops:
             require(result["termination_reason"] == f"policy:{decision['stop_reason']}", "stop reason mismatch")
         else:
-            # Match runner.py precedence, including the decision-primary tie at
-            # D*K: native termination wins, then the declared decision cap,
-            # then native truncation and the ordinary step cap.
+            # Match runner.py precedence: native termination, native
+            # truncation, the step cap, then the policy-call cap.
             call_limit = protocol["max_policy_calls"]
             calls_exhausted = call_limit is not None and call >= call_limit
-            steps_exhausted = step >= protocol["max_steps"]
+            steps_exhausted = step >= step_limit
             if last_control is not None and last_control["terminated"]:
                 expected_reason = "environment:terminated"
-            elif protocol["budget_mode"] == "decisions" and steps_exhausted and calls_exhausted:
-                expected_reason = "runner:policy_call_limit"
             elif last_control is not None and last_control["truncated"]:
                 expected_reason = "environment:truncated"
             elif steps_exhausted:

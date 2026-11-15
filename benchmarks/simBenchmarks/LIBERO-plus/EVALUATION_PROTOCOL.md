@@ -28,14 +28,37 @@ No licensed training dataset or model weights are needed for evaluation.
 
 ### Service selection
 
-Select an explicit increasing, unique `task_ids` list,
-one predeclared seed and released state index **0**. Upstream's own
-reset wrapper may retry internal placement randomization before returning one
-reset; that is retained native initialization, not a success-seeking model retry.
-The upstream README specifies **one trial per LIBERO-Plus variant**. Report
-the selected suite, variant IDs, categories and attempts, including unattempted
-cases and errors. This service exposes released state 0 for each variant; it
-does not expose a selectable list of additional initial states.
+One service runs one suite; `evaluation_mode` selects its variants. Every case
+installs released state 0 once with the predeclared launch seed (the `fast`
+cases were evaluated with seed 20261026). An unknown mode is a configuration error.
+
+| Mode | Selection | Cases per suite |
+| --- | --- | --- |
+| `fast` (default) | up to 5 ranked variants per (base task, category) group | 349 (1,396 over four suites) |
+| `max` | every variant, the upstream **one trial per variant** panel | 2,402 / 2,518 / 2,591 / 2,519 |
+| `example` | the first `fast` case | 1 |
+
+`fast` groups each suite's variants by base task (the Background Textures
+name without its `_table_N`/`_tb_N` suffix; ten per suite) and category. Within
+each group, variants are ranked by ascending
+SHA256(UTF-8("20261026/<suite>/<base_task>/<category>/<native_id>")), native ID
+breaking ties, and the first five are kept. Four Light Conditions groups hold
+only four variants. Cases run by sample slot, then category, then base task in
+order of first Background Textures appearance
+([`fast_selection`](bench_server/protocol/catalog.py)). `max` runs variants in
+native index order. The four suites total 10,030 `max` cases, above the
+10,000-case schedule limit of one service, so run one service per suite.
+
+Case IDs look like `libero_spatial-task0004-init00`. Object-layout variants
+(`_add_`/`_level`) load one native reset row; other variants are checked against
+the loaded state count at reset. Upstream's own reset wrapper may retry
+internal placement randomization before returning one reset; that is retained
+native initialization, not a success-seeking model retry. Report the selected
+suite, mode, variant IDs, categories and attempts, including unattempted cases
+and errors.
+
+The descriptor protocol is
+`libero-plus-4976dc3/<suite>-initial-state-panel-reference-horizon/rgb/<mode>/v1`.
 
 A variant is a native perturbation definition, not a reset seed. For example,
 the camera-view and robot-initialization components encoded in its virtual
@@ -61,7 +84,7 @@ The native reset loader resolves filenames in this precedence order:
    the native loader's one-row reshape retained.
 
 RSI checks these exact files against the catalog before native `torch.load`.
-It seeds NumPy and the native environment, invokes native reset and state 0,
+It seeds NumPy and the native environment, invokes native reset and the selected state,
 then performs the retained evaluator's **10 fixed settle controls**
 `[0,0,0,0,0,0,-1]`. They are initialization, not model decisions, and are recorded
 separately. A native success during settling is an initialization error, not a
@@ -101,11 +124,8 @@ step, scorer or artifact-read endpoint. Idle service time causes no controls.
 
 The pinned evaluator references 220/280/300/520 policy controls for
 spatial/object/goal/LIBERO-10, excluding the 10 settle controls. These are named
-reference horizons, not an inferred universal engine limit. Optional
-`budget_mode: decisions` declares `max_policy_calls × replan_interval` as an
-alternative control cap and changes protocol identity; those settings are not
-native task definitions. The trusted driver separately enforces its own selected
-call/chunk limits. Calls, executed action decisions,
+reference horizons, not an inferred universal engine limit. The trusted driver
+separately enforces its own selected call/chunk limits. Calls, executed action decisions,
 native controls and settle controls are distinct counters. Ordinary give-up
 preferences belong to the policy profile, never this benchmark.
 

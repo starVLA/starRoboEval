@@ -9,6 +9,7 @@ import json
 import math
 import os
 from pathlib import Path
+import pickle
 import sys
 
 from benchkit.errors import CompatibilityError
@@ -41,7 +42,7 @@ def readiness(root: Path, expected_digest: str) -> dict:
     if digest(path) != expected_digest:
         raise CompatibilityError("DOMINO deployment manifest hash differs")
     record = json.loads(path.read_text())
-    if (record["schema"] != "domino.owned-deployment/v1"
+    if (record["schema"] != "starvla-rsi.domino.owned-deployment/v1"
             or record["native_source"]["revision"] != NATIVE_REVISION
             or record["curobo_source"]["revision"] != CUROBO_REVISION):
         raise CompatibilityError("DOMINO native/CuRobo identity differs")
@@ -60,7 +61,7 @@ def readiness(root: Path, expected_digest: str) -> dict:
             package = Path(dist.locate_file(name)).resolve()
             if package != Path(item["root"]):
                 raise CompatibilityError(f"DOMINO package location differs: {name}")
-            verify_rows(package, item["files"])
+            verify_rows(package, item["files"], bytecode=False)
     return {"schema": record["schema"], "deployment_manifest_sha256": expected_digest,
             "native_revision": NATIVE_REVISION, "curobo_revision": CUROBO_REVISION,
             "runtime": runtime, "native_resets": 0,
@@ -118,7 +119,7 @@ def resolved_config(root: Path) -> dict:
     return config
 
 
-def load_entry(path: Path, expected_hash: str, native_seed: int, config: dict, manifest_class):
+def load_entry(path: Path, expected_hash: str, ordinal: int, config: dict, manifest_class):
     # Administrative local file only, never a client upload. Hash before pickle.
     if path.is_symlink() or not path.is_file() or digest(path) != expected_hash:
         raise CompatibilityError("trusted fixed-episode manifest identity differs")
@@ -126,10 +127,81 @@ def load_entry(path: Path, expected_hash: str, native_seed: int, config: dict, m
     manifest.validate_against(config)
     if manifest.metadata.get("git_commit") != NATIVE_REVISION:
         raise CompatibilityError("manifest must be generated at pinned DOMINO revision")
-    matches = [entry for entry in manifest.entries if type(entry.get("seed")) is int and entry["seed"] == native_seed]
-    if len(matches) != 1 or matches[0].get("dynamic_motion_info") is None:
-        raise CompatibilityError("exactly one declared seed with dynamic motion is required")
-    return deepcopy(matches[0])
+    # Entries are native accepted scenes in candidate-seed order; ordinals are one-based.
+    if not 1 <= ordinal <= len(manifest.entries):
+        raise CompatibilityError(f"trusted manifest has no accepted entry {ordinal}")
+    entry = manifest.entries[ordinal - 1]
+    seeds = [row.get("seed") for row in manifest.entries]
+    if (type(entry.get("seed")) is not int or seeds.count(entry["seed"]) != 1
+            or entry.get("dynamic_motion_info") is None):
+        raise CompatibilityError("manifest entry needs one unique integer seed with dynamic motion")
+    return deepcopy(entry)
+
+
+MAX_ACCEPTED_COUNT = 100  # native eval_policy.py test_num
+MAX_START_SEED = 100000  # native st_seed = 100000 * (1 + eval seed 0)
+REJECTION_REASONS = frozenset({"unstable", "exception", "expert_check_fail", "dynamic_validation_fail"})
+MAX_PREPARATION = ("prepare it offline with native script/screen_episodes.py --task_name click_bell "
+                    "--task_config demo_clean_dynamic --seed 0 --test_num 100 at the pinned revision; "
+                    "see environment/README.md")
+
+
+def require_complete_manifest(path: Path, expected_hash: str) -> dict:
+    """Startup gate for `max`: the complete native screening record, or refuse.
+
+    Pure pickle/structure check before any native import; reset still runs
+    the native `validate_against` on the claimed entry.
+    """
+    if path.is_symlink() or not path.is_file():
+        raise ValueError(f"DOMINO max mode needs the trusted episode manifest file; {MAX_PREPARATION}")
+    if digest(path) != expected_hash:  # operator-supplied pin must match
+        raise ValueError("DOMINO episode manifest SHA256 differs from episode_manifest_sha256")
+    try:
+        with path.open("rb") as stream:
+            payload = pickle.load(stream)  # hash-bound trusted local file only
+    except ImportError as exc:  # native payload holds numpy arrays
+        raise CompatibilityError(f"DOMINO episode manifest needs numpy in the service interpreter "
+                                 f"({type(exc).__name__}: {exc.name or 'unknown module'})") from exc
+    except Exception as exc:
+        raise ValueError(f"DOMINO episode manifest cannot be loaded ({type(exc).__name__}); "
+                         "load it with the native interpreter") from exc
+    metadata = payload.get("metadata") if isinstance(payload, dict) else None
+    entries, rejected = (payload.get("entries"), payload.get("rejected")) if isinstance(payload, dict) else (None, None)
+    if not isinstance(metadata, dict) or not isinstance(entries, list) or not isinstance(rejected, list):
+        raise ValueError("DOMINO episode manifest is not a native EpisodeManifest payload")
+    expected = {"format_version": 1, "git_commit": NATIVE_REVISION, "task_name": TASK,
+                "task_config": TASK_CONFIG, "embodiment": ["aloha-agilex"], "cli_seed": 0,
+                "st_seed": MAX_START_SEED, "test_num": MAX_ACCEPTED_COUNT, "use_dynamic": True,
+                "dynamic_level": 1, "dynamic_coefficient": 0.1}
+    # Strict type match: 1 is not True, 0 is not False, 100000.0 is not 100000.
+    differs = sorted(key for key, value in expected.items()
+                     if not (type(metadata.get(key)) is type(value) and metadata.get(key) == value))
+    if differs:
+        raise ValueError(f"DOMINO episode manifest was not screened for max mode ({', '.join(differs)} differ); "
+                         + MAX_PREPARATION)
+    seeds = [row.get("seed") if isinstance(row, dict) else None for row in entries]
+    if (len(entries) != MAX_ACCEPTED_COUNT or any(type(seed) is not int for seed in seeds)
+            or seeds != sorted(set(seeds))
+            or any(row.get("dynamic_motion_info") is None for row in entries)):
+        raise ValueError(f"DOMINO max mode needs exactly {MAX_ACCEPTED_COUNT} accepted entries with unique "
+                         f"ascending seeds and dynamic motion payloads; {MAX_PREPARATION}")
+    rejected_seeds = [row.get("seed") if isinstance(row, dict) else None for row in rejected]
+    if (any(type(seed) is not int for seed in rejected_seeds)
+            or any(not isinstance(row.get("reason"), str) or row["reason"] not in REJECTION_REASONS
+                   for row in rejected)):
+        raise ValueError("DOMINO manifest rejections need an integer seed and a native rejection reason")
+    # A contiguous walk from st_seed to the 100th acceptance proves no seed was skipped or hidden.
+    walked = sorted(seeds + rejected_seeds)
+    if walked != list(range(MAX_START_SEED, seeds[-1] + 1)):
+        raise ValueError("DOMINO manifest is not one contiguous screening walk from seed 100000; "
+                         + MAX_PREPARATION)
+    reasons = {}
+    for row in rejected:
+        reasons[row["reason"]] = reasons.get(row["reason"], 0) + 1
+    # Preparation provenance only; rejections are never policy results.
+    return {"accepted": len(seeds), "rejected": len(rejected), "rejection_reasons": dict(sorted(reasons.items())),
+            "first_seed": MAX_START_SEED, "last_accepted_seed": seeds[-1],
+            "created_at": metadata.get("created_at")}
 
 
 def verify_compiled(env) -> dict:

@@ -7,7 +7,7 @@ actions and success checks through an independent benchmark service.
 
 - [Evaluation protocol](EVALUATION_PROTOCOL.md): selection, initialization, budgets and scoring.
 - [Task catalog](bench_server/protocol/libero_catalog.json): native ordering, instructions and reset counts.
-- [Source inventory](bench_server/protocol/phase2_task_inventory.json): pinned task and evaluator references.
+- [Source inventory](bench_server/protocol/task_inventory.json): pinned task and evaluator references.
 - [Service configuration](server.example.json) and [shared interface](../SERVER_PROTOCOL.md).
 
 ## Benchmark tasks and initial states
@@ -35,31 +35,31 @@ budget and its source rather than assuming equivalent conditions.
 
 ## Select cases through this service
 
-Select a suite and increasing `task_ids` with `scope: "task_coverage"`.
-`initial_state_indices` selects released `.pruned_init` entries; it does not
-select arbitrary random layouts. The adapter checks each index against every
-selected task. Omitting this list selects state 0; an explicit list defines a
-separately versioned panel in task-major, state-minor order. The service requires
-seed `20260907` and task-order index 0.
+`evaluation_mode` selects the cases of one suite; one service runs one suite.
+Cases run in task-major, state-minor order with seed `20260907` and task-order
+index 0. An initial-state index selects a released `.pruned_init` entry, not a
+random layout. Seeding and per-case environment construction differ from
+OpenVLA's evaluator; see the
+[differences](EVALUATION_PROTOCOL.md#differences-from-the-openvla-evaluation).
 
-For example, this operator configuration fixes 25 task/state cells:
+| Mode | Selection | Cases | Cap |
+| --- | --- | --- | --- |
+| `fast` (default) | every task × released states 0–4 | tasks × 5 (`libero_10`: 50) | suite horizon |
+| `max` | every task × every released state | tasks × 50 (`libero_10`: 500) | suite horizon |
+| `example` | task 0, state 0 | 1 | suite horizon |
 
 ```json
 {
   "suite": "libero_spatial",
-  "scope": "task_coverage",
-  "task_ids": [0, 1, 2, 3, 4],
-  "initial_state_indices": [0, 1, 2, 3, 4],
+  "evaluation_mode": "fast",
   "proprioception": false,
-  "render_gpu_device_id": 0,
-  "budget_mode": "horizon"
+  "render_gpu_device_id": 0
 }
 ```
 
 Distinct released state indices do not guarantee visibly different layouts.
-The catalog contains 6,500 suite-task/state cells (130 × 50); report the selected
-suite, tasks and states explicitly. The example is a selection example, not
-the benchmark's prescribed number of tasks or trials.
+The catalog contains 6,500 suite-task/state cells (130 × 50); report the suite
+and mode explicitly.
 
 ## Observations, actions and scoring
 
@@ -81,10 +81,8 @@ stops at the first native success, or at the selected cap without success.
 A model's completion claim or a video's appearance does not change that result.
 Record inference calls, action decisions, controls and settling separately.
 
-The `horizon` track uses the table above. The explicit `decisions` track uses
-`max_policy_calls × replan_interval` as an alternative control cap and changes
-protocol identity. In horizon mode, action grouping and inference frequency
-belong to the agent; they do not extend the execution cap.
+The control cap is the reference horizon in the table above. Action grouping
+and inference frequency belong to the agent; they do not extend the execution cap.
 
 ## Install and check the environment
 
@@ -116,25 +114,20 @@ metadata. CPU Torch deserializes initial states. Runtime pins include Robosuite
 1.4.0, MuJoCo 3.2.3 and NumPy 1.24.4. Select an allocated EGL GPU and use the same
 index in the server configuration.
 
-The separate readiness diagnostic performs reset, settling, rendering and one
-neutral control, with no model calls:
-
-```sh
-python benchmarks/simBenchmarks/LIBERO/environment/verify_environment.py \
-  --render-gpu-device-id 0 --output-dir /absolute/path/to/new-libero-diagnostic
-```
-
-Inspect images/video and source/controller metadata before capability evaluation.
-Import success and a service description alone do not validate rendering.
+Check readiness through the service with the shared
+[readiness probe](../SERVER_PROTOCOL.md#readiness-probe). Launch a dedicated
+service (for example `evaluation_mode: example`) with its own output directory;
+the probe claims and resets one episode, with no model calls or actions, and
+reports the reset image shapes. Check source/controller metadata before capability
+evaluation. Import success and a service description alone do not validate rendering.
 
 ## Start the benchmark service
 
 Copy [server.example.json](server.example.json) to an operator-owned file, or use
-the panel example above. The checked-in example selects LIBERO-10 task 0 at
-state 0 with the **520-control reference horizon**. Action grouping and model-call
-limits are agent settings, not part of this server configuration. The separate
-`decisions` track remains available only with a driver that supports its matching
-budget contract; it is not selected by the example.
+the example above. The checked-in example omits `evaluation_mode`, so it runs the
+`fast` cases of LIBERO-10 (10 tasks × states 0–4) with the **520-control reference
+horizon**; `--episodes 1` below runs only the first case, task 0 at state 0. Action grouping and model-call
+limits are agent settings, not part of this server configuration.
 
 Set a strong `RSI_SIM_SERVER_TOKEN` privately for the server and trusted driver.
 Launch with the native environment and installation variables above:
@@ -146,8 +139,8 @@ python -B -m benchmarks.simBenchmarks.LIBERO.server \
   --output-dir /absolute/path/to/results/libero/your-run/server
 ```
 
-For the 25-cell panel, omit `--episodes` or set it to 25, and select all 25 cells
-in the trusted driver. The flag limits a schedule prefix, not tasks per suite.
+Omit `--episodes` to run every case of the selected mode. The flag limits a
+schedule prefix, not tasks per suite.
 The loopback service fixes its schedule at launch and constructs the native
 environment only on reset. Connect through the [wire protocol](../SERVER_PROTOCOL.md);
 see [agent integration](../../../docs/agent-methods.md) for participant drivers.
@@ -156,7 +149,7 @@ see [agent integration](../../../docs/agent-methods.md) for participant drivers.
 
 `server.py` is the public launcher. `bench_server/adapter.py` implements the
 contract and native score bridge; `bench_server/protocol/` holds the catalog and
-task inventory. `environment/` holds installation and readiness tools. Deployment
+task inventory. `environment/` holds installation and configuration tools. Deployment
 paths, GPU selection and credentials belong to operator configuration.
 
 Keep method implementations under `AgentPolicies/<agent>/` and generated reports

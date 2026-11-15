@@ -34,7 +34,6 @@ SERVICE_SOURCE_FILES = (
     "benchkit/contracts.py",
     "benchkit/errors.py",
     "benchkit/interfaces.py",
-    "benchkit/registry.py",
     "benchkit/source_snapshot.py",
     "benchkit/validation.py",
     "benchkit/sim_server/__init__.py",

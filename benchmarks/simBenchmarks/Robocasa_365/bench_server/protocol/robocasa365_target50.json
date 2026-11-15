@@ -1,5 +1,5 @@
 {
-  "schema_version": "starvla-rsi.robocasa365-target50/v1",
+  "schema_version": "starvla-rsi.robocasa365.target50/v1",
   "native_revision": "b4684e6ee37d377cc392e98302a6b916d588b415",
   "selection": "TARGET_TASKS atomic_seen + composite_seen + composite_unseen in pinned native order",
   "counts": {

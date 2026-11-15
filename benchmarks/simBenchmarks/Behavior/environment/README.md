@@ -50,8 +50,8 @@ extraction `target`. Keep the source archives and receipts in operator storage.
 The capture checks files without importing OmniGibson or constructing a scene.
 
 Use a separate capture for each selected task. The manifest must match the task
-and instance selected in the server configuration. Omitting `--task` selects
-radio; a radio manifest cannot be used for another task.
+selected in the server configuration and binds its pinned instance files. Omitting `--task` selects
+radio; a manifest cannot be used for another task.
 
 Before initialization, the worker rechecks selected robot/task files, tracked
 native package sources, runtime versions, interpreter and module origins.
@@ -87,9 +87,12 @@ configure every native SDK thread. See the
    [server configuration](../server.example.json).
 3. Set `worker_python`, `gpu_id`, `worker_timeout` and the selected `task`
    before launching the [public entrypoint](../README.md#prepare-and-launch).
-4. Use a separately labelled infrastructure check through the service to verify
-   reset, all three RGB views, measured state, one valid control, timing and cleanup.
-5. Keep a diagnostic's outcome separate from a scored task attempt.
+4. Against a dedicated `example` launch, run the shared
+   [readiness probe](../../SERVER_PROTOCOL.md#readiness-probe). It verifies
+   reset, all three RGB views, measured state size, timing and cleanup through
+   the service, with no model or action. One valid control is first checked in
+   the closed records of a separately authorized sample.
+5. Keep a probe's outcome separate from a scored task attempt.
 
 Cold scene initialization may take minutes to build collision, shader and
 rendering caches. Choose a bounded worker timeout in advance and inspect native

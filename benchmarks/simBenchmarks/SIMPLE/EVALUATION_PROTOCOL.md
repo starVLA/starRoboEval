@@ -30,14 +30,42 @@ its task/level/index identity. Report each level separately before aggregating.
 ## Available service bindings
 
 The [service task inventory](bench_server/protocol/simple_released_tasks.json)
-binds 12 registrations, each with only one selectable reset: seed 20260907,
-DR0, episode index 0. The [task table](bench_server/protocol/RELEASED_TASK_SCOPE.md)
-lists each task, backend, scene and native reference horizon. These bindings
-span seven scene entrypoints; other episode indices and DR levels are not exposed.
+binds 12 registrations with seed 20260907. The
+[task table](bench_server/protocol/RELEASED_TASK_SCOPE.md) lists each task,
+backend, scene, native reference horizon and native success threshold.
 
-Select one task/backend per server using `task_names=[task_id]`.
-`task_scope="released-12"` permits all 12 tasks; the default `task_scope="pilot"`
-permits BendPickMP and OpenFaucetTeleop. The adapter default is BendPickMP.
+### Evaluation modes
+
+| Mode | Selection | Episodes per task | Cap |
+| --- | --- | ---: | --- |
+| `fast` (default) | DR0 released episodes 0–4 | 5 | Native task horizon |
+| `max` | DR0, DR1 and DR2 × released episodes 0–9 | 30 | Native task horizon |
+| `example` | First `fast` episode, DR0 episode 0 | 1 | Native task horizon |
+
+`max` follows the native evaluation: the pinned evaluators run every episode of
+one level directory (`list(range(episode_start, dataset_size))` in
+[`eval.py`](https://github.com/physical-superintelligence-lab/SIMPLE/blob/5e3d6f84e85343e34e9bca8d157f0d7813231185/src/simple/cli/eval.py#L222-L223)
+and [`eval_decoupled_wbc.py`](https://github.com/physical-superintelligence-lab/SIMPLE/blob/5e3d6f84e85343e34e9bca8d157f0d7813231185/src/simple/cli/eval_decoupled_wbc.py#L258-L259)),
+and the README reports ten trials at each of the three levels for the tasks it
+lists (OpenTrashCan and PushOfficeChair have released DR0–DR2 rows but no
+README results). The README examples name the directory `level-0`; the released
+directories are `dr-level-<N>`. Across the 12 tasks, `max` is 360 episodes. Episodes run by DR level, then episode index.
+
+Episode IDs are `<task>/dr<level>/ep<index>`, for example
+`G1WholebodyBendPickMP-v0/dr2/ep7`. Episode metadata repeats `dr_level`,
+`episode_index` and `native_success_threshold`. Every episode resets with seed
+20260907 from its released row. The protocol identity is
+`simple-humanoid-5e3d6f8/native-horizon-<H>/<modality>-<backend>/<mode>/v1`.
+
+Select one task/backend per server using `task_names=[task_id]`; the task narrows
+within the chosen mode. An omitted `task_names` selects BendPickMP, so covering
+the 12 tasks takes 12 servers.
+
+Each level reads `<eval_root>/simple-eval/<task>/dr-level-<N>/meta/episodes.jsonl`.
+The released configurations embed `dr_level: 0` at every level, so the
+directory identifies the level. The worker compares the DR0 file with its pin.
+DR1 and DR2 files have no pin yet: the worker records their observed SHA-256
+with `pin: unpinned` in `native_provenance.json` and continues.
 
 ## Native timing
 
@@ -60,8 +88,8 @@ error, not a task failure after agent control.
   cropping or color changes.
 - By default, 31 measured joint encoders in radians, ordered as action slots 0–30.
 
-RGB-only input is selectable for the two default-scope tasks; the 12-task
-selection requires RGB and joint state. Depth, additional stereo channels,
+RGB-only input is selectable only for BendPickMP and OpenFaucetTeleop; the
+other tasks require RGB and joint state. Depth, additional stereo channels,
 world/root/EEF pose, object truth, maps, goal poses, reset metadata, native
 rewards/success and demonstration actions are excluded from actor inputs.
 
@@ -106,27 +134,40 @@ For the 12 service-bound tasks, native reference horizons are **400, 800, 1,000
 or 1,200 controls**. Native scoring consumes the step's reward/`_success` result without an
 extra scorer query: some predicates, including faucet behavior, are stateful.
 
-By default, `budget_mode="horizon"` uses the selected task's metadata horizon
-for all 12 service bindings. A method chooses its decision frequency and action
-groups in its own driver; this mode does not accept service-side
-`max_policy_calls` or `replan_interval` values. Every public `step` still executes
-one native control. Native success or termination can end before the horizon.
-
-| Budget selection | Actual control cap | Configuration |
-| --- | ---: | --- |
-| `budget_mode="horizon"` (default) | Task's native reference horizon | No service-side call/prefix limits |
-| `budget_mode="decisions"` | 1,000 | Fixed `max_policy_calls=200`, `replan_interval=5` |
-
-The default contract uses `native-horizon-<N>/v3`. The explicit decisions
-selection retains `decision-200-prefix-5/v2` and defaults its two fixed settings
-when omitted. Its 1,000-control cap extends 400/800-control tasks and shortens the
-1,200-control task; it is not the native-horizon protocol. These track-specific
-settings are not native SIMPLE requirements on reasoning. Actual decisions
-cannot be inferred from controls by dividing by a prefix length.
+The service uses the selected task's metadata horizon as the control cap for
+all 12 service bindings, under the protocol segment `native-horizon-<N>`. A method
+chooses its decision frequency and action groups in its own driver; the service
+advertises no call or prefix limits. Every public `step` still executes one
+native control. Native success or termination can end before the horizon.
+Actual decisions cannot be inferred from controls by dividing by a prefix length.
 
 Here, native reference horizon means the task metadata value, not a universal
 setting shared by every upstream evaluation script. External evaluators may
 select a different execution cap; report that cap separately.
+
+### Success threshold
+
+Every mode uses each task's native threshold: native `check_success` returns
+`reward >= threshold`, and the service passes no `success_criteria` override.
+Thresholds are 0.9 for most tasks, 0.8 for XMoveBendPick, 0.5 for CloseDoor and
+OpenOven, 0.4 for LocomotionPickBetweenTables and 0.2 for OpenFaucet; the
+[task table](bench_server/protocol/RELEASED_TASK_SCOPE.md) lists each value.
+
+This matches the pinned evaluators as documented in the upstream README:
+
+- Teleop tasks use `eval-decoupled-wbc`. Its CLI default is `None`
+  ([L719](https://github.com/physical-superintelligence-lab/SIMPLE/blob/5e3d6f84e85343e34e9bca8d157f0d7813231185/src/simple/cli/eval_decoupled_wbc.py#L719)),
+  which reaches the worker unchanged ([L507](https://github.com/physical-superintelligence-lab/SIMPLE/blob/5e3d6f84e85343e34e9bca8d157f0d7813231185/src/simple/cli/eval_decoupled_wbc.py#L507)),
+  so the override at [L288–L291](https://github.com/physical-superintelligence-lab/SIMPLE/blob/5e3d6f84e85343e34e9bca8d157f0d7813231185/src/simple/cli/eval_decoupled_wbc.py#L288-L291)
+  is skipped. The worker signature's default of 0.5 ([L179](https://github.com/physical-superintelligence-lab/SIMPLE/blob/5e3d6f84e85343e34e9bca8d157f0d7813231185/src/simple/cli/eval_decoupled_wbc.py#L179))
+  is not reached through this CLI.
+- MP tasks use `eval`, which passes its default 0.9 to the task constructor
+  ([L161](https://github.com/physical-superintelligence-lab/SIMPLE/blob/5e3d6f84e85343e34e9bca8d157f0d7813231185/src/simple/cli/eval.py#L161),
+  [L233–L239](https://github.com/physical-superintelligence-lab/SIMPLE/blob/5e3d6f84e85343e34e9bca8d157f0d7813231185/src/simple/cli/eval.py#L233-L239)).
+  This equals BendPickMP's constructor default; TabletopGraspMP compares
+  with a literal 0.9.
+
+Both evaluators read the final native `_success` after the episode.
 
 ## Scoring and result statistics
 

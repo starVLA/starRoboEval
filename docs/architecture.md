@@ -34,7 +34,7 @@ treatment of historical results and ignored local files.
 `python -m benchkit.sim_server.cli`. The selector is a launch convenience, not a
 new decision loop, proxy or persistent coordinator. Generic list/help needs no
 simulator; selected-service help shows that wrapper's real launch options.
-The old `python -m benchkit.sim_server` remains a synthetic diagnostic only.
+`python -m benchkit.sim_server` serves only the synthetic smoke world.
 
 RoboDojo, SimplerEnv, LIBERO and SIMPLE share communication mechanisms, not a
 single action space. In particular, SIMPLE's humanoid contract is not EEF16.
@@ -104,8 +104,8 @@ The model-owned `AgentPolicies/gpt6_astra/run.py` entrypoint requires `--sim-ser
 and uses the reusable loop in `AgentPolicies/gpt6_astra/tools/runner.py`. It has no local
 native fallback. This trusted driver is distinct from the model actor: the
 administrative client includes schedules, metrics and result export, and must
-not be passed to an untrusted policy process. The legacy standalone CLI also
-supports `--sim-server`. The service records its deployment source snapshot; the
+not be passed to an untrusted policy process. The general CLI
+(`starvla-eval run`) also connects only through `--sim-server`. The service records its deployment source snapshot; the
 client records its git revision and dirty flag, without claiming loaded-memory,
 asset or provider attestation.
 
@@ -119,8 +119,9 @@ the model or silently expand its available observations.
 
 Services declare their fixed schedule in the adapter or its protocol data.
 RoboDojo's server reads the immutable schedule from
-`bench_server/protocol/task_catalog.json`: `classify_objects` has selections of
-5 or 50 layouts. Both attempt each selected layout once; neither
+`bench_server/protocol/task_catalog.json`: `classify_objects` has `evaluation_mode`
+selections of 1, 5 or 50 layouts; `max` takes the first 50 reset-stable layouts
+from a reset-stability manifest. Each attempts every selected layout once; none
 covers every RoboDojo task. Supported task and case selection remains benchmark-specific.
 
 ### Policy interface
@@ -142,17 +143,15 @@ budget. Repeating a target means another acknowledged control, never replaying
 an uncertain request. Native physics substeps, timing and protocol-fixed
 interpolation remain benchmark-owned, not method-adjustable repeats.
 
-This ownership rule does not mean every existing track is already decoupled.
-Legacy `budget_mode=decisions` tracks still bind call/prefix settings to a total
-execution cap, and the reference runner checks agreement with the adapter.
-SIMPLE defaults to a new task-horizon protocol without method call/prefix caps;
-its explicitly selected decisions protocol keeps its prior identity. CALVIN and
+A service advertises its native execution horizon (`environment_step_cap`) and,
+where the benchmark limits model calls, a call allowance. The driver may override
+either; the manifest records the service value and whether it was overridden.
+No service couples call or prefix settings to the execution cap. CALVIN and
 DOMINO's current protocols no longer require prefix one. The reference agent
 driver discards an unexecuted chunk suffix when an acknowledged observation
 contains a changed instruction, then asks its policy again. This uses public
-language, not hidden subtask state. Shared tooling still enforces a
-`required_replan_interval` when connecting to an older service that declares it.
-Historical records keep their original contracts.
+language, not hidden subtask state. Shared tooling enforces a
+`required_replan_interval` when a service declares one; no current service does.
 
 Input validity belongs to the declared benchmark interface; optional motion and
 gripper preferences belong to the model profile. A declared `feedback` mode can
@@ -176,7 +175,8 @@ infrastructure diagnostic a participant model.
 ### Reusable execution and output tools
 
 `benchkit/contracts.py` and `interfaces.py` define the public types.
-`registry.py` explicitly assembles extensions.
+`registry.py` names the shared diagnostic policies for `--policy`; benchmarks
+come only from their services.
 `AgentPolicies/gpt6_astra/tools/runner.py` validates compatibility and executes the
 agent's bounded action prefixes for the model driver and general CLI. It uses recording tools without moving
 the decision loop into `benchkit`. Native validation and end conditions remain
@@ -188,7 +188,7 @@ package under `benchmarks`. Import the optional runner directly from
 their configuration and factories, and records the profile ID; it does not
 implement a provider.
 
-Shared serializable DTOs, registry assembly and factory dispatch helpers
+Shared serializable DTOs and profile factory dispatch helpers
 remain under `benchkit` for existing integrations. They are grouped into functional
 packages; relocated entrypoints do not retain forwarding shells. New model
 drivers construct their own model; shared declarative validation remains an
@@ -221,8 +221,10 @@ check; benchkit does not contain provider-specific readiness logic.
 `benchkit/diagnostics/` contains explicitly non-capability fixed-action diagnostics.
 Their recorded native metrics
 validate infrastructure and must not be interpreted as model capability scores.
-Benchmark-specific asset, renderer and control readiness tools remain
-under that benchmark's `environment/` directory.
+`benchkit probe` (`diagnostics/probe.py`) is the shared connect-level readiness
+check for every service: describe, claim, reset and close, with no policy or action.
+Native-only asset and renderer checks that need no service remain under that
+benchmark's `environment/` directory.
 
 Generic auditing and reporting live under `benchkit/audits/` and `reports/`.
 Benchmark-specific evidence checks stay beside the benchmark. An audit validates
@@ -314,7 +316,7 @@ The client no longer copies harness or model source into run directories. Each
 server deployment captures its own shared-service source snapshot
 (`harness_source/` in the service root, limited to `SERVICE_SOURCE_FILES`) plus
 the selected benchmark's supplemental files. It does not capture every
-registered benchmark or require GPT driver files. A source inventory describes
+benchmark or require GPT driver files. A source inventory describes
 the bytes captured for that deployment, not today's checkout. Keep existing
 records and results unchanged as data; live code does not read their source
 bundles. See [package migration notes](package-migration.md).

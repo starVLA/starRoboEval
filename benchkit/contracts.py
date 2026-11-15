@@ -210,6 +210,13 @@ class EpisodeSpec:
         )
 
 
+def episode_step_limit(max_steps: int, metadata: Mapping[str, Any]) -> int:
+    """Controls allowed in one episode: the run's max_steps, lowered to the episode's
+    own metadata environment_step_cap when the service declares a smaller one."""
+    cap = metadata.get("environment_step_cap") if isinstance(metadata, Mapping) else None
+    return cap if type(cap) is int and 0 < cap < max_steps else max_steps
+
+
 @dataclass(frozen=True)
 class PolicyEpisodeSpec:
     """Public task context; reset seeds and simulator metadata are excluded.
@@ -416,7 +423,6 @@ class EpisodeContext:
     max_steps: int
     max_policy_calls: int | None
     replan_interval: int | None
-    budget_mode: str = "horizon"
     invalid_action_handling: str = "terminate"
 
 

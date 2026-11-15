@@ -1,7 +1,7 @@
 """The single public RoboDojo Direct-control SIM server."""
 from collections.abc import Mapping
 
-from benchmarks.simBenchmarks.RoboDojo.bench_server.adapter import DirectEEFBenchmarkAdapter, INTERFACE_PROTOCOL
+from benchmarks.simBenchmarks.RoboDojo.bench_server.adapter import DirectEEFBenchmarkAdapter, selection_protocol
 from benchkit.sim_server.launch import main as launch
 
 SUPPLEMENTAL_FILES = (
@@ -11,6 +11,7 @@ SUPPLEMENTAL_FILES = (
     "benchmarks/simBenchmarks/RoboDojo/bench_server/adapter.py",
     "benchmarks/simBenchmarks/RoboDojo/bench_server/native_worker_client.py",
     "benchmarks/simBenchmarks/RoboDojo/bench_server/protocol/__init__.py",
+    "benchmarks/simBenchmarks/RoboDojo/bench_server/protocol/reset_stability.py",
     "benchmarks/simBenchmarks/RoboDojo/bench_server/protocol/robot_feedback.py",
     "benchmarks/simBenchmarks/RoboDojo/bench_server/protocol/task_catalog.json",
     "benchmarks/simBenchmarks/RoboDojo/bench_server/protocol/task_catalog.py",
@@ -23,7 +24,8 @@ SUPPLEMENTAL_FILES = (
     "benchmarks/simBenchmarks/RoboDojo/environment/native_eef_worker.py",
 )
 SERVER_PARAMETERS = frozenset({"task_id", "runtime_manifest", "runtime_manifest_sha256",
-    "panel", "gpu_id", "worker_timeout"})
+    "evaluation_mode", "gpu_id", "worker_timeout",
+    "stability_manifest", "stability_manifest_sha256"})  # max only
 
 
 def make_robodojo(parameters: Mapping[str, object]) -> DirectEEFBenchmarkAdapter:
@@ -39,8 +41,8 @@ def make_robodojo(parameters: Mapping[str, object]) -> DirectEEFBenchmarkAdapter
     unknown = set(values) - SERVER_PARAMETERS
     if unknown:
         raise ValueError(f"unknown RoboDojo server parameters: {sorted(unknown)}")
-    adapter = DirectEEFBenchmarkAdapter(**values, diagnostic=False)
-    if adapter.descriptor.protocol_version != INTERFACE_PROTOCOL:
+    adapter = DirectEEFBenchmarkAdapter(**values)
+    if adapter.descriptor.protocol_version != selection_protocol(adapter.evaluation_mode):
         raise ValueError("RoboDojo adapter and task-catalog interface protocols differ")
     return adapter
 

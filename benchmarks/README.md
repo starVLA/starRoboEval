@@ -18,7 +18,7 @@ remains the public launch entrypoint; old root adapters and `evaluation/`
 packages are removed without compatibility shims. Keep benchmark-specific auditing beside the benchmark; generic
 record/media auditing lives under `benchkit/`.
 
-Fast development plans attempt each selected case once. Native full schedules
+Fast development plans attempt each selected case once. Native max schedules
 remain separate and must be implemented from verified upstream protocols, not
 by automatically retrying failures. Model planning, provider calls and voluntary
 give-up rules never belong in the native benchmark adapter.

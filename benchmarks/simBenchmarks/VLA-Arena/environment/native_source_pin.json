@@ -1,5 +1,5 @@
 {
-  "schema_version": "starvla-rsi.vla-arena-native-pin/v1",
+  "schema_version": "starvla-rsi.vla_arena.native-pin/v1",
   "upstream_revision": "babe582ebffc82b979b77964a7e56417d02f63a4",
   "source_url": "https://github.com/PKU-Alignment/VLA-Arena",
   "files": 4529,

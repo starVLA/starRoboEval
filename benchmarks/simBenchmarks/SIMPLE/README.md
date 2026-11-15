@@ -36,17 +36,27 @@ contains indices 0–9 at each level for the 12 tasks in the service task table:
 ## Available service bindings
 
 The [service task table](bench_server/protocol/RELEASED_TASK_SCOPE.md) binds
-**12 tasks**, each at **DR0, released episode 0, seed 20260907**. The selected
-configurations span seven scene entrypoints.
+**12 tasks** with **seed 20260907**; `evaluation_mode` selects their DR levels
+and released episode indices.
 
-| Selection | Available tasks |
-| --- | --- |
-| `task_scope="released-12"` | All 12 tasks in the task table; one task/backend per server |
-| `task_scope="pilot"` (default) | `G1WholebodyBendPickMP-v0` or `G1WholebodyOpenFaucetTeleop-v0` |
+### Evaluation modes
 
-The adapter default is BendPickMP; [server.example.json](server.example.json)
-selects OpenFaucetTeleop. Set `task_names` to a one-element task list.
-Other DR levels and episode indices are not selectable through this service.
+| Mode | Selection | Episodes per task | Cap |
+| --- | --- | ---: | --- |
+| `fast` (default) | DR0 released episodes 0–4 | 5 | Native task horizon, 400–1,200 |
+| `max` | DR0, DR1 and DR2 × released episodes 0–9 | 30 | Native task horizon, 400–1,200 |
+| `example` | First `fast` episode, DR0 episode 0 | 1 | Native task horizon, 400–1,200 |
+
+`max` is the native evaluation: every released episode at all three levels,
+360 episodes across the 12 tasks. Episodes run by level, then index, with IDs
+such as `G1WholebodyBendPickMP-v0/dr1/ep3`. Every mode scores with each task's
+native success threshold (0.2–0.9), as the upstream evaluators do; see
+[the evaluation protocol](EVALUATION_PROTOCOL.md#success-threshold).
+
+Each server runs exactly one task, so all 12 tasks need 12 servers, one per
+`task_names` entry; `task_names` narrows within the chosen mode. An omitted
+`task_names` selects BendPickMP, the first task in the table. The DR0 reset
+files are hash-pinned; DR1 and DR2 files are recorded as unpinned.
 
 ## Observations and 36-dimensional actions
 
@@ -54,12 +64,12 @@ Other DR levels and episode indices are not selectable through this service.
 | --- | --- |
 | Language | Exact released task instruction |
 | RGB | `head_stereo_left`, 640×360 native RGB |
-| Robot state | Normally 31 measured joint positions in radians; RGB-only is selectable for the two default-scope tasks |
+| Robot state | Normally 31 measured joint positions in radians; RGB-only is selectable only for BendPickMP and OpenFaucetTeleop |
 | Joint commands | 14 dexterous-hand joints + 14 arm joints + 3 waist joints, all absolute radians |
 | Other commands | Base height in meters, forward/lateral velocities in m/s, turn flag/gate, target heading in radians |
 | Coordinates | Native G1 joint coordinates and backend navigation frame; not Cartesian EEF deltas |
 | Control timing | One action is one 50 Hz control: ten 2 ms physics ticks for AMO, four 5 ms ticks for SONIC |
-| Success | Native step reward/`_success` path, without an extra scorer query |
+| Success | Native step reward/`_success` path at the task's native threshold, without an extra scorer query |
 
 There is no binary gripper command: the 14 hand joints specify the two dexterous
 hands. The service checks dimension and finite values but adds no joint-target
@@ -70,16 +80,12 @@ Exact ordering and backend navigation semantics are in
 ## Execution budget
 
 For the 12 service-bound tasks, native horizons range from 400 to 1,200 controls;
-the task table lists each task's metadata value. The default
-`budget_mode="horizon"` uses that reference budget for every supported task.
-Decision-call limits and action grouping are configured by the agent, not this
-server. One public step executes one control, and native terminal conditions
-can end the episode earlier.
-
-An explicit `budget_mode="decisions"` retains a separate 1,000-control protocol
-with fixed 200-call/five-prefix settings. It does not match every native task
-horizon. See [the evaluation protocol](EVALUATION_PROTOCOL.md#budget-and-native-scoring)
-for the exact contract identities and budget distinction.
+the task table lists each task's metadata value. The service uses that
+reference budget for every supported task. Decision-call limits and action
+grouping are configured by the agent, not this server. One public step executes
+one control, and native terminal conditions can end the episode earlier. See
+[the evaluation protocol](EVALUATION_PROTOCOL.md#budget-and-native-scoring)
+for the exact contract identity.
 
 ## Prepare the environment
 
@@ -107,21 +113,21 @@ is not provided.
 
 SIMPLE can create controller contexts on multiple visible GPUs. Check actual
 GPU capacity and process visibility; renderer selection alone is not isolation.
-The separate [diagnostic tool](environment/diagnose.py) checks reset,
-stabilization and hold control. Supply `--simple-root`, `--eval-root` and
-`--gpu`; optional `--python-executable` and `--cuda-root` select the runtime.
+Check reset and observation readiness with the shared
+[readiness probe](../SERVER_PROTOCOL.md#readiness-probe) against a dedicated
+`example` launch.
 
 ## Launch and connect
 
 Copy [server.example.json](server.example.json) to an operator-owned path. Set
-runtime/asset roots, GPU, `task_scope` and one `task_names` entry.
+runtime/asset roots, GPU, `evaluation_mode` and one `task_names` entry.
 Set the evaluator-only `RSI_SIM_SERVER_TOKEN` following the
 [shared service protocol](../SERVER_PROTOCOL.md), then start a new server:
 
 ```sh
 python -B -m benchmarks.simBenchmarks.SIMPLE.server \
   --parameters /absolute/simple-server.json \
-  --seed 20260907 --episodes 1 --port 8765 \
+  --seed 20260907 --port 8765 \
   --output-dir /absolute/new-run/server
 ```
 
@@ -143,4 +149,4 @@ Interaction histories and video retention use
 - `server.py`: public factory/launch entrypoint.
 - `bench_server/adapter.py`: sensor/action interface, reset selection and native scoring.
 - `bench_server/protocol/`: task/reset inventory and interface descriptions.
-- `environment/`: private native worker, runtime dependencies and setup diagnostics.
+- `environment/`: private native worker and upstream runtime/source pins.

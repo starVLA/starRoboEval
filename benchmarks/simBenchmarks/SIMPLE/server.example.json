@@ -3,7 +3,6 @@
   "eval_root": "/absolute/path/to/released/evals",
   "gpu_id": 0,
   "task_names": ["G1WholebodyOpenFaucetTeleop-v0"],
-  "task_scope": "pilot",
-  "proprioception": true,
-  "budget_mode": "horizon"
+  "evaluation_mode": "fast",
+  "proprioception": true
 }

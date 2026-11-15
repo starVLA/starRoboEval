@@ -201,23 +201,14 @@ class SimServerBenchmarkAdapter:
                 raise ValueError("invalid control rate")
             self.action_spec = ActionSpec(**{**action, "names": _strings(action["names"]),
                 **{k: None if action[k] is None else tuple(action[k]) for k in ("low", "high")}})
-            budget_keys = {"budget_mode", "max_policy_calls", "replan_interval", "environment_step_cap"}
+            budget_keys = {"max_policy_calls", "environment_step_cap"}
             if isinstance(data["budget"], dict) and "required_replan_interval" in data["budget"]:
                 budget_keys.add("required_replan_interval")
                 _integer(data["budget"]["required_replan_interval"], 1)
             budget = _fields(data["budget"], budget_keys)
-            if budget["budget_mode"] not in ("horizon", "decisions"):
-                raise ValueError("invalid budget mode")
-            if budget["environment_step_cap"] is not None:
-                _integer(budget["environment_step_cap"], 1)
-            for key in ("max_policy_calls", "replan_interval"):
+            for key in ("max_policy_calls", "environment_step_cap"):
                 if budget[key] is not None:
                     _integer(budget[key], 1)
-            if budget["budget_mode"] == "decisions" and (
-                    budget["environment_step_cap"] is None or
-                    budget["max_policy_calls"] is None or budget["replan_interval"] is None or
-                    budget["environment_step_cap"] != budget["max_policy_calls"] * budget["replan_interval"]):
-                raise ValueError("invalid decision budget")
             for key, value in budget.items():
                 setattr(self, key, value)
             _integer(data["seed"])

@@ -41,7 +41,7 @@ def verify_inputs(upstream: Path, suites=None) -> dict:
     missing = [name for name in required if not (assets / name).is_dir()]
     if missing:
         raise ValueError(f"native asset folders are missing: {missing}")
-    return {"schema_version": "starvla-rsi.libero-plus-readiness/v1", "upstream_revision": catalog.REVISION,
+    return {"schema_version": "starvla-rsi.libero_plus.readiness/v1", "upstream_revision": catalog.REVISION,
             "native_source_files": len(source["files"]), "source_manifest_sha256": source["manifest_sha256"],
             "catalog_variants_checked": count, "unique_bddl_reset_files_checked": len(cache),
             "suites": list(suites), "asset_folder_check": "present; not complete archive/content validation",

@@ -16,7 +16,8 @@ from benchkit.contracts import (
     ActionSpec, BenchmarkDescriptor, EpisodeSpec, JsonValue, Observation, ObservationSpec, Transition,
 )
 from benchkit.errors import CompatibilityError, ProtocolError
-from benchkit.registry import register_benchmark
+
+from benchmarks.simBenchmarks.SimplerEnv.bench_server.protocol import max_matrix
 
 SIMPLER_REVISION = "c701ea271b16b80616d6fed9713c4a50a0adea3b"
 MANISKILL_REVISION = "ef7a4d4fdf4b69f2c2154db5b15b9ac8dfe10682"
@@ -25,6 +26,22 @@ MANISKILL_REVISION = "ef7a4d4fdf4b69f2c2154db5b15b9ac8dfe10682"
 NATIVE_GIT_TIMEOUT_S = 120
 TASK_HORIZONS = {row["id"]: row["native_horizon"] for row in json.loads(
     Path(__file__).with_name("protocol").joinpath("task_catalog.json").read_text(encoding="utf-8"))}
+# Real overlays referenced by the `max` matrices, hashed from the pinned checkout.
+OVERLAY_SHA256 = {
+    "bridge_real_eval_1.png": "1d25ac179f7cdace1de14d5dab9496d52099231ea3e3d60eb3fe422c9802b611",
+    "bridge_sink.png": "86b50fa15ede8e2c28cc01b6adffc40b79f7136130547c6ee905cf91b4aff188",
+    "google_coke_can_real_eval_1.png": "4218cc93e73c97fb4c275ec1c015fc51ae5c4d5d0c3ea9018bef31d0b71a87ba",
+    "google_move_near_real_eval_1.png": "c9bf9ace717a1895d1e0f2af2c4c5b0a2c8c030717cd1f44380074f640e06bd3",
+    "open_drawer_a0.png": "a98b68b0a6b097af38b463e7b30371ec30eb15391f62fe9f03f16b97a0f6359b",
+    "open_drawer_a1.png": "fef25cffac02dd31898514fee63d2b0b9e763448f657da4a1be007f5fd4cf5d0",
+    "open_drawer_a2.png": "75aeff00694ed2e4c9c299fc7a20bed1b3b7d6f863b28dc5964ea1931ea7069b",
+    "open_drawer_b0.png": "6665d9e3b2185c615994a5bdd435e2004c0374ebb1aa9480b7392c1dcc5277a5",
+    "open_drawer_b1.png": "5a106aa95d35a9ea5b0c3ae21e9aaea6496855494ab6c8d07dd25181615ad599",
+    "open_drawer_b2.png": "7b2eb39e654224fa5e8201eaa2614f76e72baa3881a0242b61c84e903d65ab48",
+    "open_drawer_c0.png": "3bb62bf601598467c3a9cc515abcc9b43a37bd1b2296b431420b5806367b04a9",
+    "open_drawer_c1.png": "72746163c07514e6dda4e4145961f619be0439814917b913a035295bf65bd7be",
+    "open_drawer_c2.png": "84b9eb5ac8a8eb8faa1866f8761af318f89e876c9b4d6632d47ead4c6854db9e",
+}
 
 
 def _revision(root: Path, expected: str) -> dict[str, JsonValue]:
@@ -116,6 +133,8 @@ class SimplerEnvEpisode:
 
         simpler_root = Path(simpler_env.__file__).resolve().parents[1]
         native_root = Path(mani_skill2_real2sim.__file__).resolve().parents[1]
+        row = self.benchmark.reference_rows_by_id.get(self.episode.id)  # only `max` matrix episodes
+        reference = None if row is None else row["native"]
         provenance = {
             "simpler_env": _revision(simpler_root, SIMPLER_REVISION),
             "mani_skill2_real2sim": _revision(native_root, MANISKILL_REVISION),
@@ -123,20 +142,31 @@ class SimplerEnvEpisode:
             **self.benchmark.budget_metadata(),
             "track": self.benchmark.descriptor.protocol_version,
         }
+        if row is not None:  # recorded before the overlay check can fail
+            provenance["reference_episode"] = copy.deepcopy(
+                {key: row[key] for key in ("matrix", "variant", "episode_index", "upstream_script")})
         if self.artifact_dir is not None:
             atomic_write_json(self.artifact_dir / "native_provenance.json", provenance)
 
-        env_id, native_kwargs = simpler_env.ENVIRONMENT_MAP[self.episode.task]
-        # Upstream make mutates ENVIRONMENT_MAP and has tuple obs_mode; use the
-        # same registry and a fresh kwargs copy with the documented string mode.
-        kwargs = copy.deepcopy(native_kwargs)
-        kwargs.update(obs_mode="rgbd", prepackaged_config=True)
-        kwargs["renderer_kwargs"] = {"offscreen_only": True, "device": self.benchmark.device}
+        renderer_kwargs = {"offscreen_only": True, "device": self.benchmark.device}
+        if reference is None:
+            env_id, native_kwargs = simpler_env.ENVIRONMENT_MAP[self.episode.task]
+            # Upstream make mutates ENVIRONMENT_MAP and has tuple obs_mode; use the
+            # same registry and a fresh kwargs copy with the documented string mode.
+            kwargs = copy.deepcopy(native_kwargs)
+            kwargs.update(obs_mode="rgbd", prepackaged_config=True, renderer_kwargs=renderer_kwargs)
+        else:
+            env_id, kwargs = self._reference_kwargs(simpler_root, reference, renderer_kwargs, provenance)
         if gym.spec(env_id).max_episode_steps != self.benchmark.native_horizon:
             raise CompatibilityError("native horizon differs from the pinned task catalog")
         # Override the TimeLimit at construction, never ignore a truncation or
         # mutate the scorer. This is a predeclared, separately named track.
-        self.env = gym.make(env_id, max_episode_steps=self.benchmark.evaluation_horizon, **kwargs)
+        if reference is None:
+            self.env = gym.make(env_id, max_episode_steps=self.benchmark.evaluation_horizon, **kwargs)
+        else:
+            from simpler_env.utils.env.env_builder import build_maniskill2_env
+
+            self.env = build_maniskill2_env(env_id, max_episode_steps=self.benchmark.evaluation_horizon, **kwargs)
         if self.benchmark.expected_gpu_uuid is not None:
             from benchmarks.simBenchmarks.SimplerEnv.environment.render_device import assert_render_device
 
@@ -153,7 +183,10 @@ class SimplerEnvEpisode:
         for actual, declared in zip(self.env.action_space.high, self.benchmark.action_spec.high or ()):
             if not math.isclose(float(actual), declared, rel_tol=1e-6, abs_tol=1e-6):
                 raise CompatibilityError("native action upper bounds drifted")
-        raw, _private_reset_info = self.env.reset(seed=self.episode.seed)
+        if reference is None:
+            raw, _private_reset_info = self.env.reset(seed=self.episode.seed)
+        else:  # upstream passes no seed; a fresh env draws its fixed construction-time episode seed
+            raw, _private_reset_info = self.env.reset(options=self._reference_reset_options(reference))
         if self.artifact_dir is not None:
             from importlib.metadata import version
 
@@ -170,6 +203,49 @@ class SimplerEnvEpisode:
             })
             atomic_write_json(self.artifact_dir / "native_provenance.json", provenance)
         return self._observe(raw)
+
+    @staticmethod
+    def _reference_kwargs(simpler_root: Path, reference: Mapping[str, Any], renderer_kwargs: dict[str, Any],
+                          provenance: dict[str, Any]) -> tuple[str, dict[str, Any]]:
+        """Environment kwargs as `run_maniskill2_eval_single_episode` passes them to the env builder."""
+        overlay = reference["rgb_overlay_path"]
+        if overlay is not None:
+            path = simpler_root / overlay  # script paths are relative to the SimplerEnv root
+            if not path.is_file():
+                raise CompatibilityError(f"missing pinned real overlay {overlay}")
+            digest = hashlib.sha256(path.read_bytes()).hexdigest()
+            pinned = OVERLAY_SHA256.get(path.name)
+            if pinned is not None and digest != pinned:
+                raise CompatibilityError(f"real overlay {overlay} differs from the pinned bytes")
+            provenance["rgb_overlay"] = {"path": overlay, "sha256": digest, "pinned": pinned is not None}
+            overlay = str(path)
+        kwargs = {
+            **reference["env_build_kwargs"], "obs_mode": "rgbd", "robot": reference["robot"],
+            "sim_freq": reference["sim_freq"], "control_mode": reference["control_mode"],
+            "control_freq": reference["control_freq"], "scene_name": reference["scene_name"],
+            "camera_cfgs": {"add_segmentation": True},  # upstream default; segmentation never reaches the policy
+            "rgb_overlay_path": overlay, "renderer_kwargs": renderer_kwargs,
+        }
+        provenance["reference_build_kwargs"] = {
+            key: value for key, value in kwargs.items() if key not in ("rgb_overlay_path", "renderer_kwargs")}
+        return reference["env_id"], kwargs
+
+    @staticmethod
+    def _reference_reset_options(reference: Mapping[str, Any]) -> dict[str, Any]:
+        """Robot and object reset options exactly as the upstream evaluator builds them."""
+        import numpy as np
+        from sapien.core import Pose
+        from transforms3d.euler import euler2quat
+
+        quat = (Pose(q=euler2quat(*reference["robot_init_rpy"]))
+                * Pose(q=reference["robot_init_rot_quat_center"])).q
+        options: dict[str, Any] = {"robot_init_options": {
+            "init_xy": np.array(reference["robot_init_xy"]), "init_rot_quat": quat}}
+        if reference["obj_init_xy"] is not None:
+            options["obj_init_options"] = {"init_xy": np.array(reference["obj_init_xy"])}
+        else:
+            options["obj_init_options"] = {"episode_id": reference["obj_episode_id"]}
+        return options
 
     def _observe(self, raw: Mapping[str, Any]) -> Observation:
         observation = policy_observation(
@@ -246,18 +322,25 @@ class SimplerEnvEpisode:
                 self.env = None
 
 
+EVALUATION_MODES = ("fast", "max", "example")  # fast: blog subset; max: one pinned matrix; example: first fast episode
+FAST_RESETS = 5  # seeded resets per task, episode seeds launch seed + 0..4
+
+
 class SimplerEnvBenchmarkAdapter:
     """One robot/task cell; simulator dependencies are imported only on reset."""
 
     def __init__(self, task: str = "widowx_spoon_on_towel", *,
                  proprioception: bool = False, device: str = "cuda:0",
-                 horizon_multiplier: int = 1, budget_mode: str = "horizon",
-                 max_policy_calls: int | None = None, replan_interval: int | None = None,
+                 horizon_multiplier: int = 1,
                  action_rejection_feedback: bool = False,
                  interaction_mode: str = "single_response",
-                 expected_gpu_uuid: str | None = None) -> None:
+                 expected_gpu_uuid: str | None = None,
+                 evaluation_mode: str = "fast",
+                 reference_matrix: str | None = None) -> None:
+        if evaluation_mode not in EVALUATION_MODES:
+            raise ValueError(f"evaluation_mode must be one of {', '.join(EVALUATION_MODES)}; got {evaluation_mode!r}")
         if task not in TASK_HORIZONS:
-            raise ValueError(f"unsupported development task {task!r}; choose one of {list(TASK_HORIZONS)}")
+            raise ValueError(f"unsupported SimplerEnv task {task!r}; choose one of {list(TASK_HORIZONS)}")
         if not isinstance(proprioception, bool):
             raise TypeError("proprioception must be boolean")
         if type(action_rejection_feedback) is not bool:
@@ -266,16 +349,24 @@ class SimplerEnvBenchmarkAdapter:
             raise ValueError("interaction_mode must be single_response or agent_method")
         if type(horizon_multiplier) is not int or horizon_multiplier not in (1, 2):
             raise ValueError("horizon_multiplier must be 1 (native) or 2 (extended)")
-        if budget_mode not in ("horizon", "decisions"):
-            raise ValueError("budget_mode must be horizon or decisions")
-        if budget_mode == "decisions":
-            if horizon_multiplier != 1:
-                raise ValueError("decision budgets cannot also select a horizon multiplier")
-            if any(type(value) is not int or value <= 0 for value in (max_policy_calls, replan_interval)):
-                raise ValueError("decision budgets require positive integer max_policy_calls and replan_interval")
-        elif max_policy_calls is not None or replan_interval is not None:
-            raise ValueError("adapter decision limits require budget_mode=decisions; use runner limits for horizon mode")
+        if reference_matrix is not None and evaluation_mode != "max":
+            raise ValueError("reference_matrix applies only to evaluation_mode max")
+        if evaluation_mode == "max":  # one matrix per service run, as upstream runs one script
+            reference_matrix = max_matrix.VISUAL_MATCHING if reference_matrix is None else reference_matrix
+            available = max_matrix.available_matrices(task)
+            if reference_matrix not in available:
+                raise ValueError(f"reference_matrix for {task} must be one of {', '.join(available)}; "
+                                 f"got {reference_matrix!r}")
         self.task = task
+        self.evaluation_mode = evaluation_mode
+        self.reference_matrix = reference_matrix
+        self.reference_rows = (max_matrix.reference_matrix(task, reference_matrix)
+                               if evaluation_mode == "max" else [])
+        self.reference_rows_by_id = {row["id"]: row for row in self.reference_rows}
+        if any(row["native"]["max_episode_steps"] != TASK_HORIZONS[task] for row in self.reference_rows):
+            raise CompatibilityError("reference matrix horizon differs from the pinned task catalog")
+        self.episode_count = (len(self.reference_rows) if evaluation_mode == "max"
+                              else 1 if evaluation_mode == "example" else FAST_RESETS)
         self.proprioception = proprioception
         self.action_rejection_feedback = action_rejection_feedback
         self.interaction_mode = interaction_mode
@@ -286,24 +377,18 @@ class SimplerEnvBenchmarkAdapter:
             validate_gpu_uuid(expected_gpu_uuid)
         self.expected_gpu_uuid = expected_gpu_uuid
         self.native_horizon = TASK_HORIZONS[task]
-        self.budget_mode = budget_mode
-        self.max_policy_calls = max_policy_calls
-        self.replan_interval = replan_interval
-        self.horizon_multiplier = horizon_multiplier if budget_mode == "horizon" else None
-        self.environment_step_cap = (
-            max_policy_calls * replan_interval if budget_mode == "decisions"
-            else self.native_horizon * horizon_multiplier
-        )
-        self.evaluation_horizon = self.environment_step_cap
-        budget_track = (f"/decision-{max_policy_calls}-prefix-{replan_interval}" if budget_mode == "decisions"
-                        else "/extended-2x" if horizon_multiplier == 2 else "")
+        self.horizon_multiplier = horizon_multiplier
+        self.environment_step_cap = self.evaluation_horizon = self.native_horizon * horizon_multiplier
+        budget_track = "-extended-2x" if horizon_multiplier == 2 else ""  # budget joins the selection segment
+        selection = ("reference-" + reference_matrix.replace("_", "-")  # reference-visual-matching, ...
+                     if evaluation_mode == "max" else "prepackaged-seeded")
         google = task.startswith("google_robot_")
         self.camera = "overhead_camera" if google else "3rd_view_camera"
         self.descriptor = BenchmarkDescriptor(
             name="simpler_env", version="0.0.1",
-            protocol_version="simpler-prepackaged-development/" + ("rgb-qpos" if proprioception else "rgb")
-            + budget_track + ("/action-feedback" if action_rejection_feedback else "")
-            + ("/agent-method" if interaction_mode == "agent_method" else "") + "/v1",
+            protocol_version=f"simpler-env-{SIMPLER_REVISION[:7]}/{selection}{budget_track}/"
+            + ("rgb-qpos" if proprioception else "rgb") + ("-action-feedback" if action_rejection_feedback else "")
+            + ("-agent-method" if interaction_mode == "agent_method" else "") + f"/{evaluation_mode}/v1",
             source_revision=SIMPLER_REVISION + ":" + MANISKILL_REVISION,
         )
         self.observation_spec = ObservationSpec(
@@ -325,8 +410,6 @@ class SimplerEnvBenchmarkAdapter:
     def budget_metadata(self) -> dict[str, JsonValue]:
         return {
             "interaction_mode": self.interaction_mode,
-            "budget_mode": self.budget_mode,
-            "max_policy_calls": self.max_policy_calls, "replan_interval": self.replan_interval,
             "environment_step_cap": self.environment_step_cap,
             "native_horizon": self.native_horizon,
             "native_horizon_source": "pinned_gym_registration",
@@ -334,25 +417,38 @@ class SimplerEnvBenchmarkAdapter:
         }
 
     def episodes(self, seed: int, limit: int | None = None) -> Sequence[EpisodeSpec]:
-        count = 1 if limit is None else limit
+        if limit is not None and (type(limit) is not int or limit <= 0):
+            raise ValueError("episode limit must be a positive integer or None")
+        count = self.episode_count if limit is None else min(limit, self.episode_count)
+        if self.evaluation_mode == "max":
+            return [EpisodeSpec(
+                id=row["id"], task=self.task, seed=seed + index,  # seed is recorded only; native reset is seedless
+                instruction="Follow the current instruction in the camera observation.",
+                metadata={**self.budget_metadata(), "evaluation_mode": "max", "selection": "reference_matrix",
+                          "matrix": row["matrix"], "matrix_tag": max_matrix.MATRIX_TAGS[row["matrix"]],
+                          "variant": copy.deepcopy(row["variant"]), "episode_index": row["episode_index"],
+                          "upstream_script": row["upstream_script"], "native_reset": "seedless_upstream_options",
+                          "native": copy.deepcopy(row["native"])},  # copies; the adapter's rows stay private
+            ) for index, row in enumerate(self.reference_rows[:count])]
         return [EpisodeSpec(
             id=f"{self.task}-{index:06d}", task=self.task, seed=seed + index,
             instruction="Follow the current instruction in the camera observation.",
-            metadata={**self.budget_metadata(),
+            metadata={**self.budget_metadata(), "evaluation_mode": self.evaluation_mode,
                       "selection": "prepackaged_seeded_reset"},
         ) for index in range(count)]
 
     def open_episode(self, episode: EpisodeSpec) -> SimplerEnvEpisode:
         if episode.task != self.task:
             raise ProtocolError("episode task does not match adapter task")
+        if self.evaluation_mode == "max" and episode.id not in self.reference_rows_by_id:
+            raise ProtocolError(f"episode {episode.id!r} is not in the selected {self.reference_matrix} matrix")
         return SimplerEnvEpisode(self, episode)
 
 
-@register_benchmark("simpler_env")
 def make_simpler_env(parameters: Mapping[str, JsonValue]) -> SimplerEnvBenchmarkAdapter:
     unknown = set(parameters) - {"task", "proprioception", "device", "horizon_multiplier",
-                                 "budget_mode", "max_policy_calls", "replan_interval",
-                                 "action_rejection_feedback", "interaction_mode", "expected_gpu_uuid"}
+                                 "action_rejection_feedback", "interaction_mode", "expected_gpu_uuid",
+                                 "evaluation_mode", "reference_matrix"}
     if unknown:
         raise ValueError(f"unknown SimplerEnv parameters: {sorted(unknown)}")
     return SimplerEnvBenchmarkAdapter(**parameters)

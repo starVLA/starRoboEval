@@ -12,12 +12,10 @@ available. The fixed WBC controller privately handles balance using its own
 robot sensors/history; you do not output leg torques or call that controller.
 
 Each service action is a 36-number vector and advances one native 20 ms control
-tick. The service adds no hidden repetition or task-specific macro. The default
+tick. The service adds no hidden repetition or task-specific macro. The
 native-horizon contract leaves decision frequency and action grouping to the
-agent's driver. The separately selected decisions contract retains its explicit
-200-call/five-prefix configuration; it is not a native SIMPLE inference rule.
-See [budget and native scoring](../../EVALUATION_PROTOCOL.md#budget-and-native-scoring)
-for the selected total control cap and its difference from native horizons.
+agent's driver. See [budget and native scoring](../../EVALUATION_PROTOCOL.md#budget-and-native-scoring)
+for the total control cap.
 Method-specific prompting, planning and voluntary-stop behavior remain separate.
 
 Joint values are absolute targets in physical units, not normalized numbers.

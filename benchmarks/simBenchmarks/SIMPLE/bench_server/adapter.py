@@ -17,42 +17,43 @@ from benchkit.contracts import (
     ActionSpec, BenchmarkDescriptor, EpisodeSpec, Observation, ObservationSpec, Transition,
 )
 from benchkit.errors import CompatibilityError, ProtocolError
-from benchkit.registry import register_benchmark
 from benchmarks.simBenchmarks.SIMPLE.bench_server.native_worker_client import NativeWorkerClient
 
 SIMPLE_REVISION = "5e3d6f84e85343e34e9bca8d157f0d7813231185"
-TRACK = "simple-native-wbc-development-v1"
 SEED = 20260907
-TASKS = ("G1WholebodyBendPickMP-v0", "G1WholebodyOpenFaucetTeleop-v0")
+EVALUATION_MODES = ("fast", "max", "example")  # fast: blog subset; example: first fast episode
+DR_LEVELS = (0, 1, 2)  # released dr-level-<N> directories
+RELEASED_EPISODES = 10  # explicit indices 0-9 per task and level
+MODE_SELECTION = {  # (DR level, released episode indices), in schedule order
+    "fast": ((0, range(5)),),
+    "max": tuple((level, range(RELEASED_EPISODES)) for level in DR_LEVELS),  # native 3 levels x 10
+    "example": ((0, range(1)),),
+}
+RGB_ONLY_TASKS = ("G1WholebodyBendPickMP-v0", "G1WholebodyOpenFaucetTeleop-v0")  # others need RGB+qpos31
 INVENTORY_PATH = Path(__file__).with_name("protocol") / "simple_released_tasks.json"
 TASK_INVENTORY = json.loads(INVENTORY_PATH.read_text())
 INVENTORY_SHA256 = hashlib.sha256(INVENTORY_PATH.read_bytes()).hexdigest()
 TASK_CONFIGS = {row["task_id"]: row for row in TASK_INVENTORY["tasks"]}
 FULL_TASKS = tuple(TASK_CONFIGS)
 HORIZONS = {task: row["reference_native_horizon"] for task, row in TASK_CONFIGS.items()}
-
-
-def execution_budget(native_horizon: int, budget_mode: str = "horizon",
-    max_policy_calls: int | None = None, replan_interval: int | None = None,
-) -> tuple[int, int | None, int | None]:
-    """Resolve execution limits without assigning a method's decision cadence.
-
-    The explicit decisions track retains its original 200-by-5 definition.
-    Native-horizon services do not advertise or accept method call/prefix caps.
-    """
-    if type(native_horizon) is not int or native_horizon <= 0:
-        raise ValueError("native_horizon must be a positive integer")
-    if budget_mode == "horizon":
-        if max_policy_calls is not None or replan_interval is not None:
-            raise ValueError("horizon mode has no server call/prefix limits; configure these in the agent")
-        return native_horizon, None, None
-    if budget_mode != "decisions":
-        raise ValueError("budget_mode must be horizon or decisions")
-    calls = 200 if max_policy_calls is None else max_policy_calls
-    prefix = 5 if replan_interval is None else replan_interval
-    if type(calls) is not int or calls != 200 or type(prefix) is not int or prefix != 5:
-        raise ValueError("the explicit decisions track requires 200 policy calls and prefix cap 5")
-    return 1000, calls, prefix
+# Native check_success is `reward >= threshold`; the service passes no override, as
+# the upstream eval-decoupled-wbc CLI (default None) and eval CLI (0.9) do.
+NATIVE_SUCCESS_THRESHOLDS = {
+    "G1WholebodyBendPickMP-v0": 0.9,  # constructor default
+    "G1WholebodyCloseDoorTeleop-v0": 0.5,  # class metadata
+    "G1WholebodyHandoverTeleop-v0": 0.9,  # constructor default
+    "G1WholebodyLocomotionPickBetweenTablesTeleop-v0": 0.4,  # class metadata
+    "G1WholebodyOpenFaucetTeleop-v0": 0.2,  # class metadata
+    "G1WholebodyOpenOvenTeleop-v0": 0.5,  # class metadata
+    "G1WholebodyOpenTrashCanTeleop-v0": 0.9,  # constructor default
+    "G1WholebodyPickAndPlaceAndHugContainerTeleop-v0": 0.9,  # constructor default
+    "G1WholebodyPushOfficeChairTeleop-v0": 0.9,  # constructor default
+    "G1WholebodyTabletopGraspMP-v0": 0.9,  # literal in check_success
+    "G1WholebodyXMoveBendPickTeleop-v0": 0.8,  # literal in check_success
+    "G1WholebodyXMovePickTeleop-v0": 0.9,  # constructor default
+}
+if set(NATIVE_SUCCESS_THRESHOLDS) != set(FULL_TASKS):
+    raise RuntimeError("native success thresholds must cover exactly the released task inventory")
 
 
 def deployment_path(value: str | Path, name: str, *, resolve_symlinks: bool = True) -> Path:
@@ -63,12 +64,14 @@ def deployment_path(value: str | Path, name: str, *, resolve_symlinks: bool = Tr
     return Path(value).resolve() if resolve_symlinks else Path(value)
 
 
-def task_config(task: str, task_scope: str = "pilot") -> Mapping[str, Any]:
-    """Return a task's frozen config from the explicitly selected scope."""
-    if task_scope not in ("pilot", "released-12"):
-        raise ValueError("task_scope must be pilot or released-12")
-    if not isinstance(task, str) or task not in (TASKS if task_scope == "pilot" else FULL_TASKS):
-        raise ValueError(f"task outside the frozen SIMPLE {task_scope} scope")
+def task_config(task: str, proprioception: bool = True) -> Mapping[str, Any]:
+    """Return a released task's frozen config after checking the selected input."""
+    if not isinstance(task, str) or task not in FULL_TASKS:
+        raise ValueError("task outside the 12 released SIMPLE tasks")
+    if type(proprioception) is not bool:
+        raise ValueError("proprioception must be an explicit boolean")
+    if not proprioception and task not in RGB_ONLY_TASKS:
+        raise ValueError("RGB-only input is limited to BendPickMP and OpenFaucetTeleop")
     config = TASK_CONFIGS[task]
     if config["backend_gate"] or config["backend"] not in ("amo", "sonic"):
         raise CompatibilityError(f"unsupported native SIMPLE backend: {config['backend_gate']}")
@@ -77,7 +80,7 @@ ARM_SUFFIXES = (
     "shoulder_pitch_joint", "shoulder_roll_joint", "shoulder_yaw_joint", "elbow_joint",
     "wrist_roll_joint", "wrist_pitch_joint", "wrist_yaw_joint",
 )
-# These names explicitly preserve the aligned PSI0 codec's legacy left hand order.
+# Left hand lists middle before index, unlike the right; this matches the aligned PSI0 codec.
 LEFT_HAND = tuple("left_hand_" + name + "_joint" for name in (
     "thumb_0", "thumb_1", "thumb_2", "middle_0", "middle_1", "index_0", "index_1",
 ))
@@ -100,17 +103,12 @@ ACTION_SPEC = ActionSpec(
 )
 
 
-def task_contract(task: str, *, task_scope: str = "pilot", proprioception: bool = True,
-    budget_mode: str = "horizon", max_policy_calls: int | None = None,
-    replan_interval: int | None = None,
-) -> tuple[BenchmarkDescriptor, EpisodeSpec, ActionSpec, ObservationSpec]:
+def task_contract(task: str, *, evaluation_mode: str = "fast", proprioception: bool = True,
+) -> tuple[BenchmarkDescriptor, tuple[EpisodeSpec, ...], ActionSpec, ObservationSpec]:
     """Describe a pinned task without installation paths or native construction."""
-    config = task_config(task, task_scope)
-    if type(proprioception) is not bool:
-        raise ValueError("proprioception must be an explicit boolean")
-    if task_scope == "released-12" and not proprioception:
-        raise ValueError("released-12 requires RGB+qpos31")
-    cap, _, _ = execution_budget(HORIZONS[task], budget_mode, max_policy_calls, replan_interval)
+    if evaluation_mode not in EVALUATION_MODES:
+        raise ValueError(f"evaluation_mode must be one of {', '.join(EVALUATION_MODES)}; got {evaluation_mode!r}")
+    config = task_config(task, proprioception)
     backend = config["backend"]
     names = list(ACTION_NAMES)
     names[34] = "turning_flag" if backend == "amo" else "turning_gate"
@@ -121,21 +119,20 @@ def task_contract(task: str, *, task_scope: str = "pilot", proprioception: bool 
         state_names=ACTION_NAMES[:31] if proprioception else (),
         modalities=("rgb", "language", "proprioception") if proprioception else ("rgb", "language"))
     modality = "rgb-qpos31" if proprioception else "rgb"
-    budget = "decision-200-prefix-5" if budget_mode == "decisions" else f"native-horizon-{HORIZONS[task]}"
-    version = "v2" if budget_mode == "decisions" else "v3"
-    prefix = "simple" if task_scope == "pilot" else "simple/released-12"
     descriptor = BenchmarkDescriptor("simple_humanoid", "5e3d6f8-patched-native",
-        f"{prefix}/{backend}/{modality}/{budget}/{version}", SIMPLE_REVISION)
-    episode = EpisodeSpec(id=f"{task}/dr0/ep0", task=task, seed=SEED,
-        instruction=config["instruction"], metadata={"dr_level": 0, "episode_index": 0,
-            "reference_native_horizon": HORIZONS[task], "environment_step_cap": cap,
-            "budget_mode": budget_mode, "track": descriptor.protocol_version,
-            **({"task_scope": task_scope, "task_inventory_sha256": INVENTORY_SHA256,
-                "native_task_uid": config["task_uid"], "native_backend": backend,
-                "reset_metadata_sha256": config["reset_metadata_sha256"],
-                "environment_config_sha256": config["environment_config_sha256"]}
-                if task_scope == "released-12" else {})})
-    return descriptor, episode, action_spec, observation_spec
+        f"simple-humanoid-{SIMPLE_REVISION[:7]}/native-horizon-{HORIZONS[task]}/{modality}-{backend}/{evaluation_mode}/v1",
+        SIMPLE_REVISION)
+    episodes = tuple(EpisodeSpec(id=f"{task}/dr{level}/ep{index}", task=task, seed=SEED,
+        instruction=config["instruction"], metadata={"dr_level": level, "episode_index": index,
+            "evaluation_mode": evaluation_mode,
+            "reference_native_horizon": HORIZONS[task], "environment_step_cap": HORIZONS[task],
+            "native_success_threshold": NATIVE_SUCCESS_THRESHOLDS[task],  # native reward >= threshold
+            "track": descriptor.protocol_version, "task_inventory_sha256": INVENTORY_SHA256,
+            "native_task_uid": config["task_uid"], "native_backend": backend,
+            # The DR0 file hash pins every released row; DR1/DR2 files are hashed as unpinned at reset.
+            "reset_metadata_sha256": config["reset_metadata_sha256"] if level == 0 else None})
+        for level, indices in MODE_SELECTION[evaluation_mode] for index in indices)
+    return descriptor, episodes, action_spec, observation_spec
 
 
 def decode_action(values: Sequence[float]) -> dict[str, Any]:
@@ -226,10 +223,9 @@ class SimpleHumanoidEpisode(NativeWorkerClient):
         result = self._rpc({"op": "reset", "task": self.episode.task, "seed": self.episode.seed,
             "artifact_dir": str(self.artifact_dir), "simple_root": str(source),
             "eval_root": str(self.benchmark.eval_root), "diagnostic": self.benchmark.diagnostic,
-            "budget_mode": self.benchmark.budget_mode, "environment_step_cap": self.benchmark.environment_step_cap,
-            "max_policy_calls": self.benchmark.max_policy_calls, "replan_interval": self.benchmark.replan_interval,
+            "environment_step_cap": self.benchmark.environment_step_cap,
             "proprioception": self.benchmark.proprioception, "protocol_version": self.benchmark.descriptor.protocol_version,
-            "task_scope": self.benchmark.task_scope})
+            "dr_level": self.episode.metadata["dr_level"], "episode_index": self.episode.metadata["episode_index"]})
         if result["native_horizon"] != HORIZONS[self.episode.task]:
             raise CompatibilityError("native task horizon changed")
         self.worker_artifacts = result.get("artifacts", {})
@@ -239,19 +235,6 @@ class SimpleHumanoidEpisode(NativeWorkerClient):
         if self.finished:
             raise ProtocolError("cannot step a finished SIMPLE episode")
         result = self._rpc({"op": "step", "action": self.benchmark.action_spec.validate(action)})
-        success, terminated, truncated, reward = validate_tick_result(result, self.steps + 1)
-        self.steps += 1
-        self.success = success
-        self.finished = terminated or truncated
-        self.return_sum += reward
-        return Transition(self._observation(result), reward, terminated, truncated,
-            {"native_success": self.success, "native_steps": self.steps})
-
-    def diagnostic_hold(self) -> Transition:
-        """Evaluator-only one-tick probe; never exposed to policy or rollout RPC."""
-        if not self.benchmark.diagnostic or self.steps:
-            raise ProtocolError("hold is restricted to the first diagnostic tick")
-        result = self._rpc({"op": "diagnostic_hold"})
         success, terminated, truncated, reward = validate_tick_result(result, self.steps + 1)
         self.steps += 1
         self.success = success
@@ -270,13 +253,11 @@ class SimpleHumanoidEpisode(NativeWorkerClient):
 
 
 class SimpleHumanoidBenchmarkAdapter:
-    """One native task/backend per runner; expansion requires an explicit scope."""
+    """One native task/backend per runner; run one server per released task."""
 
     def __init__(self, simple_root: str, eval_root: str, gpu_id: int = 0,
-        task_names: Sequence[str] = (TASKS[0],), worker_timeout: float = 900,
-        diagnostic: bool = False, proprioception: bool = True, budget_mode: str = "horizon",
-        max_policy_calls: int | None = None, replan_interval: int | None = None,
-        task_scope: str = "pilot", python_executable: str | None = None,
+        task_names: Sequence[str] = (FULL_TASKS[0],), worker_timeout: float = 900,
+        diagnostic: bool = False, proprioception: bool = True, evaluation_mode: str = "fast", python_executable: str | None = None,
         cuda_root: str | None = None) -> None:
         self.simple_root = deployment_path(simple_root, "simple_root")
         self.eval_root = deployment_path(eval_root, "eval_root")
@@ -293,29 +274,19 @@ class SimpleHumanoidBenchmarkAdapter:
         self.gpu_id, self.worker_timeout, self.diagnostic = gpu_id, float(worker_timeout), diagnostic
         self.task_names = tuple(task_names)
         if len(self.task_names) != 1:
-            raise ValueError("choose exactly one SIMPLE task/backend per adapter/runner")
-        config = task_config(self.task_names[0], task_scope)
-        self.task_scope = task_scope
-        if type(proprioception) is not bool:
-            raise ValueError("proprioception must be an explicit boolean")
-        if task_scope == "released-12" and not proprioception:
-            raise ValueError("released-12 requires RGB+qpos31")
-        self.proprioception, self.budget_mode = proprioception, budget_mode
-        self.native_horizon = HORIZONS[self.task_names[0]]
-        self.environment_step_cap, self.max_policy_calls, self.replan_interval = execution_budget(
-            self.native_horizon, budget_mode, max_policy_calls, replan_interval)
-        backend = config["backend"]
-        self.backend = backend
-        self.descriptor, self._episode, self.action_spec, self.observation_spec = task_contract(
-            self.task_names[0], task_scope=task_scope, proprioception=proprioception,
-            budget_mode=budget_mode, max_policy_calls=max_policy_calls, replan_interval=replan_interval)
+            raise ValueError("choose exactly one SIMPLE task/backend per adapter/runner")  # narrows within the mode
+        self.descriptor, self._episodes, self.action_spec, self.observation_spec = task_contract(
+            self.task_names[0], evaluation_mode=evaluation_mode, proprioception=proprioception)
+        self.evaluation_mode, self.proprioception = evaluation_mode, proprioception
+        self.native_horizon = self.environment_step_cap = HORIZONS[self.task_names[0]]  # native task horizon
+        self.backend = TASK_CONFIGS[self.task_names[0]]["backend"]
 
     def episodes(self, seed: int = SEED, limit: int | None = None) -> Sequence[EpisodeSpec]:
         if type(seed) is not int or seed != SEED:
-            raise ProtocolError(f"frozen SIMPLE development seed is {SEED}")
+            raise ProtocolError(f"frozen SIMPLE seed is {SEED}")
         if limit is not None and (type(limit) is not int or limit <= 0):
             raise ValueError("episode limit must be a positive integer or None")
-        episodes = (self._episode,)
+        episodes = self._episodes
         return episodes if limit is None else episodes[:limit]
 
     def open_episode(self, episode: EpisodeSpec) -> SimpleHumanoidEpisode:
@@ -324,7 +295,6 @@ class SimpleHumanoidBenchmarkAdapter:
         return SimpleHumanoidEpisode(self, episode)
 
 
-@register_benchmark("simple_humanoid")
 def make_simple_humanoid(parameters: Mapping[str, Any]) -> SimpleHumanoidBenchmarkAdapter:
-    """CLI construction remains dependency-free; native imports happen at reset."""
+    """Construction stays dependency-free; native imports happen at reset."""
     return SimpleHumanoidBenchmarkAdapter(**dict(parameters))

@@ -102,7 +102,7 @@ def audit(artifact_dir, *, similarity_mae=1.0, orientation_difference_mae=10.0, 
         closure = "server session receipt declares closed"
         fields = {"acknowledged_controls", "error_code", "cleanup_error"}
         if receipt.get("protocol") != "starvla-rsi.sim-server/v1" or not fields <= set(receipt):
-            completeness["reason"] = "legacy or unsupported server receipt"
+            completeness["reason"] = "unsupported server receipt"
         elif receipt["error_code"] is not None or receipt["cleanup_error"] is not None:
             # Interrupted native calls may execute without a valid transition;
             # their counters cannot establish an exact frame denominator.
@@ -181,7 +181,7 @@ def audit(artifact_dir, *, similarity_mae=1.0, orientation_difference_mae=10.0, 
         raise ValueError("server closure receipt changed during audit")
     if _read(source.parent, source.name, MAX_MANIFEST_BYTES) != source_bytes:
         raise ValueError("auditor source file changed during audit")
-    return {"schema_version": "starvla-rsi.robocasa365.rgb-audit/v2", "scope": "offline heuristic RGB integrity only",
+    return {"schema_version": "starvla-rsi.robocasa365.rgb-audit/v1", "scope": "offline heuristic RGB integrity only",
             "artifact_dir": str(root), "closure_evidence": closure, "status": "warnings" if warnings else "no_warnings",
             "server_receipt_sha256": None if receipt_bytes is None else hashlib.sha256(receipt_bytes).hexdigest(),
             "frame_completeness": completeness,

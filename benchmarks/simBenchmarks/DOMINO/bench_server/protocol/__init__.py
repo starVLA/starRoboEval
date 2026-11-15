@@ -1,8 +1,10 @@
-"""One predeclared fixed-manifest dynamic task, not a full-suite preset."""
+"""Fixed-manifest dynamic task definitions, not a full-suite preset."""
 
 NATIVE_REVISION = "9c94f2d3a700fff3b65f041df4038d497139ed1f"
 CUROBO_REVISION = "d64c4b005459db10c5dd867d8b30a87d5bda9bdb"
-PROTOCOL = "domino-9c94f2d/click-bell-fixed-manifest/qpos14-rgb-commanded-state/sm120-agent-grouping-v2"
+PROTOCOL = "domino-9c94f2d/click-bell-fixed-manifest/qpos14-rgb-commanded-state/{mode}/v1"
+EVALUATION_MODES = ("fast", "max", "example")  # fast: blog subset; example: first fast episode
+FAST_ENTRY_ORDINALS = (1, 2, 3, 4, 5)  # first five accepted manifest entries
 TASK = "click_bell"
 TASK_CONFIG = "demo_clean_dynamic"
 INSTRUCTION = "click the <bell's top center> on the table"

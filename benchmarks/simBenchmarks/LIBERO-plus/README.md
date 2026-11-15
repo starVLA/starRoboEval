@@ -30,17 +30,22 @@ the native zero-based indices. Standard LIBERO's 90-task suite is excluded.
 
 ## Select variants through this service
 
-Select an explicit increasing `task_ids` list within one suite. Every selected
-variant uses released state index 0 and a predeclared seed. A variant specifies
-a native perturbation such as viewpoint, language or
-object layout; a seed does not select that variant or guarantee a new layout.
-Report category, variant and attempt counts separately. The service's current
-configuration does not select additional released-state indices.
+Select one suite per service and an `evaluation_mode`. Every case resets its
+variant from released state 0 once.
+
+| Mode | Selection per suite | Cases | Cap |
+| --- | --- | --- | --- |
+| `fast` (default) | up to 5 hash-ranked variants per (base task, category) group | 349 | suite horizon |
+| `max` | every variant: the upstream one-trial-per-variant panel | 2,402–2,591 | suite horizon |
+| `example` | the first `fast` case | 1 | suite horizon |
+
+The [protocol](EVALUATION_PROTOCOL.md#service-selection) defines the `fast`
+ranking. A variant specifies a native perturbation such as viewpoint, language
+or object layout; the launch seed does not select that variant or guarantee a
+new layout. Report category, variant, state and attempt counts separately.
 
 The table's horizons are retained evaluator reference conditions, not a
-universal native engine limit. The separate `decisions` track declares
-`max_policy_calls × replan_interval` as its control cap and changes protocol
-identity. In horizon mode, grouping controls between decisions is agent-owned.
+universal native engine limit. Grouping controls between decisions is agent-owned.
 
 ## Observations, actions and scoring
 
@@ -78,7 +83,7 @@ configuration. Agent implementations and results belong under
 
 Use a **separate Python 3.10 environment**; Plus and standard LIBERO both export
 the `libero` namespace and must not coexist in one running process. Do not change
-someone else's native checkout, environment or `~/.libero/config.yaml`.
+a shared native checkout, environment or `~/.libero/config.yaml`.
 
 1. Clone [the official repository](https://github.com/sylvestf/LIBERO-plus) into
    your own new directory and check out commit
@@ -145,19 +150,19 @@ deserialize reset pickles, construct a simulator, validate all asset contents,
 or prove that EGL renders valid images.
 Unrecorded Python, compiled extensions and bytecode caches in the executed native
 package are rejected, including an added outer namespace `__init__.py`. Start
-with `-B` and a clean owned clone; do not remove caches from someone else's tree.
+with `-B` and a clean owned clone; do not remove caches from a shared tree.
 
 ## Start a fixed SIM service
 
 Copy `server.example.json` to a private configuration file, replace the native
-path and preselect the task IDs, seed and budgets before running any model.
+path and choose the suite, mode and seed before running any model.
 Set `RSI_SIM_SERVER_TOKEN` using your evaluator's private secret provisioning;
 never put its value into a policy prompt, tracked JSON or shell argument.
 
 ```sh
 python -B -m benchmarks.simBenchmarks.LIBERO-plus.server \
   --parameters /absolute/path/to/libero-plus-server.json \
-  --seed 20260907 --episodes 1 --port 8765 \
+  --seed 20261026 --episodes 1 --port 8765 \
   --output-dir /absolute/path/to/results/libero_plus/your-run/server
 ```
 
@@ -165,7 +170,7 @@ The service binds only `127.0.0.1` and initializes no simulator until the truste
 evaluator resets the selected session. Connect a compatible driver through the
 [wire protocol](../SERVER_PROTOCOL.md); see
 [agent integration](../../../docs/agent-methods.md) for participant-side code.
-Omit `--episodes` to select the complete configured task list, or use an explicit
+Omit `--episodes` to run every case of the selected mode, or use an explicit
 prefix length. Cross-node use needs an SSH tunnel. Every selected session is
 claimed once, including errors; uncertain control acknowledgments are not replayed.
 

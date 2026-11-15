@@ -8,7 +8,6 @@ from benchkit.contracts import (
     ActionChunk, ActionSpec, EpisodeContext, JsonValue, Observation, ObservationSpec,
     PolicyDecision, PolicyDescriptor, Usage,
 )
-from benchkit.registry import register_policy
 
 
 class ConstantPolicy:
@@ -39,7 +38,6 @@ class ConstantPolicy:
         pass
 
 
-@register_policy("constant")
 def make_constant(parameters: Mapping[str, JsonValue]) -> ConstantPolicy:
     if set(parameters) - {"action", "chunk_length"}:
         raise ValueError("constant supports only action and chunk_length")

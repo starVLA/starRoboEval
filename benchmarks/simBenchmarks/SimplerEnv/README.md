@@ -43,14 +43,40 @@ and drawer levels:
 | WidowX: spoon on towel, carrot on plate, stack cubes | 3 | 60 |
 | WidowX: eggplant in basket | 1 | 120 |
 
-A service selects one task and a predeclared number of seeded resets. Its seeds
-are `--seed + episode_index`; changing the seed samples the native prepackaged
-reset and does not guarantee a distinct layout.
+A service selects one `task`; `evaluation_mode` then fixes its episodes.
+In `fast` and `example`, episode `i` uses reset seed `--seed + i`; changing the
+seed samples the native prepackaged reset and does not guarantee a distinct layout.
 
-The service schedules prepackaged seeded resets; it does not enumerate the VM
-or VA visual-condition matrices. Increasing the episode count does not by itself
-reproduce either reference matrix. This is a limitation of the current selector,
-not a limit on the benchmark's task or variation universe.
+| `evaluation_mode` | Selection | Episodes | Step cap |
+| --- | --- | ---: | --- |
+| `fast` (default) | Selected task, seeds `--seed + 0..4` | 5 | Native task horizon |
+| `max` | Selected task's pinned-script matrix chosen by `reference_matrix` | 24–600 per task | Native task horizon |
+| `example` | First `fast` episode (seed `--seed`) | 1 | Native task horizon |
+
+`max` runs one reference matrix per service run, as upstream runs one script.
+Select it with `reference_matrix`: `visual_matching` (default) or
+`variant_aggregation`, which exists for Google Robot tasks only; the parameter
+is rejected in `fast` and `example`. Episodes per task:
+
+| Task | `visual_matching` | `variant_aggregation` |
+| --- | ---: | ---: |
+| Each pick can orientation (3 tasks) | 100 | 275 |
+| Move near `v0` | 240 | 600 |
+| Each open/close drawer (6 tasks) | 36 | 63 |
+| Apple in closed top drawer | 108 | 189 |
+| Each WidowX task (4 tasks) | 24 | — |
+| **All 15 tasks, as separate runs** | **960** | **1,992** |
+
+`max` builds each episode with the script's explicit environment kwargs and
+seedless reset options, so `--seed` does not change its scenes. Report VM and
+VA separately, never pooled. Drawer/apple `max` uses the native ray-tracing
+shader, which is unverified on the current runtime. See the
+[protocol](EVALUATION_PROTOCOL.md#reference-matrices-max) for details.
+
+`--episodes N` runs the first N episodes of the selected mode. Protocol IDs
+name the selection and mode, e.g. `simpler-env-c701ea2/prepackaged-seeded/rgb/fast/v1`,
+`simpler-env-c701ea2/reference-visual-matching/rgb/max/v1` or
+`simpler-env-c701ea2/reference-variant-aggregation/rgb/max/v1`.
 
 ## Observations, actions and scoring
 
@@ -78,9 +104,8 @@ Success is the **last executed native step's** `info["success"]`. Intermediate
 success does not terminate this benchmark and is not substituted for the final
 score. Preserve call, action-decision and control counts separately.
 
-`budget_mode="horizon"` with `horizon_multiplier=1` retains the native horizons
-above. Explicit 2× horizons and decision-budget configurations are separate
-development tracks with distinct protocol identities. In horizon mode, action
+`horizon_multiplier=1` retains the native horizons above. Explicit 2× horizons
+are a separate track with a distinct protocol identity. Action
 grouping and inference timing belong to the agent driver; they do not extend
 the native budget. See [the protocol](EVALUATION_PROTOCOL.md) for exact conditions.
 
@@ -127,9 +152,10 @@ CUDA visibility alone does not prove Vulkan device selection.
 ## Start the benchmark service
 
 Copy [server.example.json](server.example.json) to an operator-owned file and
-choose the task, GPU, observation track and budget before starting. The example
-selects the horizontal-can task's native 80-control horizon, explicit
-`interaction_mode: "agent_method"` and `action_rejection_feedback: true`.
+choose the task, GPU, observation track, budget and, for `max`, the
+`reference_matrix` before starting. The example
+selects the horizontal-can task's native 80-control horizon, one seeded reset,
+explicit `interaction_mode: "agent_method"` and `action_rejection_feedback: true`.
 The alternative `single_response` and fail-fast tracks retain separate declared
 conditions; omitted parameters do not inherit the example's values.
 

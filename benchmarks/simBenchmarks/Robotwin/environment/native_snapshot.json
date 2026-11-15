@@ -1,5 +1,5 @@
 {
-  "schema_version": "starvla-rsi.robotwin-native-snapshot/v1",
+  "schema_version": "starvla-rsi.robotwin.native-snapshot/v1",
   "native_source_revision": null,
   "scope": "content-pinned local archive; clean Aloha lift_pot/click_bell only; not upstream-full attestation",
   "files": [

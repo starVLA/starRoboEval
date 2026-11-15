@@ -18,7 +18,7 @@ Bench Server 将具身评测封装为独立、可调用的服务，明确 Agent 
 
 网页的[验证进展](index.html#validation-snapshot)收录了项目维护者提供的 **2026-10-07 人工结果快照**：SimplerEnv 15 任务 × 5 seeds 的 75 个正常结果（20 成功、55 失败；另保留 1 条原始工程错误），以及 13 个 Benchmark 的 Direct v3 单案例验收（11 正常完成，含 6 成功、5 失败；2 工程中断）。完整条件、恢复关联和运行索引见[详细快照](../../Projects_readmes/evaluation-snapshot-2026-10-07.md)。两组范围分开呈现；本次未重新读取 raw 或开展评测，当前源码不包含这批原始运行产物。
 
-后续章节介绍架构、能力边界和生命周期，并以 RoboDojo **服务协议 Direct v2** 展开实例。启动示例使用 **agent 方法 codex_native（codex-native/v2）**；两者是分别版本化的服务与方法。当前按 benchmark／protocol／方法配置分别比较，尚不提供跨 benchmark 总榜。
+后续章节介绍架构、能力边界和生命周期，并以 RoboDojo **服务协议 Direct v2** 展开实例。启动示例使用 **agent 方法 gpt6-astra-codex-native**；两者是分别版本化的服务与方法。当前按 benchmark／protocol／方法配置分别比较，尚不提供跨 benchmark 总榜。
 
 交互历史可选、默认启用，不是参评或发布门槛；基础结果不要求事件日志或源码审计。RoboDojo 是已接入服务之一，不是整个框架；不同机器人保留原生观测、动作与评分。
 
@@ -51,7 +51,7 @@ http://127.0.0.1:18765/assets/bench_server/
 - `benchkit/reports/interaction_history.py`：闭合 client-run 的交互 HTML / JSON；不复制媒体、不补造缺失输出。内容指纹留作内部支撑，用户主视图是交互与结果。
 - `benchkit/reports/basic_result.py`：无需交互日志的基础结果，保留选定分母、成败、错误和已知用量。
 - [方法声明](../../docs/agent-methods.md)、[可选记录](../../docs/recording.md)、[跨语言结果格式](../../docs/result-format.md)：公开接入与保存约定；客户端保存开关不控制原生服务录像。
-- 开发态服务实现、原生短交互、模型单例和 full 评测是不同证据层级；当前范围见[支持矩阵](../../benchmarks/simBenchmarks/SERVICE_SUPPORT.md)。
+- 开发态服务实现、原生短交互、模型单例和 max 评测是不同证据层级；当前范围见[支持矩阵](../../benchmarks/simBenchmarks/SERVICE_SUPPORT.md)。
 
 本目录是可随仓库发布的自包含介绍材料。规范性定义仍以 [通用线协议](../../benchmarks/simBenchmarks/SERVER_PROTOCOL.md)、[服务约定](../../benchmarks/simBenchmarks/SERVICE_CONVENTIONS.md) 和各 benchmark 的评测协议为准。
 

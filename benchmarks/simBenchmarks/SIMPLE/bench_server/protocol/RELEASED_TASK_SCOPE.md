@@ -3,50 +3,52 @@
 This table describes the service's selected task/reset bindings for SIMPLE
 revision `5e3d6f84e85343e34e9bca8d157f0d7813231185`.
 See [native scope and reset distributions](../../README.md#native-tasks-and-reset-distributions).
-Explicit `task_scope="released-12"` allows the following 12 tasks in native
-inventory order; select exactly one per adapter with `task_names=[task_id]`.
+The service allows the following 12 tasks in native inventory order; select
+exactly one per adapter with `task_names=[task_id]`.
 
-Each task has one selectable reset: domain-randomization level 0 (DR0), released
-episode index 0 and seed 20260907. The service uses RGB and 31 measured joint
-encoders. Native controller, timing and scoring are described in the
+Each task resets with seed 20260907 from a released row selected by
+domain-randomization (DR) level and episode index. `evaluation_mode` selects DR0
+episodes 0–4 (`fast`), DR0–DR2 × episodes 0–9 (`max`) or DR0 episode 0
+(`example`). The service uses RGB and 31 measured joint encoders. Native
+controller, timing and scoring are described in the
 [evaluation protocol](../../EVALUATION_PROTOCOL.md).
 
 ## Tasks and reset variants
 
-| Native task suffix after `G1Wholebody` | Backend | Native reference horizon | DR0 episode-0 scene |
-| --- | --- | ---: | --- |
-| BendPickMP-v0 | AMO | 400 | scene0 |
-| CloseDoorTeleop-v0 | SONIC | 1000 | scene0 |
-| HandoverTeleop-v0 | SONIC | 800 | scene0 |
-| LocomotionPickBetweenTablesTeleop-v0 | SONIC | 1200 | scene6 |
-| OpenFaucetTeleop-v0 | SONIC | 1000 | scene2 |
-| OpenOvenTeleop-v0 | SONIC | 1000 | scene1 |
-| OpenTrashCanTeleop-v0 | SONIC | 800 | scene4 |
-| PickAndPlaceAndHugContainerTeleop-v0 | SONIC | 1000 | scene14 |
-| PushOfficeChairTeleop-v0 | SONIC | 800 | scene3 |
-| TabletopGraspMP-v0 | AMO | 800 | scene2 |
-| XMoveBendPickTeleop-v0 | SONIC | 800 | scene0 |
-| XMovePickTeleop-v0 | SONIC | 800 | scene0 |
+| Native task suffix after `G1Wholebody` | Backend | Native reference horizon | Native success threshold | Scene |
+| --- | --- | ---: | ---: | --- |
+| BendPickMP-v0 | AMO | 400 | 0.9 | scene0 |
+| CloseDoorTeleop-v0 | SONIC | 1000 | 0.5 | scene0 |
+| HandoverTeleop-v0 | SONIC | 800 | 0.9 | scene0 |
+| LocomotionPickBetweenTablesTeleop-v0 | SONIC | 1200 | 0.4 | scene6 |
+| OpenFaucetTeleop-v0 | SONIC | 1000 | 0.2 | scene2 |
+| OpenOvenTeleop-v0 | SONIC | 1000 | 0.5 | scene1 |
+| OpenTrashCanTeleop-v0 | SONIC | 800 | 0.9 | scene4 |
+| PickAndPlaceAndHugContainerTeleop-v0 | SONIC | 1000 | 0.9 | scene14 |
+| PushOfficeChairTeleop-v0 | SONIC | 800 | 0.9 | scene3 |
+| TabletopGraspMP-v0 | AMO | 800 | 0.9 | scene2 |
+| XMoveBendPickTeleop-v0 | SONIC | 800 | 0.8 | scene0 |
+| XMovePickTeleop-v0 | SONIC | 800 | 0.9 | scene0 |
 
-The table contains 12 task/reset pairs across seven scene entrypoints.
-Other released episode indices and DR levels are not currently selectable.
+The table contains 12 tasks across seven scene entrypoints; all three DR
+levels keep each task's scene. The worker rejects a released episode whose scene
+differs from it. The threshold is the native `check_success` rule
+`reward >= threshold`, from the task's constructor default, class metadata or a
+literal (TabletopGrasp, XMoveBendPick); the service passes no override.
 
-The default `task_scope="pilot"` permits BendPickMP and OpenFaucetTeleop, with
-BendPickMP as the adapter default. Set `task_scope="released-12"` to select any
-task listed above; each server still selects exactly one task/backend.
+An omitted `task_names` selects BendPickMP, the first row. RGB-only input is
+permitted only for BendPickMP and OpenFaucetTeleop; each server still selects
+exactly one task/backend.
 
 ## Reset definitions and timing
 
-[simple_released_tasks.json](simple_released_tasks.json) pins registration entrypoints, task/robot UIDs, source hashes, backend, native horizon metadata, released instruction, DR0 metadata-file hash and exact serialized episode-0 environment-configuration hash. The worker verifies the selected runtime class, task/backend, horizon, reset and instruction against this inventory and [environment/upstream.json](../../environment/upstream.json).
+[simple_released_tasks.json](simple_released_tasks.json) pins registration entrypoints, task/robot UIDs, source hashes, backend, native horizon metadata, released instruction, DR0 metadata-file hash, which pins every released DR0 row, and exact serialized DR0 episode-0 environment-configuration hash. DR1/DR2 metadata files are not pinned; the worker records their observed hashes as unpinned. The worker verifies the selected runtime class, task/backend, horizon, reset and instruction against this inventory and [environment/upstream.json](../../environment/upstream.json).
 
 Backend selection follows the native environment/robot pair, not task-name suffix inference. `LocoManipulationEnv` with `g1_wholebody` uses AMO; `SonicLocoManipEnv` with `g1_sonic` uses SONIC. AMO executes ten 2 ms physics steps and SONIC four 5 ms steps per public 50 Hz control.
 
-The default service uses each task's metadata horizon from this table, with no
-benchmark-imposed decision frequency or action-prefix length. An explicitly
-selected `budget_mode="decisions"` instead retains its fixed 200-call/five-prefix
-configuration and 1,000-control cap. That cap extends the 400/800-control reference
-horizons and shortens LocomotionPickBetweenTables' 1,200-control horizon. Report
-the selected protocol and actual control cap.
+The service uses each task's metadata horizon from this table, with no
+benchmark-imposed decision frequency or action-prefix length. Report the selected
+protocol and actual control cap.
 
 TabletopGrasp's source default render frequency is 30 Hz but its released reset
 metadata is 50 Hz; this service constructs all environments at 50 Hz.

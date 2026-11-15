@@ -115,17 +115,16 @@ case is claimed:
 | Parameter | Meaning |
 | --- | --- |
 | `proprioception` | RGB-only or separately identified RGB+qpos observation |
-| `budget_mode: "horizon"` | Task horizon × predeclared multiplier (1 or 2) |
-| `budget_mode: "decisions"` | Distinct development cap `max_policy_calls × replan_interval` |
+| `horizon_multiplier` | Control cap: task horizon × predeclared multiplier (1 or 2) |
 | `interaction_mode: "single_response"` | Default: at most one provider request per decision call |
 | `interaction_mode: "agent_method"` | Declared internal inference and tools over permitted inputs |
 | `action_rejection_feedback` | Explicit rejected-action feedback track; false retains fail-fast behavior |
+| `reference_matrix` | `max` only: `visual_matching` (default) or `variant_aggregation` (Google Robot tasks) |
 
 These selections affect protocol identity. The benchmark cannot verify hidden
 provider activity; report available call/token usage and leave unavailable
 accounting unknown. Agent-method mode adds no sensors, reset permission or
-execution budget. Decision-budget tracks retain their configured coupling;
-horizon-mode action grouping and inference allowance belong to the method.
+execution budget. Action grouping and inference allowance belong to the method.
 
 With rejection feedback selected, an invalid action executes no control and
 returns a bounded validation issue. A compatible driver can deliver it with the

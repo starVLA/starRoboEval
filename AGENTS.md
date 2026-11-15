@@ -22,13 +22,13 @@ the policy method and its trusted driver, not a universal server-side prefix.
 The current service accepts one action per sequenced `step`; the driver may send
 successive controls from one decision, subject to action validity, native control,
 termination and the declared total execution budget. Native physics substeps and
-protocol-fixed interpolation are not policy-adjustable repeats. Decision-budget
-tracks couple call/prefix settings to execution caps.
-Current SIMPLE defaults to task-horizon mode; CALVIN and DOMINO no longer
+protocol-fixed interpolation are not policy-adjustable repeats. A service
+advertises its native execution horizon and any call allowance; the driver may
+override them and records the override. CALVIN and DOMINO no longer
 declare a mandatory prefix. The reference agent discards a remaining chunk
 after an ACK changes the public instruction, with an explicit record marker.
-A service may still declare `required_replan_interval` (Behavior does by
-default), and shared tooling honours it. Do not claim every selectable track is
+A service may declare `required_replan_interval` (no current service does),
+and shared tooling honours it. Do not claim every selectable track is
 decoupled, or use hidden subtask state to trigger agent replanning.
 
 The product scope is direct control by general-purpose models across many
@@ -41,9 +41,13 @@ design references, not permission to expand observations or control capabilities
 
 Use a multi-agent implementation -> independent review -> regression validation
 -> correction loop for framework changes. Assign non-overlapping implementation
-files, review cross-layer effects independently, and test a stable source snapshot
-before applying changes to the evaluation checkout. A passing unit test is not
-evidence of native evaluation, provider attestation or complete benchmark parity.
+files, review cross-layer effects independently, and check a stable source snapshot
+before applying changes to the evaluation checkout. Verify cleanup and integration
+work at connect level only: run `make check` and `make smoke`, then connect to a
+running benchmark service; do not run full evaluations for this. Test and check
+files stay local and untracked under the ignored `tests/` and `checks/`
+directories. A passing local check is not evidence of native evaluation, provider
+attestation or complete benchmark parity.
 
 Before changing evaluation code or protocols:
 
@@ -55,7 +59,8 @@ Before changing evaluation code or protocols:
 4. Record verified evidence separately from migration TODOs.
 
 New benchmark integrations must use the contracts under `benchkit/`,
-delegate task success to the native benchmark, and add a dependency-light test.
+delegate task success to the native benchmark, and answer describe, claim, reset
+and step through `rsi-bench serve --benchmark ID`.
 Training recipes and dataset registries do not belong under
 `benchmarks/simBenchmarks`.
 
@@ -90,7 +95,8 @@ model drivers or policies.
 Shared fixed-action infrastructure fixtures belong under `benchkit/diagnostics/`,
 not `AgentPolicies/`. They may implement `Policy` only for explicit non-capability
 diagnostics; no model inference or task-solving strategy belongs there.
-Benchmark-specific native readiness tools remain under its `environment/`.
+Connect-level readiness uses the shared `benchkit probe`; native-only readiness
+tools that bypass the service remain under the benchmark's `environment/`.
 
 Model-specific policy code/configuration and evaluation results belong under
 `AgentPolicies/<model-profile>/`; reusable execution utilities belong under
@@ -133,7 +139,7 @@ policy rule neither changes benchmark definitions nor authorizes another attempt
 
 Describe evaluation selections by native task, layout/initial state, variation,
 seed and attempts rather than product tiers. Existing machine keys such as
-`fast`/`full` do not certify native protocol equivalence: preserve their current
+`fast`/`max` do not certify native protocol equivalence: preserve their current
 meaning until an explicit selector migration. Never label task-only coverage
 as a complete native evaluation or infer episode counts. Refactoring never
 starts an evaluation or authorizes success-seeking retries.

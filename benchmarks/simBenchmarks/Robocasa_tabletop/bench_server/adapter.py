@@ -24,35 +24,27 @@ from benchkit.contracts import (
     ObservationSpec, Transition,
 )
 from benchkit.errors import CompatibilityError, InfrastructureError, ProtocolError
-from benchkit.registry import register_benchmark
 
-PILOT_SEED = 20260907
+SCHEDULE_SEED = 20261020  # launch --seed; sample k resets with SCHEDULE_SEED + k
+EVALUATION_MODES = ("fast", "max", "example")  # fast: blog subset; example: first fast episode
+MODE_SAMPLES = {"fast": 2, "max": 10, "example": 1}  # seeded samples per task
+NATIVE_ENGINE_HORIZON = 1000  # robosuite engine setting; ignore_done=True, so it never ends an episode
+EVALUATED_STEP_CAP = 720  # upstream simulation_service --max_episode_steps; one control per service step
 CAMERA = "ego_view_bg_crop_pad_res256_freq20"
 CAMERA_KEY = "video." + CAMERA
 LANGUAGE_KEY = "annotation.human.coarse_action"
 PARTS = (("left_arm", "left", 7), ("right_arm", "right", 7),
          ("left_hand", "left_gripper", 6), ("right_hand", "right_gripper", 6),
          ("waist", "torso", 3))
-PILOT_TASKS = {
-    0: "gr1_unified/PnPCupToDrawerClose_GR1ArmsAndWaistFourierHands_Env",
-    19: "gr1_unified/PosttrainPnPNovelFromTrayToCardboardboxSplitA_GR1ArmsAndWaistFourierHands_Env",
-}
-NEXT_TASKS = {
-    1: "gr1_unified/PnPPotatoToMicrowaveClose_GR1ArmsAndWaistFourierHands_Env",
-    2: "gr1_unified/PnPMilkToMicrowaveClose_GR1ArmsAndWaistFourierHands_Env",
-}
-TASK_LAYOUTS = {0: 4, 19: 0, 1: 2, 2: 2}
-# Distinguish omitted defaults from explicitly mixed/null parameters.
-_UNSET_BUDGET = object()
+# Distinguish an omitted EGL device from an explicit null.
 _UNSET_EGL_DEVICE = object()
 
 
 def frozen_contract() -> dict[str, Any]:
     payload = json.loads(resources.files("benchmarks.simBenchmarks.Robocasa_tabletop.bench_server.protocol")
                          .joinpath("robocasa_tabletop_contract.json").read_text())
-    if (payload["schema_version"] != "starvla-rsi.robocasa-tabletop-contract/v1"
-            or payload["action"]["size"] != 29 or payload["state"]["size"] != 29
-            or payload["pilot_native_indices"] != [0, 19]):
+    if (payload["schema_version"] != "starvla-rsi.robocasa_tabletop.contract/v1"
+            or payload["action"]["size"] != 29 or payload["state"]["size"] != 29):
         raise CompatibilityError("packaged Tabletop contract identity differs")
     return payload
 
@@ -64,7 +56,7 @@ def task_catalog() -> dict[str, Any]:
     payload = json.loads(resources.files("benchmarks.simBenchmarks.Robocasa_tabletop.bench_server.protocol")
                          .joinpath("task_catalog.json").read_text())
     rows = payload["tasks"]
-    if (payload["schema_version"] != "starvla-rsi.robocasa-tabletop-tasks/v1"
+    if (payload["schema_version"] != "starvla-rsi.robocasa_tabletop.tasks/v1"
             or payload["task_scope"] != "tabletop24-seeded-v1"
             or payload["native_revision"] != _FROZEN["sources"]["robocasa"]["revision"]
             or payload["schedule_order"] != "sample-major/task-minor"
@@ -74,8 +66,7 @@ def task_catalog() -> dict[str, Any]:
             or len({row["task"] for row in rows}) != 24
             or [row["candidate_layout_ids"] for row in rows] != [[i] for i in [4, 2, 2, 5, 5, 4] + [0] * 18]
             or any(not row["task"].startswith("gr1_unified/") or not
-                   row["task"].endswith("_GR1ArmsAndWaistFourierHands_Env") for row in rows)
-            or any(rows[index]["task"] != task for index, task in {**PILOT_TASKS, **NEXT_TASKS}.items())):
+                   row["task"].endswith("_GR1ArmsAndWaistFourierHands_Env") for row in rows)):
         raise CompatibilityError("packaged Tabletop task catalog identity differs")
     return payload
 
@@ -186,7 +177,7 @@ def verify_object_inventory(path: Path, root: Path) -> dict[str, Any]:
             or any(payload[key] != value for key, value in _FROZEN["object_inventory"].items())
             or not payload.get("comparison", {}).get("matches")
             or Path(payload["root"]).resolve() != root.resolve()):
-        raise CompatibilityError("provisioned full object inventory differs from the frozen H200 reuse snapshot")
+        raise CompatibilityError("provisioned full object inventory differs from the frozen reuse snapshot")
     actual = {}
     for registry in ("objaverse", "sketchfab", "lightwheel"):
         base = root / registry
@@ -261,7 +252,7 @@ def used_asset_manifest(xml: str, roots: Sequence[Path], extras: Sequence[Path],
         # already been resolved in the compiled MJCF, avoiding guesses here.
         add(path, None)
     rows = [files[key] for key in sorted(files)]
-    return {"schema_version": "robocasa-tabletop.used-assets/v1", "complete": not errors,
+    return {"schema_version": "starvla-rsi.robocasa_tabletop.used-assets/v1", "complete": not errors,
             "scope": "compiled MJCF file closure plus actual object XML and layout/style files",
             "all_benchmark_assets_verified": False,
             "object_pool_validation": "full provisioning content parity; live full names/sizes; used object content parity",
@@ -278,7 +269,7 @@ def verify_native_contract(native: Any, raw: Mapping[str, Any]) -> dict[str, Any
     model = native.sim.model
     cc = robot.composite_controller
     if (len(native.robots) != 1 or type(robot.robot_model).__name__ != "GR1ArmsAndWaistFourierHands"
-            or cc.name != "BASIC" or native.control_freq != 20 or native.horizon != 1000 or not native.ignore_done
+            or cc.name != "BASIC" or native.control_freq != 20 or native.horizon != NATIVE_ENGINE_HORIZON or not native.ignore_done
             or set(cc.part_controllers) != {part for _, part, _ in PARTS}):
         raise CompatibilityError("native embodiment/controller/frequency/termination contract differs")
     for action_part, state_part in zip(_FROZEN["action"]["parts"], _FROZEN["state"]["parts"]):
@@ -372,18 +363,6 @@ class TabletopEpisode:
                 raise CompatibilityError("an already imported native renderer has incompatible device settings")
             os.environ[key] = value
         os.environ["NUMBA_CACHE_DIR"] = str(self.artifact_dir / "numba_cache")
-        gpu = self.benchmark.render_gpu_device_id
-        try:
-            processes = subprocess.run(["nvidia-smi", f"--id={gpu}", "--query-compute-apps=pid",
-                                        "--format=csv,noheader,nounits"], capture_output=True, text=True,
-                                       check=True, timeout=60).stdout.split()
-        except (OSError, subprocess.SubprocessError) as exc:
-            raise InfrastructureError(f"cannot query compute processes on GPU {gpu} with nvidia-smi") from exc
-        # nvidia-smi may report host PIDs (or placeholders) inside a PID
-        # namespace; compare as text and fail closed on anything but our PID.
-        if set(processes) - {str(os.getpid())}:
-            raise InfrastructureError(f"GPU {gpu} has compute processes {processes} other than this server "
-                                      "(host PIDs differ inside a PID namespace); do not disturb it")
         sources = {name: verify_source(root, name) for name, root in self.benchmark.sources.items()}
         objects = Path(sources["robocasa"]["asset_overlay"]) / "objects"
         inventory = verify_object_inventory(self.benchmark.object_inventory, objects)
@@ -434,7 +413,7 @@ class TabletopEpisode:
             initial_scene_sha256=hashlib.sha256(xml.encode()).hexdigest(), initial_native_success=initial_success,
             native_engine_horizon=int(native.horizon), native_ignore_done=bool(native.ignore_done),
             used_assets_complete=assets["complete"], used_assets_inventory_sha256=assets["inventory_sha256"],
-            runtime_versions=dict(_FROZEN["versions"]), render_gpu_device_id=gpu,
+            runtime_versions=dict(_FROZEN["versions"]), render_gpu_device_id=self.benchmark.render_gpu_device_id,
             egl_device_id=self.benchmark.egl_device_id,
             image_transform="native vertical flip, crop [310:770,110:1130], resize 720x480, pad to square, resize 256x256; copied",
             policy_state="29 ordinary joint encoders in radians; native hand selection/reversal; no sin/cos conversion",
@@ -545,121 +524,69 @@ class TabletopEpisode:
 
 
 class TabletopBenchmarkAdapter:
-    def __init__(self, task_ids: Sequence[int] | None = None, *,
-                 casa_source: str, suite_source: str, object_inventory: str, task_scope: str = "pilot",
-                 episode_seeds: Any = _UNSET_BUDGET,
-                 budget_mode: str = "decisions", max_policy_calls: Any = _UNSET_BUDGET,
-                 replan_interval: Any = _UNSET_BUDGET, control_step_cap: Any = _UNSET_BUDGET,
-                 render_gpu_device_id: int = 2, egl_device_id: Any = _UNSET_EGL_DEVICE):
-        if task_scope not in ("pilot", "tabletop-next-pair-v1", "tabletop24-seeded-v1"):
-            raise ValueError("unsupported Tabletop task_scope")
-        expanded = task_scope == "tabletop24-seeded-v1"
-        if expanded:
-            if budget_mode != "horizon":
-                raise ValueError("tabletop24-seeded-v1 requires the independent horizon track")
-            if (not isinstance(episode_seeds, (list, tuple)) or not 1 <= len(episode_seeds) <= 5
-                    or any(type(seed) is not int or not 0 <= seed <= 2**32 - 1 for seed in episode_seeds)
-                    or len(set(episode_seeds)) != len(episode_seeds)):
-                raise ValueError("episode_seeds must explicitly contain 1..5 unique uint32 seeds")
-            self.episode_seeds = tuple(episode_seeds)
-        else:
-            if episode_seeds is not _UNSET_BUDGET:
-                raise ValueError("episode_seeds is supported only by tabletop24-seeded-v1")
-            self.episode_seeds = (PILOT_SEED,)
-        self.tasks = OFFICIAL_TASKS if expanded else PILOT_TASKS if task_scope == "pilot" else NEXT_TASKS
-        if task_ids is None:
-            task_ids = tuple(self.tasks)
-        if (not isinstance(task_ids, (list, tuple)) or not task_ids
-                or any(type(index) is not int or index not in self.tasks for index in task_ids)
-                or list(task_ids) != sorted(set(task_ids))):
-            raise ValueError(f"task_ids must be an increasing unique subset of scope indices {list(self.tasks)}")
-        if budget_mode == "decisions":
-            if control_step_cap is not _UNSET_BUDGET:
-                raise ValueError("control_step_cap requires the independent horizon track")
-            max_policy_calls = 200 if max_policy_calls is _UNSET_BUDGET else max_policy_calls
-            replan_interval = 5 if replan_interval is _UNSET_BUDGET else replan_interval
-            if (type(max_policy_calls) is not int or not 1 <= max_policy_calls <= 200
-                    or type(replan_interval) is not int or not 1 <= replan_interval <= 5):
-                raise ValueError("Tabletop pilot requires decisions mode, 1..200 calls and 1..5 native actions per call")
-            step_cap = max_policy_calls * replan_interval
-            budget_track = f"decision-{max_policy_calls}-prefix-{replan_interval}/v1"
-        elif budget_mode == "horizon":
-            if max_policy_calls is not _UNSET_BUDGET or replan_interval is not _UNSET_BUDGET:
-                raise ValueError("horizon track has no service policy-call or replan limits")
-            step_cap = 1000 if control_step_cap is _UNSET_BUDGET else control_step_cap
-            if type(step_cap) is not int or not 1 <= step_cap <= 1000:
-                raise ValueError("control_step_cap must be an integer in [1, 1000]")
-            max_policy_calls = replan_interval = None
-            budget_track = f"control-{step_cap}/v2"
-        else:
-            raise ValueError("Tabletop budget_mode must be decisions or horizon")
+    environment_step_cap = EVALUATED_STEP_CAP
+
+    def __init__(self, *, casa_source: str, suite_source: str, object_inventory: str,
+                 evaluation_mode: str = "fast", render_gpu_device_id: int = 0,
+                 egl_device_id: Any = _UNSET_EGL_DEVICE):
+        if evaluation_mode not in EVALUATION_MODES:
+            raise ValueError(f"evaluation_mode must be one of {', '.join(EVALUATION_MODES)}; got {evaluation_mode!r}")
         if type(render_gpu_device_id) is not int or render_gpu_device_id < 0:
             raise ValueError("render GPU index must be a nonnegative integer")
         if egl_device_id is _UNSET_EGL_DEVICE:
             egl_device_id = render_gpu_device_id
         if type(egl_device_id) is not int or egl_device_id < 0:
             raise ValueError("EGL device index must be a nonnegative integer")
-        self.task_ids = tuple(task_ids)
-        self.task_scope = task_scope
-        self.budget_mode, self.max_policy_calls, self.replan_interval = budget_mode, max_policy_calls, replan_interval
-        self.environment_step_cap = step_cap
+        self.evaluation_mode = evaluation_mode
+        self.tasks = OFFICIAL_TASKS
+        # Sample-major: every task with seed SCHEDULE_SEED, then SCHEDULE_SEED + 1, ...
+        self.schedule = tuple((sample, index) for sample in range(MODE_SAMPLES[evaluation_mode])
+                              for index in self.tasks)
+        if evaluation_mode == "example":
+            self.schedule = self.schedule[:1]
         self.render_gpu_device_id = render_gpu_device_id
         self.egl_device_id = egl_device_id
         self.sources = {"robocasa": Path(casa_source).resolve(), "robosuite": Path(suite_source).resolve()}
         self.object_inventory = Path(object_inventory).absolute()
-        track = "official24-seeded" if expanded else "pilot-0-19" if task_scope == "pilot" else "next-pair-1-2"
+        revision = _FROZEN["sources"]["robocasa"]["revision"]
         self.descriptor = BenchmarkDescriptor(
-            "robocasa_tabletop", ("0.4.0" if expanded else "0.3.0" if budget_mode == "horizon" else
-                                  "0.1.0" if task_scope == "pilot" else "0.2.0"),
-            f"gr1-tabletop-{track}/rgb256-qpos29/{budget_track}",
-            _FROZEN["sources"]["robocasa"]["revision"],
+            "robocasa_tabletop", "0.5.0",
+            f"robocasa-tabletop-{revision[:7]}/gr1-official24-seeded-control-{EVALUATED_STEP_CAP}/rgb256-qpos29/{evaluation_mode}/v1",
+            revision,
         )
         self.action_spec = ACTION_SPEC
         self.observation_spec = ObservationSpec((CAMERA,), STATE_NAMES, ("language", "rgb", "joint_position"))
 
     def budget_metadata(self) -> dict[str, JsonValue]:
-        return {"budget_mode": self.budget_mode, "max_policy_calls": self.max_policy_calls,
-                "replan_interval": self.replan_interval, "environment_step_cap": self.environment_step_cap,
-                "budget_status": "provisional_development_not_final_public_budget", "native_engine_horizon": 1000,
+        return {"environment_step_cap": self.environment_step_cap, "native_engine_horizon": NATIVE_ENGINE_HORIZON,
                 "native_ignore_done": True, "native_control_hz": 20}
 
     def episodes(self, seed: int, limit: int | None = None) -> Sequence[EpisodeSpec]:
-        if type(seed) is not int or seed != self.episode_seeds[0]:
-            raise ValueError(f"selected schedule requires seed={self.episode_seeds[0]}")
-        if limit is not None and (type(limit) is not int or not 1 <= limit <= len(self.task_ids) * len(self.episode_seeds)):
+        if type(seed) is not int or seed != SCHEDULE_SEED:
+            raise ValueError(f"Tabletop schedule requires seed={SCHEDULE_SEED}")
+        if limit is not None and (type(limit) is not int or not 1 <= limit <= len(self.schedule)):
             raise ValueError("episode limit must select a nonempty prefix without repeats")
-        if self.task_scope == "tabletop24-seeded-v1":
-            return [EpisodeSpec(
-                id=f"tabletop-task{index:02d}-seed{episode_seed}-attempt1",
-                task=self.tasks[index], seed=episode_seed,
-                instruction="Follow the native Tabletop task instruction supplied after reset.",
-                metadata={"native_task_index": index, "attempt": 1, "sample_index": sample_index,
-                          "selection": self.task_scope, "official_full_protocol": False,
-                          "schedule_order": "sample-major/task-minor",
-                          "candidate_layout_ids": [OFFICIAL_TASK_LAYOUTS[index]],
-                          "candidate_style_ids": list(range(12)), **self.budget_metadata()},
-            ) for sample_index, episode_seed in enumerate(self.episode_seeds)
-              for index in self.task_ids][:limit]
         return [EpisodeSpec(
-            id=f"tabletop-task{index:02d}-seed{seed}-attempt1", task=self.tasks[index], seed=seed,
+            id=f"tabletop-task{index:02d}-seed{seed + sample}-attempt1",
+            task=self.tasks[index], seed=seed + sample,
             instruction="Follow the native Tabletop task instruction supplied after reset.",
-            metadata={"native_task_index": index, "attempt": 1,
-                      "selection": ("mechanics-selected pilot before policy trials" if self.task_scope == "pilot"
-                                    else "next two official-order tasks excluding prior pilot indices 0 and 19"),
-                      "candidate_layout_ids": [TASK_LAYOUTS[index]], "candidate_style_ids": list(range(12)),
-                      **self.budget_metadata()},
-        ) for index in self.task_ids[:limit]]
+            metadata={"native_task_index": index, "attempt": 1, "sample_index": sample,
+                      "evaluation_mode": self.evaluation_mode,
+                      "selection": _CATALOG["task_scope"], "official_full_protocol": False,
+                      "schedule_order": "sample-major/task-minor",
+                      "candidate_layout_ids": [OFFICIAL_TASK_LAYOUTS[index]],
+                      "candidate_style_ids": list(range(12)), **self.budget_metadata()},
+        ) for sample, index in self.schedule[:limit]]
 
     def open_episode(self, episode: EpisodeSpec) -> TabletopEpisode:
-        if episode not in self.episodes(self.episode_seeds[0]):
+        if episode not in self.episodes(SCHEDULE_SEED):
             raise ProtocolError("episode differs from the frozen Tabletop selection")
         return TabletopEpisode(self, episode)
 
 
-@register_benchmark("robocasa_tabletop")
 def make_tabletop(parameters: Mapping[str, JsonValue]) -> TabletopBenchmarkAdapter:
-    unknown = set(parameters) - {"task_ids", "task_scope", "episode_seeds", "budget_mode", "max_policy_calls", "replan_interval", "control_step_cap",
-                                 "render_gpu_device_id", "egl_device_id", "casa_source", "suite_source", "object_inventory"}
+    unknown = set(parameters) - {"evaluation_mode", "render_gpu_device_id", "egl_device_id",
+                                 "casa_source", "suite_source", "object_inventory"}
     if unknown:
         raise ValueError(f"unknown Tabletop parameters: {sorted(unknown)}")
     missing = [key for key in ("casa_source", "suite_source", "object_inventory") if key not in parameters]

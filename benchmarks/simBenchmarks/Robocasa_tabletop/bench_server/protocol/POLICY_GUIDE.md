@@ -10,12 +10,8 @@ not normalized values, velocities or Cartesian deltas. Each service step
 executes one vector and advances 50 ms, with no hidden extra repeats. The
 public action specification gives the ordered joint names and command bounds.
 
-In `budget_mode="horizon"`, the selected `control_step_cap` is at most 1000;
-decision frequency, action grouping and additional call limits belong to the
-participant method. The separately retained `budget_mode="decisions"` track
-couples D=1–200 calls and K=1–5 controls per response to a D × K control cap.
-These are different protocol tracks, not a universal decision limit. The
-24-task seeded scope supports only the horizon track. See the
+Each episode is capped at the upstream evaluator's 720 controls; decision frequency, action grouping and additional call limits belong
+to the participant method. See the
 [evaluation protocol](../../EVALUATION_PROTOCOL.md#budgets-and-scoring).
 
 | Slots | Joint/command order |

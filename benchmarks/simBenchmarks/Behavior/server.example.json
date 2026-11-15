@@ -3,5 +3,6 @@
   "deployment_manifest_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
   "worker_python": "/absolute/persistent-venv/bin/python",
   "gpu_id": 0,
-  "worker_timeout": 1800
+  "worker_timeout": 1800,
+  "evaluation_mode": "fast"
 }

@@ -15,8 +15,8 @@ identities, native scores or findings to an active policy.
 
 SAPIEN 2.2.2 can alias CUDA devices when several GPUs share a PCI bus number
 (their full PCI addresses may still differ). Its renderer log may map several
-Vulkan devices to the same CUDA ordinal. Then `cuda:3` can be unavailable even
-though CUDA itself enumerates device 3. `CUDA_VISIBLE_DEVICES` alone does not
+Vulkan devices to the same CUDA ordinal. Then `cuda:N` can be unavailable even
+though CUDA itself enumerates device N. `CUDA_VISIBLE_DEVICES` alone does not
 isolate Vulkan or prove that the intended physical GPU was selected. See the
 [upstream report](https://github.com/haosulab/SAPIEN/issues/170).
 

@@ -1,5 +1,5 @@
 {
-  "schema_version": "starvla-rsi.libero-task-catalog/v1",
+  "schema_version": "starvla-rsi.libero.task-catalog/v1",
   "upstream_revision": "8f1084e3132a39270c3a13ebe37270a43ece2a01",
   "suites": [
     {

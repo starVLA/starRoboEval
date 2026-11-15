@@ -7,7 +7,7 @@ manipulation benchmarks, there is no fixed list of named tabletop tasks.
 
 - [Evaluation protocol](EVALUATION_PROTOCOL.md): episode identity, permitted observations,
   native navigation actions and scoring.
-- [Environment and asset prerequisites](PREFLIGHT.md): pinned source, runtime
+- [Environment and asset prerequisites](environment/README.md): pinned source, runtime
   requirements, licensed scene assets and validation checklist.
 
 ## Benchmark episodes and splits
@@ -29,8 +29,17 @@ buildings. RxR and challenge configurations have separate data and settings.
 
 ## Bench Server
 
-The service selects explicit R2R `val_seen` or `val_unseen` episode IDs from a
-complete split. It uses Habitat-Lab/Sim 0.3.3 in a separate native worker, with
+The service runs a complete R2R `val_seen` or `val_unseen` split, or a fixed
+subset of it chosen by `evaluation_mode`:
+
+| `evaluation_mode` | Episodes | Selection | Per-episode cap |
+| --- | ---: | --- | ---: |
+| `fast` (default) | 373 on `val_unseen` | One ranked instruction per route, ranked routes 1–40 of each scene | 500 actions |
+| `max` | 1,839 / 778 | The complete declared split, in dataset order | 500 actions |
+| `example` | 1 | The first `fast` episode | 500 actions |
+
+`fast` ranks routes and instructions with a fixed sha256 key and takes ranks in
+round-robin order over sorted scenes; on `val_seen` the same rule applies. It uses Habitat-Lab/Sim 0.3.3 in a separate native worker, with
 RGB and instruction observations and four discrete navigation actions. The
 server and client use the shared communication protocol. This runtime version
 does not imply rendering or score parity with Habitat 0.1.7.
@@ -49,7 +58,7 @@ Use. Obtain or reuse an authorized installation; code availability does not
 grant scene-data rights. Do not bundle restricted assets, access credentials or
 private dataset download links into the repository.
 
-See [PREFLIGHT.md](PREFLIGHT.md#data-and-scenes) for the expected asset layout
+See [environment/README.md](environment/README.md#data-and-scenes) for the expected asset layout
 and access requirements.
 
 ## Robot interface
@@ -67,9 +76,9 @@ budget includes STOP. Action grouping belongs to the agent.
 
 ## Start the service
 
-Follow [environment preparation](PREFLIGHT.md), then copy
+Follow [environment preparation](environment/README.md), then copy
 [server.example.json](server.example.json) to an operator-owned file and set
-the dataset, scene root, native Python and selected episode IDs. The scene root
+the dataset, scene root, native Python, split and `evaluation_mode`. The scene root
 must contain the `mp3d/` directory referenced by the dataset. No personal path
 is built into the adapter. Supplying `python_executable` keeps native Habitat
 dependencies separate from the service's Python 3.10+ environment.
@@ -81,7 +90,7 @@ python -B -m benchkit.sim_server.cli serve --benchmark vln_ce \
   --port 8765 --output-dir /absolute/new-run/server
 ```
 
-The service fixes the selected episodes without starting Habitat. A client claim
+The service fixes the mode's episodes without starting Habitat. A client claim
 initializes one episode and receives only RGB and language. Goal distances and
 scores remain evaluator-private. Results include native success, SPL and final
 distance to goal. This implementation does not compute nDTW or oracle metrics;

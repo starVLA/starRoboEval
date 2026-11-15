@@ -1,5 +1,5 @@
 {
-  "schema_version": "starvla-rsi.robocasa-tabletop-tasks/v1",
+  "schema_version": "starvla-rsi.robocasa_tabletop.tasks/v1",
   "task_scope": "tabletop24-seeded-v1",
   "native_revision": "4840e671596f93ca03651524b9f72ffb1aadfeff",
   "task_order_source": "README.md, full list of 24 tabletop task names",

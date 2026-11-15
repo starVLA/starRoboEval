@@ -12,7 +12,7 @@ from benchkit.errors import ProtocolError
 from benchkit.sim_server.wire import dumps, loads, MAX_MESSAGE_BYTES
 from benchmarks.simBenchmarks.Behavior.environment.deployment import digest, validate_manifest_task
 
-RPC_PROTOCOL = "behavior-private-rpc/v1"
+RPC_PROTOCOL = "starvla-rsi.behavior.private-rpc/v1"
 
 
 class NativeOperationError(ProtocolError):
@@ -28,7 +28,7 @@ class NativeWorkerClient:
         self.uncertain = False
         self.error_metrics = None
 
-    def start(self, artifact_dir):
+    def start(self, artifact_dir, episode):
         if self.started:
             raise ProtocolError("private worker can start only once")
         self.started = True
@@ -47,7 +47,8 @@ class NativeWorkerClient:
         cache.mkdir(exist_ok=False)
         config = {"artifact_dir": str(self.root), "deployment_manifest": str(manifest),
                   "deployment_manifest_sha256": self.benchmark.deployment_manifest_sha256,
-                  "gpu_id": self.benchmark.gpu_id, "task": self.benchmark.task}
+                  "gpu_id": self.benchmark.gpu_id, "task": self.benchmark.task,
+                  "public_index": episode.metadata["public_index"], "native_instance": episode.metadata["native_instance"]}
         config_path = self.root / "private_worker_config.json"
         atomic_write_json(config_path, config)
         env = os.environ.copy()

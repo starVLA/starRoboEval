@@ -1,7 +1,4 @@
 {
   "native_root": "/absolute/pinned-vla-arena",
-  "evaluation_mode": "fast",
-  "task_names": [
-    "safety_cautious_grasp/level_0/pick_up_the_fork_and_place_it_in_the_top_layer_of_the_cabinet"
-  ]
+  "evaluation_mode": "fast"
 }

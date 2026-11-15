@@ -52,8 +52,8 @@ or restarting evaluations.
 
 ## GPT validation client consolidation
 
-`AgentPolicies/gpt6_astra/` now has one active client, `codex_native`
-(`codex-native/v2`), consolidating persistent Direct control while retaining the
+`AgentPolicies/gpt6_astra/` now has one active client, `gpt6-astra-codex-native`,
+consolidating persistent Direct control while retaining the
 later optional completion and repeated-command behavior. Both options remain
 disabled by default. `run.py` and `codex_native.py` live at the profile root. `configs/` holds the single
 `codex_native_config.json`, `codex_native_prompt.txt`, `profile.json`
@@ -62,8 +62,7 @@ and transport helpers live under `tools/`. The old `methods/`, `prompts/` and
 `transports/` layers are removed; `configs/` no longer contains alternate method presets.
 There is no old-module forwarding code or alternate active method selection.
 
-`run.py` has no method selector; it always runs
-`codex-native/v2`. This is distinct from the former bounded CLI Native v1 method.
+`run.py` has no method selector; it always runs `gpt6-astra-codex-native`.
 Current setup is documented in [client README](../AgentPolicies/gpt6_astra/README.md).
 Use its service driver for new runs.
 Current usage is collected in the profile README; development notes are kept

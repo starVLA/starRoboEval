@@ -12,16 +12,15 @@ from typing import Any, Mapping, Sequence
 from benchkit.artifacts import append_jsonl, atomic_write_json
 from benchkit.contracts import ActionSpec, BenchmarkDescriptor, EpisodeSpec, JsonValue, Observation, ObservationSpec, Transition
 from benchkit.errors import CompatibilityError, ProtocolError
-from benchkit.registry import register_benchmark
 from ..environment.runtime import REVISION, file_sha256, prepare_runtime
 
-PROTOCOL = "vla-arena-babe582/rgb256x2-rot180/osc-base/control300/reset-once/native-success/fast-v1"
-LONG_HORIZON_PROTOCOL = "vla-arena-babe582/rgb256x2-rot180/osc-base/control600/reset-once/native-success/fast-v1"
+PROTOCOL = "vla-arena-babe582/control300-longhorizon600-reset-once-native-success/rgb256x2-rot180-osc-base/{mode}/v1"
+EVALUATION_MODES = ("fast", "max", "example")  # fast: blog subset; example: first fast episode
 CAMERAS = ("agentview", "robot0_eye_in_hand")
 CONTROL_CAP, SETTLE_STEPS, NATIVE_HORIZON = 300, 10, 1000
 LONG_HORIZON_CONTROL_CAP = 600
 CONTROL_HZ = 20.0
-DEFAULT_TASK = "safety_cautious_grasp/level_0/pick_up_the_fork_and_place_it_in_the_top_layer_of_the_cabinet"
+MAX_TRIALS, FAST_TRIALS = 10, 5  # max: pinned evaluator num_trials_per_task
 
 
 def task_catalog() -> tuple[dict, ...]:
@@ -37,10 +36,6 @@ def task_catalog() -> tuple[dict, ...]:
 def control_cap(row: Mapping) -> int:
     # Pinned evaluators: 600 participant controls for long_horizon L1/L2, 300 otherwise.
     return LONG_HORIZON_CONTROL_CAP if row["suite"] == "long_horizon" and row["level"] >= 1 else CONTROL_CAP
-
-
-def protocol_for(cap: int) -> str:
-    return PROTOCOL if cap == CONTROL_CAP else LONG_HORIZON_PROTOCOL
 
 
 def policy_observation(raw: Any, step: int, instruction: str) -> Observation:
@@ -81,7 +76,7 @@ def native_outcome(done: Any, info: Any) -> tuple[bool, bool, float]:
     return success, timeout, _number(info["cost"], "cost", nonnegative=True)
 
 
-def _create_native(root: Path, row: dict, seed: int):
+def _create_native(root: Path, row: dict, seed: int, episode_index: int, init_state_selection: str):
     import numpy as np
     benchmark = importlib.import_module("vla_arena.vla_arena.benchmark")
     suite = benchmark.get_benchmark_dict()[row["suite"]]()
@@ -101,19 +96,24 @@ def _create_native(root: Path, row: dict, seed: int):
     if file_sha256(init) != row["init_sha256"]:
         raise CompatibilityError("native init file changed while its loader was reading it")
     selection = importlib.import_module("vla_arena.vla_arena.utils.eval_init_state")
-    index = selection.select_init_state_index(num_initial_states=len(states), episode_idx=0,
-                selection_mode="first", offset=0, offset_random=False, rng=np.random.default_rng(seed))
-    if index != 0:
-        raise CompatibilityError("fast VLA-Arena needs a nonempty native first-init-state schedule")
+    index = selection.select_init_state_index(num_initial_states=len(states), episode_idx=episode_index,
+                selection_mode=init_state_selection, offset=0, offset_random=False, rng=np.random.default_rng(seed))
+    if index != episode_init_state(episode_index, init_state_selection):
+        raise CompatibilityError("native init-state selection differs from the declared schedule")
     initial = np.asarray(states[index])
     if initial.ndim != 1 or not np.isfinite(initial).all():
-        raise CompatibilityError("native first init state must be a finite flattened state")
+        raise CompatibilityError("native selected init state must be a finite flattened state")
     envs = importlib.import_module("vla_arena.vla_arena.envs")
     env = envs.OffScreenRenderEnv(bddl_file_name=str(bddl), camera_heights=256, camera_widths=256,
                 camera_offset=False, color_randomize=False, add_noise=False, light_adjustment=False,
                 seed=seed)
     return env, initial.copy(), {"initial_state_index": index, "available_initial_states": len(states),
                                 "initial_state_elements": initial.size, "native_seed": seed}
+
+
+def episode_init_state(episode_index: int, init_state_selection: str) -> int:
+    """Mirror native select_init_state_index with offset 0 over 50 saved states."""
+    return 0 if init_state_selection == "first" else episode_index % 50
 
 
 def _clock(env) -> dict:
@@ -180,11 +180,12 @@ class VLAArenaEpisode:
             np.random.seed(self.episode.seed)
             self._log("native_construction_start", seed=self.episode.seed)
             self.initialization_stage = "construction"
-            self.env, initial, init_receipt = _create_native(self.adapter.native_root, self.row, self.episode.seed)
+            self.env, initial, init_receipt = _create_native(self.adapter.native_root, self.row, self.episode.seed,
+                self.episode.metadata["episode_index"], self.episode.metadata["init_state_selection"])
             self._log("native_construction_end", **_clock(self.env),
                       includes_native_internal_reset=True, internal_physics_count=None)
             _validate_controller(self.env)
-            provenance.update({"protocol": protocol_for(self.control_cap), "task": self.episode.task,
+            provenance.update({"protocol": self.adapter.descriptor.protocol_version, "task": self.episode.task,
                  "level": self.row["level"], **init_receipt,
                  "image_transform": "both cameras: 180-degree full-frame rotation; no crop/resize",
                  "reset_method": "owned inner env.reset exactly once; native wrapper retry loop bypassed",
@@ -201,7 +202,7 @@ class VLAArenaEpisode:
             if self.env.env.timestep != 0:
                 raise CompatibilityError("explicit native reset must start at timestep zero")
             _validate_controller(self.env)
-            self._log("set_init_state_start", initial_state_index=0)
+            self._log("set_init_state_start", initial_state_index=init_receipt["initial_state_index"])
             self.initialization_stage = "set_init_state"
             self.env.set_init_state(initial)
             self._log("set_init_state_end", **_clock(self.env))
@@ -372,31 +373,28 @@ class VLAArenaEpisode:
 
 
 class VLAArenaBenchmarkAdapter:
-    environment_step_cap = CONTROL_CAP  # Default only; __init__ sets the selection's authoritative cap.
-
-    def __init__(self, native_root: str, task_names: Sequence[str] = (DEFAULT_TASK,), evaluation_mode: str = "fast"):
+    def __init__(self, native_root: str, evaluation_mode: str = "fast"):
+        if evaluation_mode not in EVALUATION_MODES:
+            raise ValueError(f"evaluation_mode must be one of {', '.join(EVALUATION_MODES)}; got {evaluation_mode!r}")
         if not isinstance(native_root, str) or not native_root:
             raise ValueError("native_root must identify the dedicated native checkout")
-        if evaluation_mode != "fast":
-            raise ValueError("VLA-Arena full native schedules are not implemented")
         self.native_root = Path(native_root).resolve()
         self.rows = {row["key"]: row for row in task_catalog()}
-        if (isinstance(task_names, (str, bytes)) or not task_names or
-                not all(isinstance(name, str) for name in task_names) or len(set(task_names)) != len(task_names) or
-                any(name not in self.rows for name in task_names)):
-            raise ValueError("select unique explicit native task keys")
-        caps = {control_cap(self.rows[name]) for name in task_names}
-        if len(caps) != 1:
-            # describe advertises one environment_step_cap per service.
-            raise ValueError("select tasks that share one native control cap; long_horizon L1/L2 use 600 controls")
-        self.environment_step_cap = caps.pop()
-        self.selected = tuple(task_names)
+        self.evaluation_mode = evaluation_mode
+        if evaluation_mode == "max":  # native evaluator: 10 trials per task, all at saved state 0
+            cells = [(key, trial) for key in self.rows for trial in range(MAX_TRIALS)]
+        else:  # fast: round-major, trial k installs saved state k
+            cells = [(key, trial) for trial in range(FAST_TRIALS) for key in self.rows]
+        self.cells = tuple(cells[:1] if evaluation_mode == "example" else cells)
+        self.init_state_selection = "first" if evaluation_mode == "max" else "episode_idx"
+        self.environment_step_cap = max(control_cap(self.rows[key]) for key, _ in self.cells)
         self.claimed = set()
 
     @property
     def descriptor(self) -> BenchmarkDescriptor:
         return BenchmarkDescriptor(name="vla_arena", version="babe582-L0-L2",
-                                   protocol_version=protocol_for(self.environment_step_cap), source_revision=REVISION)
+                                   protocol_version=PROTOCOL.format(mode=self.evaluation_mode),
+                                   source_revision=REVISION)
 
     @property
     def observation_spec(self) -> ObservationSpec:
@@ -416,11 +414,15 @@ class VLAArenaBenchmarkAdapter:
             raise ValueError("seed must be an integer in [0, 2**32)")
         if limit is not None and (isinstance(limit, bool) or not isinstance(limit, int) or limit <= 0):
             raise ValueError("limit must be a positive integer")
-        return tuple(EpisodeSpec(id=f"{key.replace('/', '--')}-seed{seed}-episode000", task=key, seed=seed,
+        return tuple(EpisodeSpec(id=f"{key.replace('/', '--')}-seed{seed}-episode{trial:03d}", task=key, seed=seed,
                      instruction=self.rows[key]["instruction"], metadata={"suite": self.rows[key]["suite"],
-                     "level": self.rows[key]["level"], "native_id": self.rows[key]["native_id"], "initial_state_index": 0,
-                     "episode_index": 0, "evaluation_mode": "fast", "native_horizon": NATIVE_HORIZON,
-                     "policy_control_cap": control_cap(self.rows[key]), "settle_steps": SETTLE_STEPS}) for key in self.selected[:limit])
+                     "level": self.rows[key]["level"], "native_id": self.rows[key]["native_id"],
+                     "evaluation_mode": self.evaluation_mode,
+                     "initial_state_index": episode_init_state(trial, self.init_state_selection),
+                     "episode_index": trial, "init_state_selection": self.init_state_selection,
+                     "native_horizon": NATIVE_HORIZON, "environment_step_cap": control_cap(self.rows[key]),
+                     "policy_control_cap": control_cap(self.rows[key]), "settle_steps": SETTLE_STEPS})
+                     for key, trial in self.cells[:limit])
 
     def open_episode(self, episode: EpisodeSpec) -> VLAArenaEpisode:
         if episode not in self.episodes(episode.seed) or episode.id in self.claimed:
@@ -429,9 +431,8 @@ class VLAArenaBenchmarkAdapter:
         return VLAArenaEpisode(self, episode)
 
 
-@register_benchmark("vla_arena")
 def make_vla_arena(parameters: Mapping[str, JsonValue]) -> VLAArenaBenchmarkAdapter:
-    allowed = {"native_root", "task_names", "evaluation_mode"}
+    allowed = {"native_root", "evaluation_mode"}
     if set(parameters) - allowed:
         raise ValueError("unknown VLA-Arena parameters")
     return VLAArenaBenchmarkAdapter(**parameters)

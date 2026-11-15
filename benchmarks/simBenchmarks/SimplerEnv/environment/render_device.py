@@ -73,7 +73,7 @@ def main(argv=None) -> int:
                    "import json,sys; from benchmarks.simBenchmarks.SimplerEnv.environment.render_device "
                    "import _renderer_probe; print('RSI_RENDER_DEVICE='+json.dumps(_renderer_probe(sys.argv[1],sys.argv[2])),flush=True)",
                    args.device, args.expected_gpu_uuid]
-        result = {"schema": "simpler-render-device-preflight/v1", "device": args.device,
+        result = {"schema": "starvla-rsi.simpler_env.render-device-preflight/v1", "device": args.device,
                   "expected_gpu_uuid": args.expected_gpu_uuid, "passed": False,
                   "task_resets": 0, "controls": 0, "model_calls": 0,
                   "environment": {key: os.environ.get(key) for key in

@@ -16,7 +16,8 @@ checkpoint: 864 Google Robot and 96 WidowX. Google Variant Aggregation (VA)
 expands to 1,992 episodes. These are separate protocols, not counts to combine.
 The [task matrix](bench_server/protocol/TASKS.md) lists each family's variants and source scripts.
 These reference matrices specify object/layout, robot-pose and appearance
-conditions explicitly; prepackaged seeded resets do not enumerate them. Report
+conditions explicitly. `max` mode enumerates one of them for the selected task;
+the prepackaged seeded resets of `fast` and `example` do not. Report
 selected tasks, seeds and attempts separately from coverage of reference visual
 conditions.
 
@@ -45,10 +46,38 @@ describes its selector, not a separate definition of the benchmark's task count.
 | Stack green cube on yellow cube | 1 | 60 |
 | Put eggplant in basket | 1 | 120 |
 
-The service selects one canonical task and a declared episode count. Episode
-index `i` uses reset seed `seed + i`. Native reset samples visual-matching conditions, including object episode
-IDs where applicable. A seed is not a layout index and does not guarantee a
-unique scene. This selector does not enumerate the VM/VA matrices above.
+The service selects one canonical task; `evaluation_mode` fixes its resets.
+
+| `evaluation_mode` | Selection | Episodes | Step cap |
+| --- | --- | ---: | --- |
+| `fast` (default) | Selected task, prepackaged resets with seeds `seed + 0..4` | 5 | Native task horizon |
+| `max` | Selected task's complete pinned-script matrix chosen by `reference_matrix` | see below | Native task horizon |
+| `example` | First `fast` episode, reset seed `seed` | 1 | Native task horizon |
+
+`max` runs one reference matrix per service run, as upstream runs one script.
+The `reference_matrix` parameter selects `visual_matching` (default) or
+`variant_aggregation`; the latter exists for Google Robot tasks only, and the
+parameter is rejected in `fast` and `example`. Episodes per task and matrix,
+from the pinned
+[`scripts/`](https://github.com/allenai/SimplerEnv/tree/c701ea271b16b80616d6fed9713c4a50a0adea3b/scripts)
+for one checkpoint:
+
+| Task | `visual_matching` | `variant_aggregation` |
+| --- | ---: | ---: |
+| Each pick coke can orientation (3 tasks) | 100 | 275 |
+| Move near `v0` | 240 | 600 |
+| Each open/close drawer (6 tasks) | 36 | 63 |
+| Put apple into closed top drawer | 108 | 189 |
+| Each Bridge task (4 tasks) | 24 | — |
+| **All 15 tasks, as separate runs** | **960** | **1,992** |
+
+### Prepackaged seeded resets (`fast`, `example`)
+
+Episode index `i` uses reset seed `seed + i`. Native reset samples
+visual-matching conditions, including object episode IDs where applicable.
+A seed is not a layout index and does not guarantee a unique scene.
+The protocol identity names the mode before its version, e.g.
+`simpler-env-c701ea2/prepackaged-seeded/rgb/fast/v1`.
 
 Construction uses the pinned alias mapping with independently copied kwargs,
 `obs_mode="rgbd"`, and `prepackaged_config=True`. Native prepackaged reset samples
@@ -58,6 +87,53 @@ or registered task definitions. Preserve each upstream `native_horizon` in the
 catalog even when an explicit extended track configures a longer evaluation
 time limit. Aliases, reset seeds, native environment IDs, source revisions,
 and resolved run settings belong in evaluator provenance.
+
+### Reference matrices (`max`)
+
+Each `max` episode reproduces one `run_maniskill2_eval_single_episode` call of
+the pinned scripts, transcribed in
+[`max_matrix.py`](bench_server/protocol/max_matrix.py). The server builds a
+fresh environment through upstream `build_maniskill2_env` with the script's
+environment ID, scene, robot, control mode, frequencies, additional build kwargs,
+`camera_cfgs={"add_segmentation": True}` and real overlay; it does not use
+`prepackaged_config`. Reset passes the script's robot `init_xy`/`init_rot_quat`
+and object `init_xy` or `episode_id` as options, with **no seed**, exactly as
+upstream. The fresh environment's construction-time RNG then fixes residual
+randomness, so the launch `--seed` does not change a `max` scene; the episode
+seed `seed + i` is recorded only. Segmentation is computed natively but never
+reaches the policy.
+
+The schedule holds only the selected matrix, ordered by variant, then episode,
+with stable IDs `<task>-<vm|va>-<variant index>_<variant name>-<episode index>`,
+e.g. `google_robot_open_top_drawer-va-03_lighting_brighter-005`. Opening an ID
+outside the selected matrix is a protocol error. Each episode's
+driver-side metadata records its `matrix`, `variant` (index, name, axis and value),
+source script and resolved native configuration. These IDs and metadata belong
+to the trusted driver; the policy still receives only an opaque episode token.
+
+Report VM and VA per matrix, with their own denominators; **never pool them**
+into one score. Separate runs and protocol identities keep them apart. Upstream defines no Bridge VA, so WidowX tasks have VM only.
+The pinned
+[metrics tool](https://github.com/allenai/SimplerEnv/blob/c701ea271b16b80616d6fed9713c4a50a0adea3b/tools/calc_metrics_evaluation_videos.py)
+averages per-variant success rates (pick: per variant group) rather than pooling
+episodes, and its pick and move-near VA averages omit the two alternative-camera
+variants that the scripts run. `max` schedules every scripted variant; retain
+per-variant outcomes so that either aggregate can be reproduced and state which
+one is reported. Success is the native final-step success over the native
+horizon, as for `fast`.
+
+The scripts use the native ray-tracing shader (`shader_dir=rt`) for all drawer
+and apple episodes, including the VA background, lighting and cabinet variants.
+The server builds them as upstream does, but RT rendering of these matrix
+scenes is **UNVERIFIED** on the current runtime; validate it with the
+[rendering preflight](environment/RENDERING.md) before relying on drawer or
+apple `max` results. Move-near VA uses `MoveNearGoogleInScene-v0` while VM uses
+the baked-texture `v0`; apple VA uses `model_ids=apple` while VM uses
+`baked_apple_v2`. Both follow the pinned scripts. Overlay images are hashed and
+compared with pinned SHA-256 values; an unpinned overlay is recorded as unpinned.
+The protocol identity names the matrix, e.g.
+`simpler-env-c701ea2/reference-visual-matching/rgb/max/v1` or
+`simpler-env-c701ea2/reference-variant-aggregation/rgb/max/v1`.
 
 ## Policy input and isolation
 
@@ -78,7 +154,8 @@ reset between episodes. Declare provider-side image processing with model settin
 The default is **RGB-only**: no qpos, qvel, TCP pose, depth, segmentation, camera
 matrices, object poses, source/target IDs, contacts, reward, success flags,
 subtask IDs, reset info, or other simulator metadata. Optional joint-position
-input has the separate identity `simpler-prepackaged-development/rgb-qpos/v1`;
+input has the separate identity `simpler-env-c701ea2/<selection>/rgb-qpos/<mode>/v1`
+(`prepackaged-seeded`, `reference-visual-matching` or `reference-variant-aggregation`);
 its ordered robot sensor fields must be declared and its results kept separate.
 The [interface's joint table](bench_server/protocol/INTERFACE.md#joint-position-order)
 specifies the 11 Google Robot or 8 WidowX measured positions, their native order
@@ -216,11 +293,8 @@ and [pose controller](https://github.com/simpler-env/ManiSkill2_real2sim/blob/ef
 ## Budgets and instruction transitions
 
 The task catalog supplies the native horizon H. The default
-`budget_mode="horizon"`, `horizon_multiplier=1` preserves it; multiplier 2
-declares a longer execution condition. The alternative `budget_mode="decisions"`
-uses `max_policy_calls=D` and `replan_interval=K` in both adapter and driver,
-with a D × K cap. It cannot be combined with a horizon multiplier and may exceed
-the native H. These are configurable execution conditions, not a benchmark-wide
+`horizon_multiplier=1` preserves it; multiplier 2 declares a longer execution
+condition. This is a configurable execution condition, not a benchmark-wide
 inference or grouping requirement.
 
 The following quantities must be recorded separately:
@@ -228,9 +302,9 @@ The following quantities must be recorded separately:
 | Quantity | Meaning |
 | --- | --- |
 | `native_horizon`, H | Upstream registered task horizon; fixed in the task catalog |
-| `evaluation_horizon` | Selected native-step time limit: `H * horizon_multiplier` in horizon mode or `D * K` in decision mode |
-| `max_policy_calls`, C | Maximum number of model decisions in this episode |
-| `replan_interval`, K | Maximum action prefix executed from each decision |
+| `evaluation_horizon` | Selected native-step time limit: `H * horizon_multiplier` |
+| `max_policy_calls`, C | Driver-selected maximum number of model decisions in this episode |
+| `replan_interval`, K | Driver-selected maximum action prefix executed from each decision |
 | `action_decisions` | Non-stop decisions for which at least one control actually executed |
 | `environment_steps` | Executed native control actions, not physics ticks |
 
@@ -280,7 +354,7 @@ termination reason; do not substitute a nearby step's success.
 Keep `success_at_H`, `success_at_2H`, and the final executed-step success
 distinct. The H checkpoint of a 2H-planned policy is an extended-run diagnostic,
 not a replacement for a separately configured default-H score. Report extended
-results separately from the default development track and upstream reference
+results separately from the default native-horizon track and upstream reference
 scores; never merge the two horizons or report best-of-H-and-2H success.
 
 For apple-in-closed-drawer, native timed advancement changes instruction on
@@ -336,8 +410,9 @@ Identify the native source/controller, sensor settings, actual control horizon,
 method configuration and separate call/decision/control counts. Keep final
 success distinct from intermediate success and any H/2H diagnostics. Compare
 results only when task sampling, native execution and observation conditions
-are aligned. The prepackaged seeded-reset selection is not the explicit VM/VA
-condition matrix described in [TASKS.md](bench_server/protocol/TASKS.md).
+are aligned. The prepackaged seeded-reset selection of `fast`/`example` is not
+the explicit VM/VA condition matrix described in [TASKS.md](bench_server/protocol/TASKS.md);
+only `max` enumerates it, one matrix per run. Report `max` per matrix and per variant.
 
 Results belong under `AgentPolicies/<agent>/results/simpler_env/`. Optional
 interactions and media follow [recording](../../../docs/recording.md).

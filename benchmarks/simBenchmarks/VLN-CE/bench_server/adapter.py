@@ -13,17 +13,25 @@ from typing import Mapping
 from benchkit.contracts import ActionSpec, BenchmarkDescriptor, EpisodeSpec, Observation, ObservationSpec, Transition, Usage
 from benchkit.errors import ActionRejected, ProtocolError
 from benchkit.validation import ValidationIssue, validate_action_vector
-from ..environment.native_runtime import scene_path
+from ..environment.native_runtime import MAX_DATASET_BYTES, scene_path
 from .native_worker_client import NativeOperationError, NativeWorkerClient
 
-PROTOCOL = "vlnce-r2r-habitat033/rgb512/native500/v1"
+PROTOCOL = "vln-ce-habitat033/r2r-native500/rgb512/{mode}/v1"
 HORIZON = 500
+EVALUATION_MODES = ("fast", "max", "example")  # fast: blog subset; example: first fast episode
+FAST_ROUTES_PER_SCENE = 40  # fast keeps ranked routes 1..40 of each scene
+FAST_RANK_SALT = "vlnce-panel55-20261028:"  # blog panel ranking salt
 ACTION_SPEC = ActionSpec(mode="habitat_discrete_navigation_v0", size=1, names=("action_id",),
     low=(0.0,), high=(3.0,), control_hz=None,
     frame="integer IDs: 0 STOP; 1 MOVE_FORWARD 0.25 m; 2 TURN_LEFT 15 deg; 3 TURN_RIGHT 15 deg; native collision/sliding",
     rotation="native relative yaw; left +15 degrees, right -15 degrees", gripper="not applicable")
 OBSERVATION_SPEC = ObservationSpec(cameras=("rgb",), modalities=("language", "rgb"), privileged=False)
-MAX_DATA_BYTES = 64 * 1024 * 1024
+# Released R2R_VLNCE_v1-3 episode counts of the locally scored splits (VLN-CE data page).
+SPLIT_EPISODES = {"val_seen": 778, "val_unseen": 1839}
+# sha256 of the released preprocessed <split>.json.gz / <split>_gt.json.gz bytes.
+# None until recorded from a verified copy; until then the observed hash is only recorded.
+DATASET_SHA256 = {"val_seen": None, "val_unseen": None}
+GT_SHA256 = {"val_seen": None, "val_unseen": None}
 
 
 def _file(value, label):
@@ -34,10 +42,33 @@ def _file(value, label):
 
 def _read_gzip(path):
     with gzip.open(path, "rb") as stream:
-        payload = stream.read(MAX_DATA_BYTES + 1)
-    if len(payload) > MAX_DATA_BYTES:
+        payload = stream.read(MAX_DATASET_BYTES + 1)
+    if len(payload) > MAX_DATASET_BYTES:
         raise ValueError("R2R JSON exceeds supported size")
     return json.loads(payload)
+
+
+def _pinned_sha256(path, pins, split, label):
+    digest = hashlib.sha256(path.read_bytes()).hexdigest()
+    if pins[split] is not None and digest != pins[split]:
+        raise ValueError(label + " differs from the pinned R2R-VLNCE v1-3 " + split + " file")
+    return digest
+
+
+def _fast_rank(value):
+    return hashlib.sha256((FAST_RANK_SALT + value).encode()).hexdigest()
+
+
+def fast_selection(episodes):
+    """One ranked instruction per route, ranked routes 1..40 per scene, rank-major across sorted scenes."""
+    groups = {}
+    for row in episodes:
+        groups.setdefault(row["scene_id"], {}).setdefault(str(row["trajectory_id"]), []).append(row)
+    ranked = {scene: [min(routes[t], key=lambda e: _fast_rank("instruction:" + str(e["episode_id"])))
+                      for t in sorted(routes, key=lambda t: _fast_rank(scene + ":" + t))]
+              for scene, routes in groups.items()}
+    return tuple(ranked[scene][rank] for rank in range(FAST_ROUTES_PER_SCENE)
+                 for scene in sorted(ranked) if rank < len(ranked[scene]))
 
 
 def validate_action(values):
@@ -127,7 +158,8 @@ class VLNCEEpisode:
         self.known_native_steps = count
         self.failure_receipt = dict(last_acknowledged_steps=self.steps, known_native_steps=count,
             execution_in_flight=result["execution_in_flight"], metrics_at_native_step=measured_at,
-            cached_metrics=observed, metrics_current=measured_at == count and not result["execution_in_flight"],
+            native_episode_id=self.episode.metadata["native_episode_id"], cached_metrics=observed,
+            metrics_current=measured_at == count and not result["execution_in_flight"],
             outcome="infrastructure_error", score_valid_for_evaluation=False)
         (self.artifact_dir / "native_failure_receipt.json").write_text(
             json.dumps(self.failure_receipt, allow_nan=False, indent=2) + "\n")
@@ -145,6 +177,7 @@ class VLNCEEpisode:
             # Preserve the original failure and native_progress.json. Missing
             # recovery never turns an uncertain action into proven zero motion.
             self.failure_receipt = dict(last_acknowledged_steps=self.steps,
+                native_episode_id=self.episode.metadata["native_episode_id"],
                 known_native_steps=self.known_native_steps, execution_in_flight=None,
                 outcome="infrastructure_error", score_valid_for_evaluation=False,
                 counter_recovery="unavailable; inspect native_progress.json")
@@ -215,8 +248,9 @@ class VLNCEEpisode:
             if self.cached_metrics["success"] and command != 0:
                 raise ProtocolError("VLN-CE success requires a requested native STOP")
             self.finished = terminated or truncated
-            return Transition(self._observation(result), reward=0.0,
-                terminated=terminated, truncated=truncated, info=dict(self.cached_metrics))
+            # Dense distance/SPL stay out of the per-step ledger; final values are in metrics().
+            return Transition(self._observation(result), reward=0.0, terminated=terminated, truncated=truncated,
+                info={"native_success": self.cached_metrics["success"], "native_steps": self.steps})
         except BaseException as exc:
             self.faulted = True
             if isinstance(exc, NativeOperationError):
@@ -226,7 +260,7 @@ class VLNCEEpisode:
     def metrics(self):
         if self.faulted:
             raise ProtocolError("VLN-CE metrics are not a valid score after an infrastructure error; inspect native failure evidence")
-        return dict(self.cached_metrics)
+        return {**self.cached_metrics, "native_episode_id": self.episode.metadata["native_episode_id"]}
 
     def artifacts(self):
         if self.finalized:
@@ -279,17 +313,15 @@ class VLNCEEpisode:
 
 class VLNCEBenchmarkAdapter:
     environment_step_cap = HORIZON
-    budget_mode = "horizon"
     max_policy_calls = None
 
-    def __init__(self, *, dataset_path, scenes_dir, episode_ids, split, python_executable,
+    def __init__(self, *, dataset_path, scenes_dir, split, python_executable, evaluation_mode="fast",
                  gpu_id=0, worker_timeout=120, gt_path=None):
-        if split not in ("val_seen", "val_unseen"):
+        if evaluation_mode not in EVALUATION_MODES:
+            raise ValueError(f"evaluation_mode must be one of {', '.join(EVALUATION_MODES)}; got {evaluation_mode!r}")
+        if split not in SPLIT_EPISODES:
             raise ValueError("VLN-CE supports locally scored val_seen or val_unseen")
-        if (type(episode_ids) not in (list, tuple) or not episode_ids
-                or any(type(x) is not str or not x for x in episode_ids)
-                or len(set(episode_ids)) != len(episode_ids)):
-            raise ValueError("episode_ids must be an explicit nonempty unique string list")
+        self.evaluation_mode = evaluation_mode
         self.dataset_path = _file(dataset_path, "dataset_path")
         _file(python_executable, "python_executable")
         # Keep an explicitly selected venv entrypoint: resolving its symlink can
@@ -305,20 +337,23 @@ class VLNCEBenchmarkAdapter:
             raise ValueError("worker_timeout must be finite and positive")
         self.scenes_dir = Path(scenes_dir).resolve()
         self.split, self.gpu_id, self.worker_timeout = split, gpu_id, worker_timeout
-        self.dataset_sha256 = hashlib.sha256(self.dataset_path.read_bytes()).hexdigest()
+        self.dataset_sha256 = _pinned_sha256(self.dataset_path, DATASET_SHA256, split, "dataset_path")
+        self.dataset_pinned = DATASET_SHA256[split] is not None
         data = _read_gzip(self.dataset_path)
         episodes = data.get("episodes") if isinstance(data, dict) else None
         if not isinstance(episodes, list) or not episodes:
             raise ValueError("R2R dataset must contain episodes")
+        if len(episodes) != SPLIT_EPISODES[split]:  # the file carries no split name; its size identifies it
+            raise ValueError(f"dataset_path holds {len(episodes)} episodes, not the complete {split} split")
         lookup = {}
         for row in episodes:
             identity = str(row["episode_id"])
             if identity in lookup:
                 raise ValueError("R2R dataset contains duplicate episode IDs")
             lookup[identity] = row
-        if any(identity not in lookup for identity in episode_ids):
-            raise ValueError("selected episode ID absent from declared dataset")
-        self.selected = tuple(lookup[identity] for identity in episode_ids)
+        self.selected = tuple(episodes) if evaluation_mode == "max" else fast_selection(episodes)
+        if evaluation_mode == "example":
+            self.selected = self.selected[:1]
         for row in self.selected:
             try:
                 scene = scene_path(self.scenes_dir, row["scene_id"])
@@ -335,13 +370,16 @@ class VLNCEBenchmarkAdapter:
             gt = _read_gzip(self.gt_path)
             if not isinstance(gt, dict) or set(lookup) - set(gt):
                 raise ValueError("GT must cover the complete declared episode split")
-            self.gt_sha256 = hashlib.sha256(self.gt_path.read_bytes()).hexdigest()
+            self.gt_sha256 = _pinned_sha256(self.gt_path, GT_SHA256, split, "gt_path")
         self.claims = set()
 
     @property
     def descriptor(self):
-        return BenchmarkDescriptor(name="vln_ce", version="R2R-v1-3/Habitat-0.3.3", protocol_version=PROTOCOL,
-            source_revision="Habitat-Sim/Lab 0.3.3; installed runtime inventory recorded at reset")
+        pin = "pinned" if self.dataset_pinned else "unpinned"  # unpinned: observed hash recorded only
+        return BenchmarkDescriptor(name="vln_ce", version="R2R-v1-3/Habitat-0.3.3",
+            protocol_version=PROTOCOL.format(mode=self.evaluation_mode),
+            source_revision=(f"Habitat-Sim/Lab 0.3.3; {self.split}.json.gz sha256:{self.dataset_sha256} ({pin});"
+                             " installed runtime inventory recorded at reset"))
 
     @property
     def observation_spec(self): return OBSERVATION_SPEC
@@ -359,14 +397,15 @@ class VLNCEBenchmarkAdapter:
         return tuple(EpisodeSpec(id=f"selection-{i:06d}", task="vlnce_r2r_" + self.split,
             seed=seed, instruction=row["instruction"]["instruction_text"],
             metadata={"native_horizon": HORIZON, "environment_step_cap": HORIZON,
-                "budget_mode": "horizon", "split": self.split, "selection_index": i})
+                "evaluation_mode": self.evaluation_mode, "split": self.split, "selection_index": i,
+                "native_episode_id": str(row["episode_id"])})
             for i, row in enumerate(self.selected[:limit]))
 
     def worker_config(self, episode, artifact_dir):
         if episode not in self.episodes(episode.seed):
             raise ProtocolError("VLN-CE episode differs from fixed schedule")
         result = dict(dataset_path=str(self.dataset_path), scenes_dir=str(self.scenes_dir),
-            episode_id=str(self.selected[episode.metadata["selection_index"]]["episode_id"]),
+            episode_id=episode.metadata["native_episode_id"],
             seed=episode.seed, gpu_id=self.gpu_id, artifact_dir=str(artifact_dir),
             expected_dataset_sha256=self.dataset_sha256)
         if self.gt_path is not None:
@@ -381,7 +420,7 @@ class VLNCEBenchmarkAdapter:
 
 
 def make_vlnce(parameters):
-    allowed = {"dataset_path", "scenes_dir", "episode_ids", "split", "python_executable",
+    allowed = {"dataset_path", "scenes_dir", "split", "python_executable", "evaluation_mode",
                "gpu_id", "worker_timeout", "gt_path"}
     if not isinstance(parameters, Mapping) or set(parameters) - allowed:
         raise ValueError("unknown VLN-CE server parameters")

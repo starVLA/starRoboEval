@@ -1,5 +1,5 @@
 # Evaluation runtime only; original training requirements are not installed.
-# Core simulator pins match the user's known-good H200 LIBERO environment.
+# Core simulator pins match a verified LIBERO evaluation environment.
 numpy==1.24.4
 mujoco==3.2.3
 robosuite==1.4.0

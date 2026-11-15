@@ -4,7 +4,7 @@ This directory owns the native Direct v2 worker, robot-only kinematics and
 hash-bound runtime preparation. It contains no model policy, prompt, provider
 client, training recipe or model result.
 
-Task definitions and fixed panels live in [../bench_server/protocol/task_catalog.json](../bench_server/protocol/task_catalog.json).
+Task definitions and fixed layout selections live in [../bench_server/protocol/task_catalog.json](../bench_server/protocol/task_catalog.json).
 The [service adapter](../bench_server/adapter.py) uses
 [native_worker_client.py](../bench_server/native_worker_client.py) to communicate
 with this directory's worker. That private connection is separate from the public
@@ -79,9 +79,35 @@ Before model evaluation verify:
 4. measured robot state, fixed DLS conversion and one acknowledged control;
 5. native scorer accounting, video decode and acknowledged worker cleanup.
 
-A reset-only or hold diagnostic is infrastructure evidence, not task success or
-a model score. Store diagnostics outside public capability results. Never add
+The shared [readiness probe](../../SERVER_PROTOCOL.md#readiness-probe) checks
+item 3 and worker cleanup through the service, with no model or action. Run it
+against a dedicated `example` launch; RoboDojo rejects `--episodes` truncation.
+Controls are first checked in the closed records of a separately authorized
+sample. A probe is infrastructure evidence, not task success or a model score. Store diagnostics outside public capability results. Never add
 simulator ticks while waiting for a model: waiting must not change physics.
+
+## Max-mode reset-stability preparation
+
+`max` needs a reset-stability manifest; this preparation has not yet been
+performed, and no preparation tool is shipped. A separately authorized,
+reset-only screen on the evaluated runtime:
+
+1. resets layouts 0, 1, 2, … of `classify_objects` in order, one fresh native
+   worker process per layout, with no policy and no action;
+2. records `stable` when the reset passes the worker's post-reset check,
+   `unstable` on native `UnStableError` or a failed check, and `exception` on
+   any other reset error;
+3. stops at the 50th stable layout, or reports that the 55 layouts hold fewer;
+4. writes the `starvla-rsi.robodojo.reset-stability/v1` JSON described in the
+   [protocol](../EVALUATION_PROTOCOL.md#max-first-reset-stable-layouts), with
+   the runtime manifest SHA-256, creation time and procedure under
+   `preparation`, then records the file's SHA-256 to pin it as
+   `stability_manifest_sha256` (optional; without it the service records the
+   observed digest as unpinned).
+
+Keep the worker logs and any failure. Never rerun the screen to improve a
+result or edit a manifest already associated with an episode. Screening
+results are preparation provenance, not task outcomes or model scores.
 
 See [the full Direct v2 binding](REFERENCE_EEF.md) and the parent
 [evaluation protocol](../EVALUATION_PROTOCOL.md).

@@ -3,9 +3,8 @@
 This profile is the **Native GPT-6-Astra Policy**: GPT-6-Astra controls the robot
 directly, with one generic setup and one prompt shared by every benchmark. It is
 the baseline for what the model does before anything is tailored to a benchmark.
-In code, the profile is `gpt6_astra`, the control method is `codex-native/v2`
-(implemented in `codex_native.py`) and records name the policy
-`gpt6-astra-codex-native`.
+Records name it `gpt6-astra-codex-native`: the `gpt6_astra` profile with its
+`codex_native.py` policy.
 
 The model chooses numeric actions through one conversation per episode. The
 benchmark service owns native control, task conditions and scoring.
@@ -14,7 +13,7 @@ benchmark service owns native control, task conditions and scoring.
 
 ```text
 gpt6_astra/
-├── run.py                         # Trusted service client and evaluation entrypoint
+├── run.py                         # Trusted service client and evaluation entrypoint (start here)
 ├── codex_native.py                # CodexNativePolicy and factory create_policy
 ├── configs/
 │   ├── codex_native_config.json   # Single method and registry configuration
@@ -28,6 +27,7 @@ gpt6_astra/
 │   ├── stagnation_review.py       # Optional repeated-command reminder
 │   ├── json_io.py                 # Structured data handling
 │   ├── codex_app_server.py        # App-server communication
+│   ├── codex_config.py            # Codex launch settings and their verification
 │   └── codex_runtime.py           # CLI installation, version and login checks
 ├── results/                       # Local results by Benchmark; Git-ignored
 ├── README.md                      # This guide
@@ -37,11 +37,18 @@ gpt6_astra/
 The general CLI also reuses `tools/runner.py`; stopping preferences remain
 specific to each profile.
 
+Reading order, following one evaluation from the top:
+
+1. `run.py`: `main()` calls `run()`, which builds the policy, connects to the service and starts the runner.
+2. `tools/runner.py`: `EvaluationRunner.run` writes the run; `_EpisodeRun.run` plays one episode.
+3. `codex_native.py`: `CodexNativePolicy` defines what the model sees and how its reply becomes a decision.
+4. `tools/persistent_runtime.py`: `PersistentRuntime.act` carries one call through the Codex conversation.
+
 ## Baseline configuration
 
 The baseline is the checked-in [configuration](configs/codex_native_config.json)
 and [prompt](configs/codex_native_prompt.txt), used unchanged on every benchmark.
-It requests `gpt-6-astra` / `xhigh` over `codex-app-server/v1`, with a chunk limit
+It requests `gpt-6-astra` / `high` over `codex-app-server/v1`, with a chunk limit
 of 5, a 900-second call timeout and image previews with a longest side of 480
 pixels; original PNGs remain available. `reasoning_effort` is passed to Codex as
 configured; Codex decides which values it accepts. Voluntary `safety_stop` and
@@ -59,16 +66,18 @@ execution budget.
 
 ## Installation
 
-Use the pinned Codex CLI **0.154.0** with an existing login:
+Use the Codex CLI with an existing login. The policy was tested with Codex CLI
+**0.154.0**; other versions are not refused, and each session records the version
+in use.
 
 ```sh
 pip install -e '.[gpt6-astra-codex]'
 python -B -m benchkit preflight-policy --model-profile gpt6_astra
 ```
 
-Preflight checks the CLI version, login and configuration without starting model
-inference or a simulation. The policy uses the existing ChatGPT login through the
-Codex app-server.
+Preflight checks that the CLI runs and is logged in, and checks the configuration,
+without starting model inference or a simulation. The policy uses the existing
+Codex login through the app-server.
 
 ## Single-task integration example
 
@@ -92,9 +101,8 @@ the service declares a `required_replan_interval`, which then caps the chunk.
 Pass the service token through `RSI_SIM_SERVER_TOKEN`; it stays in the driver
 and never reaches the model.
 
-The driver requires a service with `budget_mode: "horizon"`. For the checked-in
-LIBERO server example, use `--benchmark libero --seed 20260907 --episodes 1`
-(advertised horizon 520).
+For the checked-in LIBERO server example, use `--benchmark libero --seed 20260907
+--episodes 1` (advertised horizon 520).
 
 Startup runs in this order and stops at the first failure, before any case is
 claimed:
@@ -116,9 +124,9 @@ simulator handles or reset tools. The driver does not forward arbitrary
 
 The model works in its own episode workspace: it can run code in a scratch
 directory, view the received images and keep notes, and the workspace lasts only
-for this episode. Its Codex session has network access and web search
-disabled, no MCP servers, no inherited shell environment, project documents,
-hooks or memories, and file access limited to that workspace and the received
+for this episode. Its Codex session has web search turned off, no network
+access from its shell, no MCP servers, no inherited shell environment, project
+documents, hooks or memories, and file access limited to that workspace and the received
 observations. The effective Codex configuration is checked before the first turn;
 any extra capability stops the run. See the [development boundary](AGENTS.md).
 

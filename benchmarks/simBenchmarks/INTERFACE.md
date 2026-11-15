@@ -6,7 +6,7 @@ implements a policy under `AgentPolicies/<profile>/`. The shared Python types li
 [`benchkit/contracts.py`](../../benchkit/contracts.py); do not create a different
 copy of the policy API for each benchmark or provider.
 
-For independent processes/nodes, use the [SIM server protocol](SERVER_PROTOCOL.md).
+Every benchmark runs as a service under the [SIM server protocol](SERVER_PROTOCOL.md).
 The native adapter is instantiated **inside** the benchmark server; the runner
 holds `benchkit.sim_server.client.SimServerBenchmarkAdapter`. This retains the
 typed interface below without sharing a simulator handle with policy code.
@@ -37,9 +37,10 @@ RoboDojo's `bench_server/` groups its service adaptation, private worker client
 and `protocol/` definitions. `environment/` contains the native runtime. See its
 [directory guide](RoboDojo/README.md#directory-responsibilities).
 
-Only the evaluator constructs an adapter or holds its session. The policy is not
-given `reset`, `step`, `metrics`, simulator handles, task-state files or a scorer.
-An in-process Python interface is an ownership boundary, not an OS sandbox.
+Only the service constructs the native adapter, and only the evaluator holds
+the client session. The policy is not given `reset`, `step`, `metrics`,
+simulator handles, task-state files or a scorer. A Python interface is an
+ownership boundary, not an OS sandbox.
 
 ## Episode lifecycle
 

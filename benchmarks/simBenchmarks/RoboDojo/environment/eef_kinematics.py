@@ -43,9 +43,7 @@ import numpy as np
 from scipy.spatial.transform import Rotation
 
 
-CALIBRATION_SCHEMA = "robodojo.robot-only-six-joint-chain/v1"
-STRICT_DLS = "rsi-strict-float32/v1"
-REFERENCE_DLS = "gpt-as-policy-float32/v1"
+CALIBRATION_SCHEMA = "starvla-rsi.robodojo.robot-only-six-joint-chain/v1"
 JOINT_COUNT = 6
 QUATERNION_TOLERANCE = 1e-4
 JACOBIAN_EPSILON = 1e-5
@@ -274,22 +272,18 @@ class ArmFK:
                 raise ValueError("Robot FK arithmetic is invalid") from error
         return _rigid_matrix(result, "FK result")
 
-    def bounded_target(self, q, limits, root, target, *, execution_mode=STRICT_DLS):
+    def bounded_target(self, q, limits, root, target):
         """One reference DLS update; target choice and real control stay with caller.
 
-        Recompute after each real ACK. Historical strict mode requires measured
-        joints inside native limits and rounds float32 bounds inward. Reference
-        mode exactly uses the nonempty limits/inter-step intersection and the
-        upstream np.clip(...).astype(np.float32), including its rounding.
+        Recompute after each real ACK. Uses the nonempty limits/inter-step
+        intersection and the upstream np.clip(...).astype(np.float32),
+        including its rounding.
         """
-        if execution_mode not in (STRICT_DLS, REFERENCE_DLS):
-            raise ValueError("Unknown DLS execution mode")
         q = _finite_array(q, (JOINT_COUNT,), "arm joints")
         limits = _finite_array(limits, (JOINT_COUNT, 2), "native joint limits")
         root = _rigid_matrix(root, "robot-base transform")
-        if (np.any(limits[:, 0] > limits[:, 1]) or (execution_mode == STRICT_DLS
-            and (np.any(q < limits[:, 0]) or np.any(q > limits[:, 1])))):
-            raise ValueError("Current joints are outside ordered native limits")
+        if np.any(limits[:, 0] > limits[:, 1]):
+            raise ValueError("Native joint limits are not ordered")
         if not isinstance(target, dict) or set(target) != {"position", "quaternion_wxyz"}:
             raise ValueError("DLS target requires only position and quaternion_wxyz")
         goal = pose_matrix(target["position"], target["quaternion_wxyz"])
@@ -318,16 +312,7 @@ class ArmFK:
                 result = np.clip(q + delta, low, high).astype(np.float32)
             except (FloatingPointError, np.linalg.LinAlgError, ValueError) as problem:
                 raise ValueError("Local DLS arithmetic is invalid") from problem
-        # Casting to float32 can round an exact bound outward. Move that one ULP
-        # inward; do not let serialization violate the declared hard interval.
-        if execution_mode == STRICT_DLS:
-            for index in range(JOINT_COUNT):
-                if float(result[index]) < low[index]:
-                    result[index] = np.nextafter(result[index], np.float32(np.inf))
-                if float(result[index]) > high[index]:
-                    result[index] = np.nextafter(result[index], np.float32(-np.inf))
-        if (not np.isfinite(result).all() or (execution_mode == STRICT_DLS
-            and (np.any(result.astype(float) < low) or np.any(result.astype(float) > high)))):
+        if not np.isfinite(result).all():
             raise ValueError("No finite float32 command exists in the bounded joint interval")
         diagnostics = {"target_position_error_m": float(np.linalg.norm(translation)),
                        "target_rotation_error_rad": float(np.linalg.norm(rotation)),

@@ -8,6 +8,7 @@ SUPPLEMENTAL_FILES = (
     "benchmarks/simBenchmarks/SimplerEnv/bench_server/__init__.py",
     "benchmarks/simBenchmarks/SimplerEnv/bench_server/adapter.py",
     "benchmarks/simBenchmarks/SimplerEnv/bench_server/protocol/__init__.py",
+    "benchmarks/simBenchmarks/SimplerEnv/bench_server/protocol/max_matrix.py",
     "benchmarks/simBenchmarks/SimplerEnv/bench_server/protocol/task_catalog.json",
     "benchmarks/simBenchmarks/SimplerEnv/environment/__init__.py",
     "benchmarks/simBenchmarks/SimplerEnv/environment/render_device.py",

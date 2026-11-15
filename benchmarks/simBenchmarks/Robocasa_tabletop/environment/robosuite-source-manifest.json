@@ -1,6 +1,6 @@
 {
   "revision": "51cc01785bab80ffeed20da15e67d7dd4140e76a",
-  "source": "H200 read-only git archive from clean checkout",
+  "source": "read-only git archive from clean checkout",
   "excluded_prefix": "robosuite/models/assets/",
   "files": {
     ".github/ISSUE_TEMPLATE/bug-report.yml": {

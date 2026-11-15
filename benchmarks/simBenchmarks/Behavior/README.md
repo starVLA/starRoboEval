@@ -24,9 +24,8 @@ See the [native evaluation rules](https://github.com/StanfordVL/BEHAVIOR-1K/blob
 
 ## Available service bindings
 
-This integration uses BEHAVIOR-1K v3.9.2 and R1Pro. It currently binds the
-following **seven tasks, each at one fixed scene instance**, rather than the
-entire challenge panel:
+This integration uses BEHAVIOR-1K v3.9.2 and R1Pro. It binds the following
+**seven tasks**, one task per deployment, rather than the entire challenge panel:
 
 | Task | Service task ID | Selected scene |
 | --- | --- | --- |
@@ -38,10 +37,24 @@ entire challenge panel:
 | Task 22: Putting Shoes On Rack | `putting_shoes_on_rack` | `house_double_floor_lower` |
 | Task 34: Hanging Pictures | `hanging_pictures` | `house_double_floor_lower` |
 
-Each deployment selects one task at public index 0, native instance 301,
-rollout 0 and native evaluation seed 0. Changing the run seed does not change
-that layout. Other task IDs and public instance indices are not selectable
-through this service.
+`evaluation_mode` selects instances within the deployed task; `task` narrows
+the mode to one task:
+
+| Mode | Selection | Episodes per task | Cap |
+| --- | --- | ---: | --- |
+| `fast` (default) | Public indices 0–4 → native instances 301–305, rollout 0, native seed 0 | 5 | Native H + 1 |
+| `max` | Public indices 0–9 → native instances 301–310, rollout 0, native seed 0 | 10 | Native H + 1 |
+| `example` | Public index 0 → native instance 301 | 1 | Native H + 1 |
+
+`max` matches the native per-task reporting schedule for the deployed task.
+The 1,000-trial challenge panel is the union over deployments of all 100 tasks;
+only the seven tasks above are bound, so it is not yet available.
+
+Episode IDs have the form `<task>-public<index>-instance<native>-rollout0`.
+Only instance 301 has a pinned state hash. Instances 302–310 come from the
+hash-pinned instance archive; reset records their state hash as unpinned in
+`loaded_contract.json`. Changing the run seed does not change
+the layout.
 
 See the [evaluation protocol](EVALUATION_PROTOCOL.md) for task-specific execution
 budgets, sample selection and native scoring.
@@ -68,10 +81,9 @@ preserved. No object-target action or task planner is added. Object truth, reset
 metadata and intermediate scores stay on the evaluator side. Exact action/state
 ordering, units and scaling are in the [native contract](environment/NATIVE_CONTRACT.md).
 
-Agents generally choose their action grouping and decision cadence. The current
-radio integration requires a new decision after each control; this is not a
-native task rule. Inference calls, controls and physics ticks remain separate
-counters. See [current execution constraints](EVALUATION_PROTOCOL.md#decisions-and-control-execution).
+Agents choose their action grouping and decision cadence. Inference calls,
+controls and physics ticks remain separate counters. See
+[decisions and control execution](EVALUATION_PROTOCOL.md#decisions-and-control-execution).
 
 ## Prepare and launch
 
@@ -82,16 +94,17 @@ this repository does not provide those dependencies or accept their licenses.
 Copy [server.example.json](server.example.json) to an operator-owned location.
 Set the native interpreter, task-bound deployment manifest and its digest, GPU
 and worker timeout. Add `"task": "picking_up_trash"`, or another supported task
-ID; omitting `task` selects radio. Set the evaluator-only
+ID; omitting `task` selects radio. Set `evaluation_mode` as above. Set the evaluator-only
 `RSI_SIM_SERVER_TOKEN` as described in the [shared service protocol](../SERVER_PROTOCOL.md):
 
 ```sh
 python -B -m benchmarks.simBenchmarks.Behavior.server \
   --parameters /absolute/behavior-server.json \
-  --seed 20260922 --episodes 1 --port 8765 \
+  --seed 20260922 --episode-id turning_on_radio-public0-instance301-rollout0 --port 8765 \
   --output-dir /absolute/new-run/server
 ```
 
+Each process claims one episode; `--list-episodes` prints the schedule.
 Startup fixes the schedule without initializing the simulator. Reset starts the
 private native worker. The service binds to loopback; use SSH forwarding for a
 remote driver. Keep credentials and administrative operations out of actor inputs.

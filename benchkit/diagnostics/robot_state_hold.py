@@ -74,7 +74,7 @@ def main():
         raise ValueError("state echo requires an explicitly diagnostic-only SIM service")
     result = EvaluationRunner().run(benchmark, StateEchoDiagnostic(), RunRequest(
         output_dir=args.output, seed=args.seed, episode_limit=1, max_steps=1, max_policy_calls=1,
-        replan_interval=1, run_id=args.run_id, budget_mode="horizon", fail_fast=True,
+        replan_interval=1, run_id=args.run_id, fail_fast=True,
         repository=Path(__file__).absolute().parents[2]))
     print(result)
     with (result / "episodes.jsonl").open() as handle:

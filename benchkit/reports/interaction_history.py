@@ -408,8 +408,8 @@ def _build_history(run_dir):
                            for result in results)
     require(counter(summary.get("usage_incomplete_episodes"), "summary incomplete usage") == usage_incomplete,
             "summary incomplete usage count mismatch")
-    public_protocol = {key: _label(protocol.get(key), key, optional=True)
-                       for key in ("budget_mode", "invalid_action_handling")}
+    public_protocol = {"invalid_action_handling": _label(protocol.get("invalid_action_handling"),
+                                                         "invalid_action_handling", optional=True)}
     for key in ("max_steps", "max_policy_calls", "replan_interval"):
         public_protocol[key] = None if protocol.get(key) is None else counter(protocol[key], key)
     history = {"schema_version": SCHEMA, "run_id": _label(manifest.get("run_id"), "run ID"),

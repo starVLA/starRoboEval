@@ -1,11 +1,7 @@
 {
-  "schema_version": "starvla-rsi.robocasa-tabletop-contract/v1",
+  "schema_version": "starvla-rsi.robocasa_tabletop.contract/v1",
   "derivation": "Compiled MuJoCo contract from tabletop-infra-20260907-02; zero policy calls, one infrastructure hold; no task/reset state in this packaged policy contract.",
   "upstream_documented_task_count": 24,
-  "pilot_native_indices": [
-    0,
-    19
-  ],
   "action": {
     "bounds": "joint limits; hands intersect coupled joint and actuator position limits",
     "control_hz": 20,

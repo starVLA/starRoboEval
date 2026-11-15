@@ -1,5 +1,5 @@
 {
-  "schema_version": "starvla-rsi.vla-arena-robosuite-pin/v1",
+  "schema_version": "starvla-rsi.vla_arena.robosuite-pin/v1",
   "distribution": "robosuite",
   "version": "1.5.1",
   "files": 1113,

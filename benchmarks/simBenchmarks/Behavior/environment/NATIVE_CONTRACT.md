@@ -46,11 +46,8 @@ Code declares action/rendering at 30 Hz and physics at 120 Hz. The
 service accepts one action per control (normally four physics ticks),
 with no autonomous stepping between requests. Validate actual clock deltas in
 the native diagnostic, separately from model decisions and initialization.
-An agent may generally issue multiple controls from one decision. The current
-radio integration requires one control before another observation/decision;
-the other six tasks do not impose that restriction. This is a service
-constraint, not native task timing. Action grouping cannot extend the native
-control budget or delay native termination.
+An agent may issue multiple controls from one decision. Action grouping cannot
+extend the native control budget or delay native termination.
 
 ## Public sensors, not arbitrary native observation dictionaries
 
@@ -86,11 +83,11 @@ task internals or metrics into actor observations.
 ## Schedule, initialization and scoring
 
 Native code exposes 20 public indices 0–19 mapping to instance IDs 301–320.
-The current service selects index 0, instance 301, for each supported task.
-One selected instance does not cover the other 19 available public instances.
+The service selects public indices 0–4 (fast), 0–9 (max) or index 0 (example)
+for each supported task; the worker verifies the native index-to-instance mapping.
 
 Preserve the evaluator's initialization order: construct lazily, reset, load
-the fixed instance, reset for rollout. Loading includes 25 explicit physics
+the selected instance, reset for rollout. Loading includes 25 explicit physics
 settling ticks; reset/load also perform other simulation and rendering work.
 Do not report 25 as the total initialization count without measuring it.
 No actor-controlled reset, seed search or fallback to training instances.
@@ -106,11 +103,10 @@ controls at which the pinned implementation returns timeout:
 4. `eval/eval.py` runs until native flags terminate; it adds no independent H cap.
 
 Consequently, absent earlier termination, native timeout occurs after **H + 1
-executed controls**. The current radio service caps controls at H rather than
-H + 1; reaching that cap without success is an external truncation. The other
-six tasks use H + 1 as their control cap while leaving the native timeout
-parameter at H. A smaller external cap must be reported separately.
-The selected task names, language provenance, human lengths, horizons and exact
+executed controls**. Each task uses H + 1 as its service control cap while
+leaving the native timeout parameter at H. A smaller external cap must be
+reported separately.
+The selected task names, language provenance, human lengths, horizons and the known
 instance hashes are pinned in `bench_server/protocol/__init__.py`; see the
 [task table](../EVALUATION_PROTOCOL.md). A deployment manifest must bind the
 selected task and its instance.

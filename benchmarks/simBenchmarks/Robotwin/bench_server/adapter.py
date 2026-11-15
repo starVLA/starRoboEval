@@ -10,14 +10,17 @@ from benchkit.artifacts import append_jsonl, atomic_write_json
 from benchkit.contracts import (ActionSpec, BenchmarkDescriptor, EpisodeSpec, JsonValue,
                                Observation, ObservationSpec, Transition)
 from benchkit.errors import ProtocolError
-from benchkit.registry import register_benchmark
 from benchmarks.simBenchmarks.Robotwin.environment import runtime
 
 CAMERAS = ("head_camera", "left_camera", "right_camera")
 IMAGE_SHAPE = (240, 320, 3)
 NATIVE_HORIZON = 400
-PROTOCOL = "robotwin-local-content/clean-fixed-seed/qpos14-rgb320-state14/fast-v3"
-COMPAT_PROTOCOL = "robotwin-local-content/clean-fixed-seed/qpos14-rgb320-state14-oidn233/fast-v4"
+PROTOCOL = "robotwin/{selection}/qpos14-rgb320-state14/{mode}/v1"  # no upstream Git pin; content inventory only
+COMPAT_PROTOCOL = "robotwin/{selection}/qpos14-rgb320-state14-oidn233/{mode}/v1"
+EVALUATION_MODES = ("fast", "max", "example")  # fast: blog subset; example: first fast episode
+SELECTIONS = {"fast": "clean-fixed-seed", "example": "clean-fixed-seed",
+              "max": "clean-expert-accepted-seeds"}  # max: expert-screened manifest seeds
+FAST_NATIVE_SEEDS = tuple(range(100000, 100005))  # five unscreened native seeds per task
 
 
 def policy_observation(raw: Any, step: int, instruction: str, state: Sequence[float]) -> Observation:
@@ -82,14 +85,15 @@ class RoboTwinEpisode:
             # Retain the verified runtime choice even if native import/setup fails.
             atomic_write_json(self.artifact_dir / "native_provenance.json", self.provenance)
             self._log("native_construction_start", task=self.episode.task,
-                      native_seed=self.benchmark.native_seed, expert_screening=False)
+                      native_seed=self.episode.metadata["native_seed"],
+                      expert_screening=self.episode.metadata["expert_screening"])  # max: offline screen only
             with runtime.native_directory(self.benchmark.source_root, self.jit_cache):
                 self.env = runtime.create_native(self.benchmark.source_root, self.episode.task)
                 runtime.verify_loaded_renderer(self.provenance, require_cuda_plugin=False)
                 config = runtime.resolved_native_config(self.benchmark.source_root, self.episode.task)
-                self._log("reset_start", native_seed=self.benchmark.native_seed,
+                self._log("reset_start", native_seed=self.episode.metadata["native_seed"],
                           initialization="native setup_demo, homestate/open-gripper/planner initialization/stability checks; no expert play_once")
-                self.env.setup_demo(now_ep_num=0, seed=self.benchmark.native_seed, is_test=True, **config)
+                self.env.setup_demo(now_ep_num=0, seed=self.episode.metadata["native_seed"], is_test=True, **config)
                 self.native_reset_returned = True
                 self._log("reset_returned")
                 compiled = runtime.verify_compiled_control(self.env)
@@ -100,11 +104,17 @@ class RoboTwinEpisode:
                 for side in ("left", "right"):
                     name = f"{side}_mplib_planner"
                     setattr(self.env.robot, name, runtime.TOPPRecorder(getattr(self.env.robot, name), side, self.top_events))
-                self.provenance.update({"task": self.episode.task, "native_seed": self.benchmark.native_seed,
-                                        "evaluation_mode": "fast", "sample_selection": "one predeclared unscreened native seed",
+                self.provenance.update({"task": self.episode.task, "native_seed": self.episode.metadata["native_seed"],
+                                        "evaluation_mode": self.benchmark.evaluation_mode,
+                                        "sample_selection": (self.episode.metadata["sample_selection"]
+                                                             if self.benchmark.evaluation_mode == "max"
+                                                             else "one predeclared unscreened native seed"),
                                         "native_source_revision": None, "compiled_contract": compiled,
                                         "resolved_native_config": config, "protocol_version": self.benchmark.descriptor.protocol_version,
-                                        "instruction_source": f"description/task_instruction/{self.episode.task}.json:full_description",
+                                        "instruction_source": (
+                                            "accepted-seed manifest: native generate_episode_descriptions unseen draw"
+                                            if self.benchmark.evaluation_mode == "max" else
+                                            f"description/task_instruction/{self.episode.task}.json:full_description"),
                                         "observation": {"cameras": list(CAMERAS), "shape": list(IMAGE_SHAPE),
                                                         "image_transform": "none; copy native RGB bytes",
                                                         "state": runtime.state_provenance()},
@@ -113,6 +123,9 @@ class RoboTwinEpisode:
                                         "jit_cache": {"path": str(self.jit_cache), "source": "per-episode evaluator-owned TORCH_EXTENSIONS_DIR",
                                                       "excluded_from_artifact_transfer": True, "identity": "derived native CUDA build cache; not loaded-memory attestation"},
                                         "video_timebase": "10-fps presentation of one public frame per control, not physical control frequency"})
+                if self.benchmark.evaluation_mode == "max":  # fast/example provenance keys stay as before
+                    self.provenance.update({"seed_manifest": self.benchmark.seed_manifest,
+                                            "seed_screening": self.benchmark.seed_screening})
                 if self.artifact_dir is not None:
                     atomic_write_json(self.artifact_dir / "native_provenance.json", self.provenance)
                 self._log("reset_end", native_horizon=NATIVE_HORIZON, policy_controls=0)
@@ -263,34 +276,54 @@ class RoboTwinEpisode:
 
 
 class RoboTwinBenchmarkAdapter:
-    budget_mode = "horizon"
     environment_step_cap = NATIVE_HORIZON
 
     def __init__(self, source_root: str, deployment_manifest_sha256: str, task: str = "lift_pot",
-                 native_seed: int = 100000, evaluation_mode: str = "fast",
-                 renderer_runtime: str = runtime.BUNDLED_RENDERER):
+                 evaluation_mode: str = "fast", renderer_runtime: str = runtime.BUNDLED_RENDERER,
+                 seed_manifest: str | None = None, seed_manifest_sha256: str | None = None):
+        if evaluation_mode not in EVALUATION_MODES:
+            raise ValueError(f"evaluation_mode must be one of {', '.join(EVALUATION_MODES)}; got {evaluation_mode!r}")
         if (not isinstance(source_root, str) or not source_root or not Path(source_root).is_absolute()
                 or ".." in Path(source_root).parts):
             raise ValueError("source_root must be an explicit absolute deployment path")
         if (not isinstance(deployment_manifest_sha256, str) or len(deployment_manifest_sha256) != 64
                 or any(c not in "0123456789abcdef" for c in deployment_manifest_sha256)):
             raise ValueError("deployment_manifest_sha256 must be 64 lowercase hexadecimal characters")
-        if not isinstance(task, str) or task not in runtime.TASK_INSTRUCTIONS or evaluation_mode != "fast":
-            raise ValueError("only explicit clean lift_pot/click_bell fast tasks are implemented; native full is unsupported")
-        if type(native_seed) is not int or not 0 <= native_seed < 2**32:
-            raise ValueError("native_seed must be an integer in [0, 2**32)")
+        if not isinstance(task, str) or task not in runtime.TASK_INSTRUCTIONS:
+            raise ValueError("only clean lift_pot/click_bell tasks are implemented")
         if not isinstance(renderer_runtime, str) or renderer_runtime not in runtime.RENDERER_RUNTIMES:
             raise ValueError("renderer_runtime must be a declared pinned track")
         self.source_root = Path(source_root)
         self.deployment_manifest_sha256 = deployment_manifest_sha256
-        self.task, self.native_seed = task, native_seed
+        self.task, self.evaluation_mode = task, evaluation_mode
+        self.seed_manifest = self.seed_screening = None
+        if evaluation_mode == "max":
+            if (not isinstance(seed_manifest, str) or not Path(seed_manifest).is_absolute()
+                    or ".." in Path(seed_manifest).parts):
+                raise ValueError("RoboTwin max mode needs seed_manifest (absolute path); " + runtime.MAX_PREPARATION)
+            if seed_manifest_sha256 is not None and (  # optional pin: compared when given, else recorded unpinned
+                    not isinstance(seed_manifest_sha256, str) or len(seed_manifest_sha256) != 64
+                    or any(c not in "0123456789abcdef" for c in seed_manifest_sha256)):
+                raise ValueError("seed_manifest_sha256 must be 64 lowercase hexadecimal characters when given")
+            manifest = runtime.load_accepted_seeds(Path(seed_manifest), seed_manifest_sha256, task,
+                                                   deployment_manifest_sha256)
+            self.seed_manifest, self.seed_screening = manifest["identity"], manifest["screening"]
+            self.cases = tuple(manifest["accepted"])  # (native seed, recorded native instruction)
+        else:
+            if seed_manifest is not None or seed_manifest_sha256 is not None:
+                raise ValueError("seed_manifest applies to max mode only; fast/example seeds are unscreened")
+            seeds = FAST_NATIVE_SEEDS[:1] if evaluation_mode == "example" else FAST_NATIVE_SEEDS
+            self.cases = tuple((seed, runtime.TASK_INSTRUCTIONS[task]) for seed in seeds)
         self.renderer_runtime = renderer_runtime
         self.claimed = False
 
     @property
     def descriptor(self) -> BenchmarkDescriptor:
         return BenchmarkDescriptor(name="robotwin", version="local-2.0-clean-development",
-                                   protocol_version=(PROTOCOL if self.renderer_runtime == runtime.BUNDLED_RENDERER else COMPAT_PROTOCOL),
+                                   protocol_version=(PROTOCOL if self.renderer_runtime == runtime.BUNDLED_RENDERER
+                                                     else COMPAT_PROTOCOL).format(
+                                                         selection=SELECTIONS[self.evaluation_mode],
+                                                         mode=self.evaluation_mode),
                                    source_revision=f"content-inventory-sha256:{runtime.NATIVE_INVENTORY_SHA256}")
 
     @property
@@ -310,30 +343,36 @@ class RoboTwinBenchmarkAdapter:
     def episodes(self, seed: int, limit: int | None = None) -> Sequence[EpisodeSpec]:
         if type(seed) is not int or not 0 <= seed < 2**32:
             raise ValueError("harness seed must be an integer in [0, 2**32)")
-        if limit is not None and (type(limit) is not int or limit != 1):
-            raise ValueError("this single-task server permits exactly one episode")
-        return (EpisodeSpec(id=f"{self.task}-native-seed{self.native_seed}-episode000", task=self.task,
-                            seed=seed, instruction=runtime.TASK_INSTRUCTIONS[self.task], metadata={
-                                "evaluation_mode": "fast", "native_seed": self.native_seed,
-                                "task_config": "demo_clean", "native_horizon": NATIVE_HORIZON,
-                                "native_horizon_source": "task_config/_eval_step_limit.yml",
-                                "native_source_revision": None, "expert_screening": False,
-                                "instruction_selection": "fixed native full_description; no expert-derived placeholders",
-                                "sample_selection": "predeclared unscreened seed; one attempt; no retry",
-                            }),)
+        if limit is not None and (type(limit) is not int or not 1 <= limit <= len(self.cases)):
+            raise ValueError(f"episode limit must be an integer in [1, {len(self.cases)}]")
+        max_mode = self.evaluation_mode == "max"
+        return tuple(EpisodeSpec(id=f"{self.task}-native-seed{native_seed}-episode000", task=self.task,
+                                 seed=seed, instruction=instruction, metadata={
+                                     "evaluation_mode": self.evaluation_mode, "native_seed": native_seed,
+                                     "task_config": "demo_clean", "native_horizon": NATIVE_HORIZON,
+                                     "environment_step_cap": NATIVE_HORIZON,
+                                     "native_horizon_source": "task_config/_eval_step_limit.yml",
+                                     "native_source_revision": None, "expert_screening": max_mode,
+                                     "instruction_selection": (
+                                         "native unseen instruction recorded per seed in the accepted-seed manifest" if max_mode
+                                         else "fixed native full_description; no expert-derived placeholders"),
+                                     "sample_selection": (
+                                         "accepted seed from the hash-bound offline screen; one attempt; no replacement" if max_mode
+                                         else "predeclared unscreened seed; one attempt; no retry"),
+                                 }) for native_seed, instruction in self.cases[:limit])
 
     def open_episode(self, episode: EpisodeSpec) -> RoboTwinEpisode:
         if episode not in self.episodes(episode.seed):
             raise ProtocolError("RoboTwin episode differs from its fixed schedule")
         if self.claimed:
-            raise ProtocolError("RoboTwin one-episode service already claimed; start no automatic retry")
+            raise ProtocolError("RoboTwin claims one episode per process; launch each with --episode-id")
         self.claimed = True
         return RoboTwinEpisode(self, episode)
 
 
-@register_benchmark("robotwin")
 def make_robotwin(parameters: Mapping[str, JsonValue]) -> RoboTwinBenchmarkAdapter:
-    allowed = {"source_root", "deployment_manifest_sha256", "task", "native_seed", "evaluation_mode", "renderer_runtime"}
+    allowed = {"source_root", "deployment_manifest_sha256", "task", "evaluation_mode", "renderer_runtime",
+               "seed_manifest", "seed_manifest_sha256"}
     if set(parameters) - allowed:
         raise ValueError(f"unknown RoboTwin parameters: {sorted(set(parameters) - allowed)}")
     if not {"source_root", "deployment_manifest_sha256"}.issubset(parameters):

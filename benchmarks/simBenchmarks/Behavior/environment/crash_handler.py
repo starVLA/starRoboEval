@@ -76,7 +76,7 @@ def prepare_crash_handler():
     if current.ss_sp != allocation or current.ss_size != size:
         raise RuntimeError("native worker signal-stack installation differs")
     faulthandler.enable()  # Real, already installed CPython handler; no patch.
-    _receipt = {"schema": "behavior-worker-crash-handler/v1", "handler_enabled": True,
+    _receipt = {"schema": "starvla-rsi.behavior.worker-crash-handler/v1", "handler_enabled": True,
                 "pid": os.getpid(), "tid": threading.get_native_id(),
                 "early_python_option": True, "thread_scope": "worker-main-thread",
                 "previous_stack_bytes": previous.ss_size, "stack_bytes": size,

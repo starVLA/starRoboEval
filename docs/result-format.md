@@ -45,7 +45,7 @@ Required fields and their meanings:
 | `policy` | At least a declared `name`; legacy `kind`, `model`, `provider`, `version` may also be present |
 | `action_spec` | Service-declared `mode`, positive `size`, `names`, optional `low`/`high`, `control_hz`, `frame`, `rotation`, `gripper` |
 | `observation_spec` | Service-declared `cameras`, `state_names`, `modalities`, `privileged: false`, optional `control_feedback_schema` |
-| `protocol` | Selected `episode_ids`, positive `max_steps`, `max_policy_calls` (positive integer or null), `replan_interval` (positive integer or null), `fail_fast` (boolean); retain actual budget/track declarations. A horizon run may add the service's `service_environment_step_cap` (positive integer or null) and `max_steps_overridden` (boolean: no service cap, or `max_steps` differs from it), and likewise `service_max_policy_calls` (positive integer or null) and `max_policy_calls_overridden` (boolean: `max_policy_calls` differs from it) |
+| `protocol` | Selected `episode_ids`, positive `max_steps`, `max_policy_calls` (positive integer or null), `replan_interval` (positive integer or null), `fail_fast` (boolean); retain actual budget/track declarations. A run may add the service's `service_environment_step_cap` (positive integer or null) and `max_steps_overridden` (boolean: no service cap, or `max_steps` differs from it), and likewise `service_max_policy_calls` (positive integer or null) and `max_policy_calls_overridden` (boolean: `max_policy_calls` differs from it) |
 
 Optional public method declaration:
 

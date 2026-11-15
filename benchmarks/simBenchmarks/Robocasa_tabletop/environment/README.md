@@ -46,7 +46,7 @@ At reset the adapter checks the object inventory's complete names/sizes and hash
 
 ## Native environment diagnostic
 
-Select an idle GPU and a new output directory. This parameterized tool accepts relocated source/inventory paths:
+Select a GPU and a new output directory. This parameterized tool accepts relocated source/inventory paths:
 
 ```sh
 PYTHONHASHSEED=0 python \
@@ -60,7 +60,7 @@ PYTHONHASHSEED=0 python \
 
 It verifies sources/assets, constructs the selected native environment, resets, renders and executes an evaluator-owned measured hold. Its policy-call count is zero. Retain the diagnostic status/errors, compiled control and encoder contract, initial-state hash, delivered images and completely decodable video. A native reset or hold is not a capability attempt or a task success claim.
 
-[verify_adapter.py](verify_adapter.py) separately checks the RSI adapter's reset/render/hold path for supported task indices 0, 1, 2 and 19. Like the command above, it requires `--casa-source`, `--suite-source` and `--object-inventory`.
+Check the adapter and service path separately with the shared [readiness probe](../../SERVER_PROTOCOL.md#readiness-probe) against a dedicated `example` launch. It claims and resets one episode through the service, with no model calls or actions.
 
 ## Before starting the service
 

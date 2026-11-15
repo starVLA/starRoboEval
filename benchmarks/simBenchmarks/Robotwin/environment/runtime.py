@@ -6,6 +6,7 @@ native task owns scene generation, control interpolation and success checks.
 from __future__ import annotations
 
 from contextlib import contextmanager
+import hashlib
 import importlib
 import importlib.metadata
 import json
@@ -221,6 +222,97 @@ def resolved_native_config(root: Path, task: str) -> dict:
                    "dual_arm_embodied": True, "head_camera_h": 240, "head_camera_w": 320,
                    "save_data": False, "eval_video_save_dir": None})
     return config
+
+
+SEED_MANIFEST_SCHEMA = "starvla-rsi.robotwin.accepted-seeds/v1"
+MAX_ACCEPTED_COUNT = 100  # native eval_policy.py test_num
+MAX_START_SEED = 100000  # native st_seed = 100000 * (1 + eval seed 0)
+MAX_INSTRUCTION_TYPE = "unseen"  # native deploy_policy.yml default
+REJECTION_REASONS = frozenset({"unstable", "exception", "expert_check_fail"})  # native screen branches
+SEED_MANIFEST_KEYS = {"schema", "task", "task_config", "embodiment", "native_inventory_sha256", "eval_seed",
+                      "start_seed", "accepted_count", "instruction_type", "accepted", "rejected", "preparation"}
+PREPARATION_KEYS = frozenset({"deployment_manifest_sha256", "renderer_runtime", "created_at", "procedure"})
+MAX_PREPARATION = "prepare it offline as described in environment/README.md (accepted-seed preparation)"
+
+
+def _strict_json(data: bytes):
+    def pairs(items):
+        keys = [key for key, _ in items]
+        if len(keys) != len(set(keys)):
+            raise ValueError("duplicate JSON key")
+        return dict(items)
+
+    def constant(name):
+        raise ValueError(f"non-finite JSON number {name}")
+    return json.loads(data, object_pairs_hook=pairs, parse_constant=constant)
+
+
+def load_accepted_seeds(path: Path, expected_hash: str | None, task: str,
+                        deployment_hash: str | None = None) -> dict:
+    """Startup gate for `max`: the complete offline screening record, or refuse.
+
+    The service never screens; it replays the recorded accepted seeds and the
+    native instruction drawn for each one during preparation.
+    """
+    if path.is_symlink() or not path.is_file():
+        raise ValueError(f"RoboTwin max mode needs the accepted-seed manifest file; {MAX_PREPARATION}")
+    data = path.read_bytes()
+    actual_hash = hashlib.sha256(data).hexdigest()
+    if expected_hash is not None and actual_hash != expected_hash:  # a supplied pin must match
+        raise ValueError("RoboTwin seed manifest SHA256 differs from seed_manifest_sha256")
+    identity = {"sha256": actual_hash, "pinned": expected_hash is not None}  # unpinned: observed hash recorded only
+    try:
+        record = _strict_json(data)
+    except ValueError as exc:
+        raise ValueError(f"RoboTwin seed manifest is not strict JSON: {exc}") from exc
+    if not isinstance(record, dict) or set(record) != SEED_MANIFEST_KEYS or record["schema"] != SEED_MANIFEST_SCHEMA:
+        raise ValueError(f"RoboTwin seed manifest must be {SEED_MANIFEST_SCHEMA} with exactly its declared fields")
+    expected = {"task": task, "task_config": "demo_clean", "embodiment": ["aloha-agilex"],
+                "native_inventory_sha256": NATIVE_INVENTORY_SHA256, "eval_seed": 0,
+                "start_seed": MAX_START_SEED, "accepted_count": MAX_ACCEPTED_COUNT,
+                "instruction_type": MAX_INSTRUCTION_TYPE}
+    differs = sorted(key for key, value in expected.items()  # strict: False/0 and 100000.0/100000 differ
+                     if not (type(record[key]) is type(value) and record[key] == value))
+    if differs:
+        raise ValueError(f"RoboTwin seed manifest was not prepared for this max track ({', '.join(differs)} differ); "
+                         + MAX_PREPARATION)
+    accepted, rejected, preparation = record["accepted"], record["rejected"], record["preparation"]
+    if (not isinstance(accepted, list) or len(accepted) != MAX_ACCEPTED_COUNT
+            or any(not isinstance(row, dict) or set(row) != {"seed", "instruction"} for row in accepted)):
+        raise ValueError(f"RoboTwin max mode needs exactly {MAX_ACCEPTED_COUNT} accepted "
+                         f"{{seed, instruction}} rows; {MAX_PREPARATION}")
+    seeds = [row["seed"] for row in accepted]
+    if any(type(seed) is not int for seed in seeds) or seeds != sorted(set(seeds)):
+        raise ValueError("RoboTwin accepted seeds must be unique ascending integers")
+    for row in accepted:  # native template output: placeholders already filled in
+        text = row["instruction"]
+        if (not isinstance(text, str) or not text.strip() or len(text) > 1000 or not text.isprintable()
+                or "{" in text or "}" in text):
+            raise ValueError(f"RoboTwin seed {row['seed']} needs its recorded native instruction text")
+    if (not isinstance(rejected, list)
+            or any(not isinstance(row, dict) or set(row) != {"seed", "reason"} or type(row["seed"]) is not int
+                   or not isinstance(row["reason"], str) or row["reason"] not in REJECTION_REASONS
+                   for row in rejected)):
+        raise ValueError("RoboTwin rejections need an integer seed and reason unstable, exception or expert_check_fail")
+    # A contiguous walk from start_seed to the 100th acceptance proves no seed was skipped or hidden.
+    if sorted(seeds + [row["seed"] for row in rejected]) != list(range(MAX_START_SEED, seeds[-1] + 1)):
+        raise ValueError("RoboTwin seed manifest is not one contiguous screening walk from seed 100000; "
+                         + MAX_PREPARATION)
+    if (not isinstance(preparation, dict) or not PREPARATION_KEYS <= set(preparation)
+            or any(not isinstance(preparation[key], str) or not preparation[key].strip() for key in PREPARATION_KEYS)):
+        raise ValueError("RoboTwin seed manifest needs non-empty preparation provenance strings: "
+                         "deployment_manifest_sha256, renderer_runtime, created_at and procedure")
+    if deployment_hash is not None and preparation["deployment_manifest_sha256"] != deployment_hash:
+        raise ValueError("RoboTwin seed manifest was prepared on a different deployment_manifest_sha256; "
+                         + MAX_PREPARATION)
+    reasons = {}
+    for row in rejected:
+        reasons[row["reason"]] = reasons.get(row["reason"], 0) + 1
+    # Rejections are preparation provenance, never policy results.
+    return {"accepted": [(row["seed"], row["instruction"]) for row in accepted], "identity": identity,
+            "screening": {"accepted": len(accepted), "rejected": len(rejected),
+                          "rejection_reasons": dict(sorted(reasons.items())),
+                          "last_accepted_seed": seeds[-1], "preparation": preparation}}
 
 
 def create_native(root: Path, task: str):

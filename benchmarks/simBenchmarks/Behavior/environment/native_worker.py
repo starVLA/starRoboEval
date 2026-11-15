@@ -14,13 +14,13 @@ from benchkit.artifacts import append_jsonl, atomic_write_json
 from benchkit.errors import ProtocolError
 from benchkit.sim_server.wire import dumps, loads, encode_observation, MAX_MESSAGE_BYTES
 from benchmarks.simBenchmarks.Behavior.bench_server.protocol import (
-    ACTION_SPEC, INSTANCE, NATIVE_SEED, OBSERVATION_SPEC, TASK, task_definition,
+    ACTION_SPEC, FIRST_INSTANCE, NATIVE_SEED, OBSERVATION_SPEC, TASK, task_definition,
 )
 from benchmarks.simBenchmarks.Behavior.environment.native_bridge import (
     ExternalAction, initialize_evaluator, metric_json, public_observation, validate_loaded,
 )
 
-RPC_PROTOCOL = "behavior-private-rpc/v1"
+RPC_PROTOCOL = "starvla-rsi.behavior.private-rpc/v1"
 
 
 class NativeSession:
@@ -32,7 +32,7 @@ class NativeSession:
         self.writers = {}
         self.steps = self.physics_ticks = 0
         self.reset_attempted = self.ready = self.finalized = self.closed = False
-        self.terminated = self.truncated = self.external_truncated = False
+        self.terminated = self.truncated = False
         self.execution_unknown = False
         self.latest = {"success": False, "control_steps": 0, "physics_ticks": None,
                        "native_benchmark_score": None, "native_episode_complete": False}
@@ -41,7 +41,7 @@ class NativeSession:
         if self.reset_attempted:
             raise ProtocolError("one native reset preparation per claim")
         self.reset_attempted = True
-        from benchmarks.simBenchmarks.Behavior.environment.deployment import verify
+        from benchmarks.simBenchmarks.Behavior.environment.deployment import digest, verify
         identity = verify(self.config["deployment_manifest"], self.config["deployment_manifest_sha256"], self.task_spec.name)
         atomic_write_json(self.root / "native_deployment.json", identity)
         os.environ["OMNIGIBSON_DATA_PATH"] = identity["data_root"]
@@ -55,7 +55,12 @@ class NativeSession:
         from omnigibson.eval.evaluator import Evaluator, resolve_instance_ids
         from omnigibson.eval.utils.eval_utils import seed_everything
         seed_everything(NATIVE_SEED)
-        if resolve_instance_ids(self.task_spec.name, [0], "public_test") != [INSTANCE]:
+        public_index, instance = self.config["public_index"], self.config["native_instance"]
+        if instance != FIRST_INSTANCE + public_index:
+            raise ProtocolError("native instance differs from the public index")
+        pinned = self.task_spec.instance_sha256.get(instance)  # pinned files were rehashed by verify()
+        state_sha256 = pinned or digest(Path(identity["data_root"]) / self.task_spec.instance_path(instance))
+        if resolve_instance_ids(self.task_spec.name, [public_index], "public_test") != [instance]:
             raise ProtocolError("native public instance mapping changed")
         self.policy = ExternalAction(lambda values: torch.tensor(values, dtype=torch.float32))
         supplied = self.policy
@@ -76,10 +81,11 @@ class NativeSession:
         atomic_write_json(self.root / "native_crash_handler_after_init.json", prepare_crash_handler())
         loaded = validate_loaded(self.evaluator, og.sim, self.task_spec.name)
         before = int(og.sim.current_time_step_index)
-        initialize_evaluator(self.evaluator, self.task_spec.name)
+        initialize_evaluator(self.evaluator, instance)
         after = int(og.sim.current_time_step_index)
         self.ready = True
-        loaded.update({"reset_load_reset_counter_before": before, "reset_load_reset_counter_after": after,
+        loaded.update({"native_instance": instance, "instance_state_sha256": state_sha256,
+                       "instance_state_pinned": pinned is not None, "reset_load_reset_counter_before": before, "reset_load_reset_counter_after": after,
                        "initialization_scope": "clock samples after constructor and after native reset/load/reset; not total startup physics"})
         atomic_write_json(self.root / "loaded_contract.json", loaded)
         return self.observe()
@@ -93,7 +99,7 @@ class NativeSession:
                                                        macro_block_size=1)
             self.writers[name].append_data(rgb)
         return {"observation": encode_observation(observation, OBSERVATION_SPEC), "metrics": self.summary(),
-                "terminated": self.terminated, "truncated": self.truncated or self.external_truncated}
+                "terminated": self.terminated, "truncated": self.truncated}
 
     def step(self, action):
         if not self.ready or self.finalized or self.terminated or self.truncated or self.steps >= self.task_spec.control_cap:
@@ -115,11 +121,7 @@ class NativeSession:
         if self.policy.calls != calls + 1 or self.policy.pending is not None or delta != 4:
             raise ProtocolError("native control/action consumption/physics accounting differs")
         if self.steps == self.task_spec.control_cap and not (self.terminated or self.truncated):
-            # Native timeout fires on control H + 1. Only radio's historical
-            # cap H ends earlier; record it as an external, not native, stop.
-            if self.task_spec.control_cap > self.task_spec.native_timeout_steps:
-                raise ProtocolError("native horizon did not terminate at configured task cap")
-            self.external_truncated = True
+            raise ProtocolError("native horizon did not terminate at configured task cap")  # timeout fires on H + 1
         return self.observe()
 
     def summary(self):
@@ -127,7 +129,6 @@ class NativeSession:
             self.latest.update(success=bool(self.evaluator.env.task.success), control_steps=self.steps,
                 physics_ticks=self.physics_ticks, native_episode_complete=self.terminated or self.truncated,
                 terminated=self.terminated, truncated=self.truncated,
-                external_cap_truncated=self.external_truncated,
                 in_flight_native_execution_unknown=self.execution_unknown)
         return dict(self.latest)
 

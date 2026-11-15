@@ -1,11 +1,10 @@
 {
   "schema_version": "starvla-rsi.model-config/v1",
   "profile_id": "gpt6_astra",
-  "control_method": "codex-native/v2",
   "transport": "codex-app-server/v1",
   "model": "gpt-6-astra",
   "provider": "openai",
-  "reasoning_effort": "xhigh",
+  "reasoning_effort": "high",
 
   "history": "persistent_same_episode_thread",
   "timeout_s": 900,

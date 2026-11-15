@@ -53,9 +53,8 @@ settings below; other tasks and motion levels are not selectable. See
 | --- | --- |
 | Native revision | `9c94f2d3a700fff3b65f041df4038d497139ed1f` |
 | Scene | `demo_clean_dynamic`, aloha-agilex, dynamic level 1, coefficient 0.1 |
-| Case selection | One predeclared entry from a trusted private fixed-episode manifest |
-| Default native seed | 100000, selected before evaluation |
-| Samples | One selected manifest entry per deployment; the upstream 100-accepted-case schedule is not exposed |
+| Case selection | Predeclared accepted entries of a trusted private fixed-episode manifest |
+| Samples | Set by `evaluation_mode` (below); one attempt per entry |
 
 A seed alone is insufficient: the native manifest also carries saved dynamic
 motion data. Upstream preparation may expert-screen candidates; that is a
@@ -63,10 +62,23 @@ separate environment preparation procedure, not an agent capability or an
 online service action. The service neither screens new seeds nor replaces a
 failed case. See the protocol for the exact initialization and language mapping.
 
-`native_seed` selects an existing entry in the trusted manifest; it is not a
-layout ID or a request to generate a new motion. Missing entries are errors.
-There is no independent layout, dynamic-level or multi-seed selector. The launch
-`--seed` is a separate recorded run field and does not change the native case.
+`evaluation_mode` selects manifest entries by their one-based order; omit it
+for `fast`. Each entry's native seed comes from the manifest at reset.
+
+| Mode | Selection | Episodes | Cap |
+| --- | --- | ---: | ---: |
+| `fast` (default) | accepted manifest entries 1–5 | 5 | 400 |
+| `max` | accepted manifest entries 1–100, the native per-task set | 100 | 400 |
+| `example` | accepted manifest entry 1 | 1 | 400 |
+
+`max` requires the complete native screening manifest: exactly 100 accepted
+entries plus the logged rejections of one contiguous seed walk from 100000.
+Startup refuses anything less and names the preparation step; see the
+[protocol](EVALUATION_PROTOCOL.md). A missing entry is an error, never a
+request to generate a new motion. There is
+no independent layout or dynamic-level selector. One process claims one
+episode; launch each with `--episode-id`. The launch `--seed` is a separate
+recorded run field and does not change the native case.
 
 ## Service robot interface, budget and scoring
 
@@ -90,7 +102,9 @@ interpolation/clipping is preserved. One target takes a variable number of
 An agent may send successive targets from one decision; every target still
 performs the native termination checks before another can execute. There is no extra service motion or
 joint-range guard; dimensions, type and finiteness are checked, while native
-controller clipping and interpolation remain native behavior. Object truth,
+controller clipping and interpolation remain native behavior. Action bounds are
+therefore native and undeclared (no `low`/`high`); NaN/inf is rejected, finite
+values pass unchanged. Object truth,
 dynamic trajectories, expert plans and private metrics are not agent inputs.
 
 Native Boolean success determines SR. Native manipulation score (MS) combines
@@ -115,11 +129,12 @@ and trusted evaluator. From the repository root:
 ```sh
 PYTHONDONTWRITEBYTECODE=1 python -B -m benchmarks.simBenchmarks.DOMINO.server \
   --parameters /absolute/domino-server.json \
-  --seed 20260921 --episodes 1 --port 8765 \
+  --seed 20260921 --episode-id click_bell-manifest-entry001-episode000 --port 8765 \
   --output-dir /absolute/new-domino-run/server
 ```
 
-The launch seed and native scene seed are distinct recorded fields. Startup and
+The launch seed and native scene seed are distinct recorded fields;
+`--list-episodes` prints the episode IDs of the selected mode. Startup and
 description do not reset or actuate the simulator. A trusted agent driver
 connects through the shared protocol and chooses its own action grouping.
 The service binds loopback; remote drivers use SSH forwarding. No particular

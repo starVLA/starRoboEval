@@ -4,6 +4,6 @@
   "proprioception": false,
   "interaction_mode": "agent_method",
   "action_rejection_feedback": true,
-  "budget_mode": "horizon",
-  "horizon_multiplier": 1
+  "horizon_multiplier": 1,
+  "evaluation_mode": "fast"
 }

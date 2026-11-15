@@ -2,6 +2,5 @@
   "source_root": "/absolute/path/to/a-new-content-pinned-robotwin-deployment",
   "deployment_manifest_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
   "task": "lift_pot",
-  "native_seed": 100000,
   "evaluation_mode": "fast"
 }

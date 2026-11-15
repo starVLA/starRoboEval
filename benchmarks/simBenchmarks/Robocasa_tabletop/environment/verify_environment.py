@@ -91,16 +91,11 @@ def verify_source(root: Path, revision: str, package: str) -> dict:
             "assets_complete": "not established by directory presence"}
 
 
-def assert_gpu_idle(gpu: int) -> dict:
+def gpu_identity(gpu: int) -> dict:
     identity = subprocess.check_output([
         "nvidia-smi", f"--id={gpu}", "--query-gpu=uuid,name,memory.used",
         "--format=csv,noheader,nounits"], text=True).strip()
-    processes = subprocess.check_output([
-        "nvidia-smi", f"--id={gpu}", "--query-compute-apps=pid,process_name",
-        "--format=csv,noheader"], text=True).strip()
-    if processes:
-        raise RuntimeError(f"GPU {gpu} is busy: {processes}")
-    return {"physical_index": gpu, "identity": identity, "compute_processes": []}
+    return {"physical_index": gpu, "identity": identity}
 
 
 def measured_hold_and_contract(native) -> tuple[dict, dict]:
@@ -197,7 +192,7 @@ def main() -> None:
     parser.add_argument("--suite-source", type=Path, required=True)
     parser.add_argument("--output-dir", type=Path, required=True)
     parser.add_argument("--object-inventory", type=Path, required=True)
-    parser.add_argument("--gpu", type=int, default=2)
+    parser.add_argument("--gpu", type=int, default=0)
     parser.add_argument("--seed", type=int, default=20260907)
     args = parser.parse_args()
     output = args.output_dir.resolve()
@@ -221,7 +216,7 @@ def main() -> None:
             raise RuntimeError("complete object-asset parity inventory is not verified")
         result["object_asset_inventory"] = {key: value for key, value in inventory.items() if key != "files"}
         result["object_asset_inventory"]["artifact_path"] = str(args.object_inventory.resolve())
-        result["gpu"] = assert_gpu_idle(args.gpu)
+        result["gpu"] = gpu_identity(args.gpu)
         result["source"] = {
             "robocasa": verify_source(args.casa_source, CASA_REVISION, "robocasa"),
             "robosuite": verify_source(args.suite_source, SUITE_REVISION, "robosuite")}

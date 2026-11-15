@@ -1,17 +1,16 @@
 # Robot-control acknowledgement feedback
 
 The public RoboDojo service always exposes the declared, robot-only
-`robodojo.robot-control-feedback/v1` channel. It is part of the fixed protocol,
+`starvla-rsi.robodojo.robot-control-feedback/v1` channel. It is part of the fixed protocol,
 not a runtime option or a requirement to use a particular agent.
 
-The benchmark descriptor gains `-robot-feedback-v1` before any
-`-infrastructure-only` diagnostic suffix. `ObservationSpec.control_feedback_schema`
+The benchmark descriptor gains `-robot-feedback-v1`. `ObservationSpec.control_feedback_schema`
 advertises the exact schema; the selected episode's evaluator-private metadata
 also records `robot_feedback_schema`. The fixed service parameters, descriptor,
 observation spec and source are frozen before any claim.
 
 Start from [server.example.json](server.example.json), replace the deployment
-path/digest and select a named panel from [the task catalog](bench_server/protocol/task_catalog.json).
+path/digest and select an `evaluation_mode` from [the task catalog](bench_server/protocol/task_catalog.json).
 The server injects the feedback
 schema and rejects protocol/feedback selectors in operator configuration.
 
@@ -23,7 +22,7 @@ the worker projects this closed payload into `Observation.control_feedback`:
 
 | Field | Meaning |
 | --- | --- |
-| `schema` | Exactly `robodojo.robot-control-feedback/v1` |
+| `schema` | Exactly `starvla-rsi.robodojo.robot-control-feedback/v1` |
 | `control_target` | Positive acknowledged native-control count, matching this observation's step |
 | `diagnostic_phase` | Exactly `pre_control`; applies to the DLS/FK diagnostics below |
 | `executed_joint_command` | 14 finite values: left joint1–6 radians/opening, then right joint1–6/opening; the command passed to native control, not a measured achieved pose |

@@ -1,9 +1,5 @@
 {
-  "task_ids": [1],
-  "task_scope": "pilot",
+  "evaluation_mode": "fast",
   "render_gpu_device_id": 0,
-  "render_track": "egl-owner-material-clamp-v1",
-  "budget_mode": "decisions",
-  "max_policy_calls": 200,
-  "replan_interval": 5
+  "render_track": "egl-owner-material-clamp-v1"
 }

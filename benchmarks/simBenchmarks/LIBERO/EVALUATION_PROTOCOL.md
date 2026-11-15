@@ -22,45 +22,42 @@ specify resets, not 50 different task instructions.
 
 These are 130 suite-task entries, not necessarily 130 disjoint task semantics. [libero_catalog.json](bench_server/protocol/libero_catalog.json) freezes native ordering and reference horizons. This is service-owned protocol data, not an asset path or model configuration; operator paths/GPU and predeclared task selection belong in the service launch configuration.
 
-The independent [source inventory](bench_server/protocol/phase2_task_inventory.json)
+The independent [source inventory](bench_server/protocol/task_inventory.json)
 retains pinned task hashes, reset counts and evaluator references. It is reference
 evidence, not an execution manifest or a model result.
 
 ## Service selection and current constraints
 
-[LiberoBenchmarkAdapter](bench_server/adapter.py), registered as `libero`, owns
+[LiberoBenchmarkAdapter](bench_server/adapter.py), served as `libero`, owns
 reset, native control and scoring. Its public launcher is [server.py](server.py).
-Use `scope="task_coverage"` with an explicit `suite` and increasing `task_ids`
-to select tasks from that suite. Add `initial_state_indices` to select released
-resets.
+`evaluation_mode` selects the cases of one `suite`:
 
-Without `initial_state_indices`, selection uses released initial-state index 0.
+| Mode | Selection | Cases per suite |
+| --- | --- | --- |
+| `fast` (default) | every task × released initial states 0–4 | tasks × 5 |
+| `max` | every task × every released initial state, matching the native 50-trial panel | tasks × 50 |
+| `example` | task 0, initial state 0 (the first `fast` case) | 1 |
+
 Task-order index 0 and seed 20260907 are fixed by this integration. The catalog
-contains 6,500 suite-task/state cells (130 × 50); this inventory is not an
-automatic execution schedule. The direct adapter's default `scope="development"`
-selects LIBERO-10 task IDs 0 and 1, permits task IDs 0–4, and uses state 0 only.
-Use `task_coverage` for the suite and explicit state selection described here.
+contains 6,500 suite-task/state cells (130 × 50); one service runs one suite.
+An unknown mode is a configuration error.
 
-### Explicit released-state panel
+### Released-state schedule
 
-With `scope="task_coverage"`, the service additionally accepts
-`initial_state_indices`, a nonempty, unique, increasing list of nonnegative
-integers. Each selected index must exist in **every selected task's** catalog
-entry. The service validates this before claims and rechecks the native state
-count and selected index during reset. It installs that exact released tensor
-and records the index and selected-state hash in evaluator-private provenance.
-An initial-state index selects a released reset, not a new random seed or a
-retry of the preceding episode. No guarantee of visually distinct layouts is
-implied merely by selecting distinct indices.
+The service checks every scheduled index against the catalog before claims and
+rechecks the native state count and selected index during reset. It installs that
+exact released tensor and records the index and selected-state hash in
+evaluator-private provenance. An initial-state index selects a released reset,
+not a new random seed or a retry of the preceding episode. Distinct indices do
+not guarantee visually distinct layouts.
 
-An explicit state list is recorded in the service's protocol identity, including
-when it contains only `[0]`. Record the returned identity and resolved schedule.
+Record the returned protocol identity, which names the suite, track and mode.
 Observation/action semantics, controller, seed, settling and reference horizons
-are unchanged by state selection. Cases are task-major, then state-minor, with
-IDs such as `libero_spatial-task00-init04`. `--episodes` limits an episode prefix,
-not the number of tasks; omit truncation to execute the complete selected panel.
+do not depend on the mode. Cases are task-major, then state-minor, with IDs such
+as `libero_spatial-task00-init04`. `--episodes` limits an episode prefix, not
+the number of tasks; omit truncation to execute the complete selected mode.
 
-For comparisons, specify suites, task IDs, state indices and budgets explicitly.
+For comparisons, specify suites, modes and budgets explicitly.
 Evaluating more states changes reset coverage; adding a new seed is not a
 substitute for selecting another released state.
 
@@ -68,7 +65,27 @@ substitute for selecting another released state.
 
 The source pin is [LIBERO](https://github.com/Lifelong-Robot-Learning/LIBERO) revision `8f1084e3132a39270c3a13ebe37270a43ece2a01`, with Robosuite 1.4.0 and MuJoCo 3.2.3. See [installation](README.md).
 
-A fresh native environment is reset, the selected released initial state is installed, and ten fixed settling controls `[0,0,0,0,0,0,-1]` run before the first policy observation. Settling is recorded separately from policy controls. Hash the BDDL, reset-state file and selected state; keep these identities private from the policy.
+A fresh native environment is reset, the selected released initial state is installed, and ten fixed settling controls `[0,0,0,0,0,0,-1]` run before the first policy observation. Settling is recorded separately from policy controls.
+
+The settle count and action come from the same retained StarVLA evaluator as the reference horizons ([task inventory](bench_server/protocol/task_inventory.json), `retained_starvla_evaluator`): `num_steps_wait = 10` with `LIBERO_DUMMY_ACTION = [0,0,0,0,0,0,-1]`, run before and excluded from the control cap (`while t < max_steps + num_steps_wait`). That evaluator follows OpenVLA's [`run_libero_eval.py`](https://github.com/openvla/openvla/blob/c8f03f48af692657d3060c19588038c7220e9af9/experiments/robot/libero/run_libero_eval.py), which uses the same 10 waits, dummy action and 220/280/300/400/520 horizons. LIBERO's own lifelong evaluator at the source pin ([`evaluate.py`](https://github.com/Lifelong-Robot-Learning/LIBERO/blob/8f1084e3132a39270c3a13ebe37270a43ece2a01/libero/lifelong/evaluate.py), [`metric.py`](https://github.com/Lifelong-Robot-Learning/LIBERO/blob/8f1084e3132a39270c3a13ebe37270a43ece2a01/libero/lifelong/metric.py)) instead steps five all-zero actions and uses a 600-step `eval.max_steps`. Results follow the OpenVLA/StarVLA convention, not that lifelong configuration, with the differences below. Hash the BDDL, reset-state file and selected state; keep these identities private from the policy.
+
+### Differences from the OpenVLA evaluation
+
+The service seeds and constructs environments differently from OpenVLA's
+evaluator; tasks, the 50 released states, settling and horizons are the same.
+Reports compared with OpenVLA-convention results must disclose these differences:
+
+| Item | OpenVLA [`run_libero_eval.py`](https://github.com/openvla/openvla/blob/c8f03f48af692657d3060c19588038c7220e9af9/experiments/robot/libero/run_libero_eval.py) | This service |
+| --- | --- | --- |
+| Seeds | `set_seed_everywhere(7)` once per run (NumPy, Python, PyTorch); `env.seed(0)` once per task in [`get_libero_env`](https://github.com/openvla/openvla/blob/c8f03f48af692657d3060c19588038c7220e9af9/experiments/robot/libero/libero_utils.py#L18-L25) | `np.random.seed(20260907)` before construction and `env.seed(20260907)` before reset, for every case |
+| Environment | One `OffScreenRenderEnv` per task, reused for all 50 episodes: `env.reset()`, then `set_init_state(initial_states[i])` | A fresh `OffScreenRenderEnv` per case: construct, seed, one `reset()`, `set_init_state`, closed after the episode |
+| Exceptions | Caught, logged and counted as an attempted, unsuccessful episode | Reported as errors, separately from policy failures |
+
+Each service case is therefore independent of schedule order and of
+`--episodes`/`--episode-id` selection. An OpenVLA episode inherits RNG state
+from the preceding episodes of its task. OpenVLA's source notes that the seed
+"seems to affect object positions even when using fixed initial state"; the
+effect of these differences on success rates has not been measured (UNVERIFIED).
 
 ## Observation and action
 
@@ -104,22 +121,19 @@ One action is a seven-dimensional command to Panda's 20 Hz `OSC_POSE` controller
 | `[3:6]` | Axis-angle rotation delta; normalized [-1, 1] maps to ±0.5 rad per axis |
 | `[6]` | Gripper: -1 open, +1 close, 0 retain target |
 
-Validate shape, finiteness and bounds. Apply only the declared prefix of a returned action chunk, then deliver a fresh observation. The policy cannot reset/step the simulator, query the scorer or read private artifacts.
+Validate shape, finiteness and bounds. The trusted driver submits a returned action chunk one control at a time; each accepted control returns a fresh observation. The policy cannot reset/step the simulator, query the scorer or read private artifacts.
 
 ## Budgets and scoring
 
-`budget_mode="horizon"` uses the catalog's per-suite reference horizon: spatial
-220, object 280, goal 300, LIBERO-90 400 and LIBERO-10 520 controls, excluding
+The control cap is the catalog's per-suite reference horizon: spatial 220,
+object 280, goal 300, LIBERO-90 400 and LIBERO-10 520 controls, excluding
 settling. Method inference limits and action grouping do not alter these caps.
-The alternative `budget_mode="decisions"` requires matching adapter/driver
-`max_policy_calls=D` and `replan_interval=K`, with control cap D × K. Report
-that changed execution condition separately; it is not the native task budget.
 
 LIBERO-10's reference horizon 520 is from the retained StarVLA evaluator, not a universal official LIBERO limit. The native lifelong-evaluation configuration uses 600; a generic simulator horizon can be 1000. Record the reference source and actual cap rather than claiming equivalent evaluation conditions.
 
 Native `BDDLBaseDomain.step` returns `done` from `_check_success()`. Stop at first native success and preserve termination/truncation separately. A visual impression or model self-report does not override the native scorer.
 
-Record policy calls, action decisions, executed controls and initialization controls separately. Stop-only responses consume a policy call but no action decision; chunks may execute fewer than K controls. Record first-success control and its actual policy-call index, never inferred by division. A model's voluntary-stop persistence rule belongs to its profile and cannot postpone native termination, evaluator caps or errors.
+Record policy calls, action decisions, executed controls and initialization controls separately. Stop-only responses consume a policy call but no action decision; chunks may execute fewer controls than they propose. Record first-success control and its actual policy-call index, never inferred by division. A model's voluntary-stop persistence rule belongs to its profile and cannot postpone native termination, evaluator caps or errors.
 
 ## Reporting
 

@@ -62,13 +62,14 @@ benchkit/                           # 公共契约、记录、服务源码快照
 | 控制与终止 | 一次控制对应几个 physics ticks、控制频率、horizon 的实际单位、何时检查边界、原生成功/失败/截断条件。 |
 | 评分 | 原生 success 与部分分数的来源和更新时机，是否存在有副作用的评分调用，以及最终结果怎样保存。 |
 
-`fast` 是预先声明的小计划，每个选定 case 只尝试一次；保留失败，不按结果补抽。`full` 必须覆盖已核实的原生任务/变体/episode 矩阵。没有验证完整矩阵时，明确写“不支持 full”，不能只提高 horizon 就称为 full。
+`fast` 是预先声明的小计划，每个选定 case 只尝试一次；保留失败，不按结果补抽。`max` 必须覆盖已核实的原生任务/变体/episode 矩阵。没有验证完整矩阵时，明确写“不支持 max”，不能只提高 horizon 就称为 max。
 
 增加观测、改变动作含义或控制时序，需要明确的新协议身份、实现与验证。端口、GPU、资产路径等部署参数可以配置；一个 JSON selector 本身不能创造新协议。
 
 版本应分开记录：公共通信是 `starvla-rsi.sim-server/v1`；RoboDojo 当前机器人协议是
-`robodojo-direct-v2-rgb-proprio28-eef16-robot-feedback-v1`；模型侧当前方法是
-`codex-native/v2`。它们分别描述通信、机器人能力和 agent 方法，并不需要同步升版。
+`robodojo-ee67a14/classify-objects-fixed-layouts/rgb-proprio28-eef16/<mode>/v1`（fast/example），
+`max` 为 `robodojo-ee67a14/classify-objects-reset-stable-layouts/rgb-proprio28-eef16/max/v1`；模型侧当前方法是
+`gpt6-astra-codex-native`。它们分别描述通信、机器人能力和 agent 方法，并不需要同步升版。
 能接入同一服务不等于复现旧方法的成功率；也不要将 Dojo 的 EEF16 接口套用到 SIMPLE 等其他机器人。
 
 绝对关节目标接口还应检查机器人自身状态是否足够明确。原生观测里的某个
@@ -94,7 +95,7 @@ benchkit/                           # 公共契约、记录、服务源码快照
 
 根目录 `server.py` 提供 `main(argv=None)` 和惰性的 adapter factory，调用现有的 [shared launcher](../benchkit/sim_server/launch.py)。工厂校验参数白名单，不静默接受拼错的字段。完整命名 panel 使用 `require_complete_schedule=True`，防止 `--episodes` 截断计划。仓库内的协议文件、worker 和版本定义通过源码清单及 `supplemental_sources` 纳入冻结；部署时的原生运行/资产 manifest 另存为评测端私有来源证据。只能排除声明过的运行缓存，不能排除动作、评分或视频证据。
 
-将实际采用的预算公开到 `describe`：`budget_mode`、`environment_step_cap`；benchmark 规则限定模型调用次数时公布 `max_policy_calls`。重规划间隔和每次执行几步属于策略，horizon 服务不替策略公布 `replan_interval`（已有 decision-budget 轨道按下文迁移）；只有观测接口确实强制控制前缀时才声明 `required_replan_interval`。注明哪些是 benchmark 限定，哪些允许 driver 配置；不能已在内部实施控制上限，对外却只留下未解释的空值。
+将实际采用的预算公开到 `describe`：原生执行 horizon `environment_step_cap`；benchmark 规则限定模型调用次数时公布 `max_policy_calls`。driver 可以覆盖二者，manifest 记录服务值与是否覆盖。重规划间隔和每次执行几步属于策略，服务不替策略公布 `replan_interval`，也不把调用次数或前缀与执行上限耦合；只有观测接口确实强制控制前缀时才声明 `required_replan_interval`。注明哪些是 benchmark 限定，哪些允许 driver 配置；不能已在内部实施控制上限，对外却只留下未解释的空值。
 
 ### 动作约束放在哪一端
 
@@ -122,7 +123,7 @@ describe → open（认领固定 case）→ reset（一次，sequence=0）
 动作 chunk 长度、同一目标重复几次、何时重新思考由 policy 和 trusted driver 选择。
 共享 `step` 请求只接受一条动作，不接收“替模型重复 N 次”的指令；每条控制都有自己的
 sequence 和 ACK。原生物理子步、固定插值、终止与总执行预算仍归 benchmark。
-已有 decision-budget 耦合轨道或 `required_replan_interval` 约定应显式迁移，不能在整理目录时改变。
+已有 `required_replan_interval` 约定应显式迁移，不能在整理目录时改变。
 
 特别测试 horizon 的最后一步：原生动作可能执行后，终止判定或回传才报错。此时原生计数与 ACK 计数可以不同；不能把已执行控制抹成 0，也不能将基础设施错误写成“正常达到 horizon”。无法确认的量标为未知，不补造计数。
 
@@ -172,6 +173,8 @@ make check smoke PYTHON=python3
 已完成原生验收。契约测试只构造合成环境、临时文件及假的服务/策略，作为本地工作检查保留，
 不进入公开源码；新集成根据实际接口准备，并在稳定源码快照上执行。按实际执行过的检查报告结果，
 不能将脚本清理、目录存在或历史通过记录当作当前验收通过。
+
+清理与接入改动只做连接层验证：运行 `make check` 与 `make smoke`，再连接运行中的服务，确认 describe、claim、reset、step 可用；不为此运行完整评测。
 
 不要因测试失败静默重跑正式 case。先保存闭合错误和原因，修复后在获准的新轮次中使用新 run ID；旧结果不覆盖。短交互测试也不能混入正式 SR 分母。
 

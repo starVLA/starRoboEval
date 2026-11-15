@@ -156,8 +156,7 @@ per-episode `result.json` files. Schema, identity, count and outcome consistency
 are checked, including every attempted failure/error and unattempted suffix.
 See the exact [basic-result implementation](../benchkit/reports/basic_result.py)
 and the record contract above for required field types; unsupported layouts fail
-explicitly, not by guessing metadata. Historical contract fixtures are no longer
-included in the active source tree and can be recovered from Git history.
+explicitly, not by guessing metadata.
 
 The `python -m benchkit.reports.interaction_history` exporter provides a
 trajectory timeline from the ledger in every mode; without model IO it shows

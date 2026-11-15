@@ -26,15 +26,29 @@ configuration is not an additional task family.
 
 ## Select tasks through this service
 
-Select a fixed list of `task_names`. Each task receives one seeded episode,
-in declared order. The example selects `reach-v3`;
-the same service accepts other catalog tasks or all 50.
+`evaluation_mode` selects the schedule. In `fast`, trial `k` of every task uses
+seed launch seed + `k`; `max` requires launch seed 4042, its fixed goal-pool seed.
 
-The adapter constructs a fresh seeded MT50 for each selected task and evaluates
-its first native reset. It does not iterate the native 50-configuration schedule.
-There is no exposed layout/reset index
-selector: the seed initializes native randomization, and distinct seeds do not
-guarantee distinct visible layouts. Report task IDs, seeds and attempt counts.
+### Evaluation modes
+
+| Mode | Selection | Episodes | Cap |
+| --- | --- | ---: | --- |
+| `fast` (default) | All 50 tasks × 5 trials, catalog order | 250 | 499 controls |
+| `max` | All 50 tasks × 50 native MT50 goals from `metaworld.MT50(seed=4042)`, each once | 2500 | 499 controls |
+| `example` | First `fast` episode: `assembly-v3`, trial 0 | 1 | 499 controls |
+
+Each episode gets a freshly constructed native environment and is evaluated
+from its first native reset. In `fast` the native wrapper picks that reset's
+goal, so there is no goal index and distinct seeds do not guarantee distinct
+visible layouts. `max` pins pool goal `GG` (00–49) with native `set_task`; its
+episode IDs are `<task>-seed4042-goal<GG>` and metadata records the goal-pool
+seed and goal index. Both schedules are task-major. Report task IDs, seeds,
+goal indices where present and attempt counts.
+
+The pinned package's own `metaworld.evaluation.evaluation` helper draws each
+episode's goal with replacement from the same pool, so it may repeat some goals
+and skip others. `max` follows the documented one-episode-per-goal procedure
+instead; see the [protocol](EVALUATION_PROTOCOL.md#current-service-selection).
 
 The catalog's easy/medium/hard/very_hard labels come from a retained evaluator;
 they are not an official MetaWorld difficulty taxonomy. Use canonical task
@@ -82,21 +96,22 @@ evaluation, use a separately labelled infrastructure diagnostic through the
 service to check reset, valid RGB, control and cleanup.
 
 Copy [server.example.json](server.example.json) to an operator-owned file and
-select task names and image orientation. Set a strong `RSI_SIM_SERVER_TOKEN`
+select the evaluation mode and image orientation. Set a strong `RSI_SIM_SERVER_TOKEN`
 privately for the server and trusted driver. From the prepared environment and
 repository root, choose a new output directory:
 
 ```sh
 python -B -m benchmarks.simBenchmarks.MetaWorld.server \
   --parameters /absolute/path/to/metaworld-server.json \
-  --seed 4042 --episodes 1 --port 8765 \
+  --seed 4042 --port 8765 \
   --output-dir /absolute/path/to/results/metaworld/your-run/server
 ```
 
-Omit `--episodes` to select the complete configured task list. A smaller value
-selects a prefix; it never repeats tasks. Startup and `describe` do not
-construct native environments. The first reset initializes MT50, including
-native task-pool generation, so startup can be slower than a single task reset.
+Omit `--episodes` to run the complete mode schedule; `max` also needs
+`--seed 4042`. A smaller `--episodes` value selects
+a prefix in task-major order; it never repeats episodes. Startup and `describe` do not
+construct native environments. The first reset verifies the native package and
+generates the native MT50 task pool, so it is slower than later resets.
 
 The service binds loopback; use SSH forwarding for a driver on another node.
 Connect through the [wire protocol](../SERVER_PROTOCOL.md) and

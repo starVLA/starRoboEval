@@ -1,4 +1,4 @@
-"""Public BEHAVIOR DefaultWrapper debugging server; no native startup on import."""
+"""Public BEHAVIOR DefaultWrapper server; no native startup on import."""
 from benchmarks.simBenchmarks.Behavior.bench_server.adapter import make_behavior
 from benchkit.sim_server.launch import main as launch
 

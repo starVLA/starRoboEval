@@ -1,6 +1,6 @@
 # RoboTwin evaluation protocol
 
-Benchmark registration name: `robotwin`.
+Service ID: `robotwin` (`rsi-bench serve --benchmark robotwin`).
 The service description records the selected robot interface and renderer
 identity; use those recorded values when comparing results.
 
@@ -36,26 +36,103 @@ to the two exposed tasks, not to the entire 50-task collection.
 The `robotwin` adapter exposes only `demo_clean` with native Aloha for
 `lift_pot` and `click_bell`. See [service support](../SERVICE_SUPPORT.md).
 
-This server does not execute that expert/filtering loop. It chooses one task
-and one unscreened native seed in advance,
-then calls `setup_demo` once. Native object-generation
-sampling within that one seeded scene setup is unchanged. Language is the
-task JSON's fixed `full_description`, without expert execution, hidden object
-identifiers or adaptive prompt selection.
+This server never executes that expert/filtering loop. Each episode is one
+task and one native seed declared in advance; the service calls `setup_demo`
+once per episode. Native object-generation sampling within that seeded scene
+setup is unchanged. `fast` and `example` use unscreened seeds and the task
+JSON's fixed `full_description`. `max` replays seeds and instructions that an
+offline native screen recorded (below).
 
 | Implemented task | Native object variants retained | Native target-control horizon |
 | --- | --- | --- |
 | `lift_pot` | `060_kitchenpot`, IDs 0 and 1; native seeded sampling | 400 |
 | `click_bell` | `050_bell`, IDs 0 and 1; native seeded sampling | 400 |
 
-Only `demo_clean` with native Aloha is exposed. A service has one selected task,
-one declared `native_seed` and one attempt; a second open/reset is rejected even
-after failure. `native_seed` is a uint32 value that drives native object variant
-and placement sampling, not a layout identifier. The service has no independent
-layout/variant selector or multi-seed panel; select a task/seed pair before each
-deployment. EEF actions, the other 48 tasks and arbitrary native configuration
-overrides are unsupported. An unscreened task/seed pair is a different sampling
-condition from the upstream expert-filtered 100 accepted episodes per task.
+`evaluation_mode` fixes the native seeds; omitted means `fast`. The `task`
+selector narrows within the mode to one task per service.
+
+| Mode | Native seeds per task | Episodes | Cap per episode |
+| --- | --- | ---: | ---: |
+| `fast` (default) | 100000, 100001, 100002, 100003, 100004 | 5 | 400 |
+| `max` | the 100 accepted seeds of a hash-bound accepted-seed manifest | 100 | 400 |
+| `example` | 100000 | 1 | 400 |
+
+Episode IDs are `{task}-native-seed{seed}-episode000`. Each episode has one
+attempt; a second open/reset is rejected even after failure. One process claims
+one episode, so launch each episode separately with `--episode-id`. A native
+seed drives object variant and placement sampling; it is not a layout
+identifier. Rejected resets are recorded as infrastructure errors, not replaced
+by later seeds. EEF actions, the other 48 tasks and arbitrary native
+configuration overrides are unsupported.
+
+**`fast` and `example` seeds are unscreened.** Native sampling evaluates only
+expert-accepted seeds, so seeds 100000–100004 are a different sampling
+condition: an expert-infeasible scene stays in the denominator. Their language
+is the fixed `full_description`, while native evaluation draws episode wording.
+
+### `max`: accepted-seed manifest
+
+`max` follows the inspected upstream evaluator
+([`script/eval_policy.py` at `7a01414`](https://github.com/RoboTwin-Platform/RoboTwin/blob/7a01414/script/eval_policy.py)):
+
+- eval seed 0 gives `st_seed = 100000`, and `test_num = 100` accepted episodes
+  per task;
+- each candidate seed runs `setup_demo` plus expert `play_once`. `UnStableError`,
+  any other exception, or failing `plan_success and check_success()` skips it;
+- each accepted seed is reset again for the participant. The instruction is
+  `np.random.choice(generate_episode_descriptions(task, [episode_info["info"]], 100)[0][instruction_type])`,
+  with `instruction_type: unseen` from the native policy `deploy_policy.yml`
+  defaults.
+
+That instruction draw uses expert `episode_info` and unseeded Python `random`
+(`shuffle`/`choice` in `description/utils/generate_episode_instructions.py`),
+so the service cannot reproduce it. The preparation therefore records the
+drawn instruction for each accepted seed, and `max` presents that recorded
+text. The service needs the operator-supplied `seed_manifest` path; at startup
+it refuses a `max` launch unless the manifest is complete. An optional
+`seed_manifest_sha256` pin is compared and a mismatch fails; without it the
+observed SHA-256 is recorded as `{"sha256": …, "pinned": false}` in
+`native_provenance.json` (`seed_manifest`).
+
+| Field | Requirement |
+| --- | --- |
+| `schema` | `starvla-rsi.robotwin.accepted-seeds/v1`; no other top-level fields |
+| `task`, `task_config`, `embodiment` | selected task, `demo_clean`, `["aloha-agilex"]` |
+| `native_inventory_sha256` | the pinned content inventory below |
+| `eval_seed`, `start_seed`, `accepted_count` | integers 0, 100000, 100 (type-strict: `false` or `100000.0` fail) |
+| `instruction_type` | `unseen` |
+| `accepted` | exactly 100 `{seed, instruction}` rows, unique ascending seeds, filled-in native text |
+| `rejected` | every skipped `{seed, reason}`; reason `unstable`, `exception` or `expert_check_fail` |
+| `preparation` | at least non-empty strings `deployment_manifest_sha256` (must equal the service's), `renderer_runtime`, `created_at`, `procedure` |
+
+Accepted plus rejected seeds must form one contiguous walk from 100000 to the
+100th acceptance. Rejections are preparation provenance, recorded with each
+reset, never policy results. The service never prepares, searches or edits
+the manifest. Expert `episode_info` is not stored or exposed to the model; only
+the native instruction derived from it is.
+
+**Max-mode instructions.** `max` presents the native `unseen`
+instruction recorded during expert screening. For `click_bell`, the `{a}`
+placeholder holds the arm the native expert chose from the bell's x position,
+so a `max` instruction can name that arm. This is native upstream behaviour,
+kept on purpose; `fast`/`example` keep the fixed `full_description`.
+
+The preparation has not yet been performed, and no preparation tool is
+shipped; see [environment setup](environment/README.md#max-mode-accepted-seed-preparation).
+The archive's `script/eval_policy.py` (SHA-256 `abd498b3…`) matches no
+inspected upstream commit, so whether its screening and instruction code equal
+`7a01414` is UNVERIFIED. The archive's `click_bell.json` matches upstream
+revisions from `8187d5b` up to, but excluding, `41995f7`; `lift_pot.json`
+matches upstream.
+
+The benchmark-scope `max` set is 50 tasks × 100 accepted episodes per native
+configuration; only `lift_pot` and `click_bell` under `demo_clean` are
+deployable now.
+
+The protocol identity names the selection and the mode before its version:
+`robotwin/clean-fixed-seed/qpos14-rgb320-state14/fast/v1` (and `/example/v1`),
+`robotwin/clean-expert-accepted-seeds/qpos14-rgb320-state14/max/v1`
+(`...-state14-oidn233/<mode>/v1` for the OIDN 2.3.3 renderer track).
 
 ## Service source and renderer requirements
 

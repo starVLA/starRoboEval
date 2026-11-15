@@ -134,7 +134,7 @@ class LifecycleGuard:
 
     def receipt(self) -> dict[str, Any]:
         return {
-            "schema_version": "robocasa365.render-lifecycle/v1", "render_track": self.track,
+            "schema_version": "starvla-rsi.robocasa365.render-lifecycle/v1", "render_track": self.track,
             "status": "faulted" if self.error_count else ("closed" if self.closed else "active"),
             "native_source_unchanged": True, "owner_thread_id": self.owner_thread,
             "same_thread_only": True, "source_binding": self.source_receipt,

@@ -11,10 +11,6 @@
       "type": "string",
       "const": "gpt6_astra"
     },
-    "control_method": {
-      "type": "string",
-      "const": "codex-native/v2"
-    },
     "transport": {
       "type": "string",
       "const": "codex-app-server/v1"

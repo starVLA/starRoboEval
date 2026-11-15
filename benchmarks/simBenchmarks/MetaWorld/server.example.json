@@ -1,5 +1,4 @@
 {
   "evaluation_mode": "fast",
-  "image_orientation": "rot180",
-  "task_names": ["reach-v3"]
+  "image_orientation": "rot180"
 }

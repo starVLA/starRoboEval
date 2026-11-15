@@ -5,8 +5,8 @@ import argparse
 from importlib import import_module
 
 
-# These are executable service entrypoints, not the in-process adapter
-# registry. Keep task selection, native semantics and launch options in benchmarks.
+# The only way to run a benchmark: each ID maps to its executable service entrypoint.
+# Keep task selection, native semantics and launch options in benchmarks.
 SERVICE_MODULES = {
     "behavior": "benchmarks.simBenchmarks.Behavior.server",
     "calvin": "benchmarks.simBenchmarks.calvin.server",

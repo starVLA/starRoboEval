@@ -1,5 +1,5 @@
 {
-  "schema_version": "starvla-rsi.vla-arena-task-catalog/v1",
+  "schema_version": "starvla-rsi.vla_arena.task-catalog/v1",
   "upstream_revision": "babe582ebffc82b979b77964a7e56417d02f63a4",
   "scope": "non-LIBERO native suite map; levels retained, native inventory not a completed schedule",
   "initial_states_per_task": 50,

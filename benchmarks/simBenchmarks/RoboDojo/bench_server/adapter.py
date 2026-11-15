@@ -12,6 +12,7 @@ from numbers import Real
 import os
 from pathlib import Path
 from pathlib import PurePosixPath
+import re
 import subprocess
 from typing import Any, Mapping, Sequence
 
@@ -23,16 +24,58 @@ from benchmarks.simBenchmarks.RoboDojo.environment.reference_eef_runtime import 
 from benchmarks.simBenchmarks.RoboDojo.bench_server.protocol.robot_feedback import (
     SCHEMA as ROBOT_FEEDBACK_SCHEMA, validate_robot_feedback,
 )
+from benchmarks.simBenchmarks.RoboDojo.bench_server.protocol.reset_stability import load_stable_layouts
 from benchmarks.simBenchmarks.RoboDojo.bench_server.protocol.task_catalog import load_catalog, task_spec
 
-CONTROL_ALIGNMENT = "gpt-as-policy-direct/8f3d362b"
+CONTROL_ALIGNMENT = "reference-eef-direct/8f3d362b"  # pinned reference DLS conversion
 TARGET_QUATERNION_TOLERANCE = 1e-4
 TASK = "classify_objects"
 TASK_SPEC = task_spec(TASK)
 NATIVE_INSTRUCTION = TASK_SPEC["native_instruction"]
 INSTRUCTION = TASK_SPEC["public_instruction"]
 HORIZON = TASK_SPEC["native_horizon"]
-INTERFACE_PROTOCOL = load_catalog()["interface_protocol"]
+INTERFACE_PROTOCOL = load_catalog()["interface_protocol"]  # observation/action segment of the protocol ID
+NATIVE_PIN = pins()["native_revision"][:7]
+EVALUATION_MODES = ("fast", "max", "example")  # fast: blog subset; max: first reset-stable layouts; example: first fast episode
+
+
+def selection_protocol(evaluation_mode: str) -> str:
+    # pin / selected task layouts / interface / mode / version
+    layouts = "reset-stable-layouts" if evaluation_mode == "max" else "fixed-layouts"  # max: manifest-selected
+    return f"robodojo-{NATIVE_PIN}/{TASK.replace('_', '-')}-{layouts}/{INTERFACE_PROTOCOL}/{evaluation_mode}/v1"
+
+
+def mode_layouts(evaluation_mode: str, task_id: str = TASK, *, stability_manifest: str | None = None,
+                 stability_manifest_sha256: str | None = None) -> tuple[tuple[int, ...], dict[str, Any] | None]:
+    """Layout IDs of one mode, plus the stability-manifest provenance for `max`.
+
+    The adapter and the native worker both derive the mode's layouts here, so a
+    reset outside them fails in either process.
+    """
+    if evaluation_mode not in EVALUATION_MODES:
+        raise ValueError(f"evaluation_mode must be one of {', '.join(EVALUATION_MODES)}; got {evaluation_mode!r}")
+    spec = task_spec(task_id)
+    selection = spec["evaluation_modes"]["max" if evaluation_mode == "max" else "fast"]
+    if evaluation_mode != "max":
+        if stability_manifest is not None or stability_manifest_sha256 is not None:
+            raise ValueError("stability_manifest belongs to evaluation_mode max only")
+        layouts = tuple(selection["layout_ids"])
+        return (layouts[:1] if evaluation_mode == "example" else layouts), None  # example: first fast layout
+    if (not isinstance(stability_manifest, str) or not Path(stability_manifest).is_absolute()
+            or ".." in Path(stability_manifest).parts
+            or (stability_manifest_sha256 is not None  # optional pin; compared when supplied
+                and (not isinstance(stability_manifest_sha256, str)
+                     or re.fullmatch(r"[0-9a-f]{64}", stability_manifest_sha256) is None))):
+        raise ValueError("RoboDojo max mode needs an absolute stability_manifest path without '..' and, "
+                         "if pinned, its lowercase stability_manifest_sha256; see EVALUATION_PROTOCOL.md")
+    snapshot = pins()
+    return load_stable_layouts(Path(stability_manifest), stability_manifest_sha256, task=task_id,
+        native_revision=snapshot["native_revision"],
+        layout_inventory_sha256=snapshot["classify_layout_inventory_sha256"],
+        native_eval_seed=spec["native_eval_seed"], required_stable=selection["reset_stable_count"],
+        inventory_count=spec["layout_binding"]["inventory_count"])
+
+
 POSE_FIELDS = ("x_m", "y_m", "z_m", "qw", "qx", "qy", "qz")
 STATE_NAMES = tuple(name for side in ("left", "right")
     for name in (*(f"{side}_joint{i}_rad" for i in range(1, 7)), f"{side}_gripper_open_01")) + tuple(
@@ -49,14 +92,21 @@ OBSERVATION_SPEC = ObservationSpec(cameras=CAMERAS, state_names=STATE_NAMES,
 
 
 def validate_action(values: Sequence[float]) -> tuple[float, ...]:
+    """Pure public action checks; no silent normalization or native state read.
+
+    Per-decision motion limits/binary-gripper preferences belong to the
+    model, not this benchmark.
+    """
     tolerance = TARGET_QUATERNION_TOLERANCE
-    vector = ACTION_SPEC.validate(values)
-    for offset in (0, 8):
-        norm = math.sqrt(sum(value * value for value in vector[offset + 3:offset + 7]))
-        if abs(norm - 1.0) > tolerance:
-            raise ProtocolError("EEF target quaternion must be unit length; no silent normalization")
+    vector = validate_action_vector(ACTION_SPEC, values)
+    for side, offset in (("left", 0), ("right", 8)):
+        norm = math.hypot(*vector[offset + 3:offset + 7])
+        if not math.isfinite(norm) or abs(norm - 1.0) > tolerance:
+            raise ActionRejected(ValidationIssue("quaternion_not_unit", field=f"{side}.quaternion_norm",
+                actual=norm if math.isfinite(norm) else None, limit=tolerance), usage=Usage())
         if not 0 <= vector[offset + 7] <= 1:
-            raise ProtocolError("EEF gripper target must be in [0,1]")
+            raise ActionRejected(ValidationIssue("out_of_bounds", field=f"{side}.opening",
+                actual=vector[offset + 7], limit=0 if vector[offset + 7] < 0 else 1), usage=Usage())
     return vector
 
 
@@ -176,7 +226,10 @@ class ReferenceEEFEpisode(RoboDojoEpisode):
             "runtime_manifest": str(benchmark.runtime_manifest),
             "runtime_manifest_sha256": benchmark.runtime_manifest_sha256,
             "artifact_dir": str(self.artifact_dir), "gpu_id": benchmark.gpu_id,
-            "diagnostic": benchmark.diagnostic}
+            "evaluation_mode": benchmark.evaluation_mode}  # the worker re-derives this mode's layouts
+        if benchmark.stability_manifest is not None:  # max: pinned to the digest observed at startup
+            request.update(stability_manifest=str(benchmark.stability_manifest),
+                stability_manifest_sha256=benchmark.stability_provenance["stability_manifest"]["sha256"])
         return self._observation(self._rpc(request))
 
     def _accept_step(self, result: Mapping[str, Any]) -> Transition:
@@ -196,9 +249,7 @@ class ReferenceEEFEpisode(RoboDojoEpisode):
     def metrics(self) -> Mapping[str, Any]:
         return {**self.latest, "adapter_step_returns": self.steps,
             "track": self.benchmark.descriptor.protocol_version,
-            "diagnostic_only": self.benchmark.diagnostic,
-            "reference_native_horizon": self.benchmark.native_horizon, "native_horizon": self.benchmark.native_horizon,
-            "native_step_lim_override": None}
+            "native_horizon": self.benchmark.native_horizon}
 
 
 class DirectEEFBenchmarkAdapter:
@@ -208,8 +259,9 @@ class DirectEEFBenchmarkAdapter:
     task = TASK
     instruction = INSTRUCTION
     native_horizon = HORIZON
-    allowed_layout_ids = tuple(TASK_SPEC["panels"]["fast"]["layout_ids"])
-    panel_name = TASK_SPEC["panels"]["fast"]["id"]
+    allowed_layout_ids = tuple(TASK_SPEC["evaluation_modes"]["fast"]["layout_ids"])
+    selection_id = TASK_SPEC["evaluation_modes"]["fast"]["id"]
+    stability_manifest = stability_provenance = None  # max only
     worker_filename = "native_eef_worker.py"
 
     def runtime_document(self):
@@ -219,44 +271,32 @@ class DirectEEFBenchmarkAdapter:
     def pinned_snapshot():
         return pins()
 
-    @classmethod
-    def validate_action_input(cls, values):
-        """Pure public action checks, before the service consumes a sequence.
-
-        Per-decision motion limits/binary-gripper preferences belong to the
-        model, not this benchmark. No native state or task feedback is read.
-        """
-        tolerance = TARGET_QUATERNION_TOLERANCE
-        vector = validate_action_vector(ACTION_SPEC, values)
-        for side, offset in (("left", 0), ("right", 8)):
-            norm = math.hypot(*vector[offset + 3:offset + 7])
-            if not math.isfinite(norm) or abs(norm - 1.0) > tolerance:
-                raise ActionRejected(ValidationIssue("quaternion_not_unit", field=f"{side}.quaternion_norm",
-                    actual=norm if math.isfinite(norm) else None, limit=tolerance), usage=Usage())
-            if not 0 <= vector[offset + 7] <= 1:
-                raise ActionRejected(ValidationIssue("out_of_bounds", field=f"{side}.opening",
-                    actual=vector[offset + 7], limit=0 if vector[offset + 7] < 0 else 1), usage=Usage())
-        return vector
+    def validate_action_input(self, values):
+        return validate_action(values)  # before the service consumes a sequence
 
     def __init__(self, *, runtime_manifest: str, runtime_manifest_sha256: str,
                  task_id: str = TASK,
-                 panel: str = "fast", gpu_id: int = 0,
-                 worker_timeout: float = 1200, diagnostic: bool = False) -> None:
+                 evaluation_mode: str = "fast", gpu_id: int = 0,
+                 worker_timeout: float = 1200, stability_manifest: str | None = None,
+                 stability_manifest_sha256: str | None = None) -> None:
+        if evaluation_mode not in EVALUATION_MODES:
+            raise ValueError(f"evaluation_mode must be one of {', '.join(EVALUATION_MODES)}; got {evaluation_mode!r}")
         self.task_spec = task_spec(task_id)
         if task_id != TASK:
             raise ValueError("task is declared but has no accepted native Direct worker")
         self.task = task_id
         self.native_horizon = self.task_spec["native_horizon"]
-        if not isinstance(panel, str) or panel not in self.task_spec["panels"]:
-            raise ValueError("panel must be a named task-catalog panel")
-        selected_panel = self.task_spec["panels"][panel]
-        self.allowed_layout_ids = tuple(selected_panel["layout_ids"])
-        self.panel = panel
-        self.panel_name = selected_panel["id"]
+        selection = self.task_spec["evaluation_modes"]["max" if evaluation_mode == "max" else "fast"]
+        # max: provenance holds the observed manifest digest, pinned or recorded unpinned.
+        self.allowed_layout_ids, self.stability_provenance = mode_layouts(evaluation_mode, task_id,
+            stability_manifest=stability_manifest, stability_manifest_sha256=stability_manifest_sha256)
+        self.stability_manifest = Path(stability_manifest) if evaluation_mode == "max" else None
+        self.evaluation_mode = evaluation_mode
+        self.selection_id = selection["id"]
         self.instruction = self.task_spec["public_instruction"]
         self.robot_feedback = ROBOT_FEEDBACK_SCHEMA
-        if type(gpu_id) is not int or gpu_id < 0 or type(diagnostic) is not bool:
-            raise ValueError("invalid GPU or diagnostic selection")
+        if type(gpu_id) is not int or gpu_id < 0:
+            raise ValueError("invalid GPU selection")
         if isinstance(worker_timeout, bool) or not isinstance(worker_timeout, Real) or not math.isfinite(worker_timeout) or worker_timeout <= 0:
             raise ValueError("worker_timeout must be finite and positive")
         self.runtime_manifest = Path(runtime_manifest).absolute()
@@ -268,41 +308,43 @@ class DirectEEFBenchmarkAdapter:
         self.source_root = self.runtime_manifest.parent.resolve() / "RoboDojo"
         self.python = Path(document["python"])
         self.layout_ids = self.allowed_layout_ids
-        self.gpu_id, self.worker_timeout, self.diagnostic = gpu_id, float(worker_timeout), diagnostic
-        self.budget_mode, self.max_policy_calls, self.replan_interval = "horizon", None, None
+        self.gpu_id, self.worker_timeout = gpu_id, float(worker_timeout)
+        self.max_policy_calls = None
         self.environment_step_cap = self.native_horizon
-        self.native_step_lim_override = None
-        track = self.protocol_version
-        if diagnostic:
-            track += "-infrastructure-only"
-        self.descriptor = BenchmarkDescriptor("robodojo", "ee67a146-native", track, self.pinned_snapshot()["native_revision"])
+        self.descriptor = BenchmarkDescriptor("robodojo", "ee67a146-native", selection_protocol(evaluation_mode),
+                                              self.pinned_snapshot()["native_revision"])
 
     def episodes(self, seed: int = SEED, limit: int | None = None) -> Sequence[EpisodeSpec]:
         if type(seed) is not int or seed != SEED:
             raise ProtocolError("use the declared RSI seed; native startup/eval seed is 0")
-        if limit is not None and (type(limit) is not int or not 1 <= limit <= len(self.layout_ids)):
-            raise ValueError("limit must select a nonempty prefix of the declared layout schedule")
+        if limit is not None:  # complete mode schedule only; no prefix truncation
+            raise ValueError("RoboDojo serves its complete evaluation_mode schedule; omit the episode limit")
         native_seed = self.task_spec["native_eval_seed"]
         simulator_seed = self.task_spec["simulator_initial_seed"]
+        max_mode = self.evaluation_mode == "max"
+        # max: the layouts an offline reset-only screen found stable, as upstream
+        # skips unstable resets; later errors are retained, never replaced.
+        schema, kind = (("starvla-rsi.robodojo.reset-stable-layout-selection/v1", "first_reset_stable_layouts")
+                        if max_mode else ("starvla-rsi.robodojo.fixed-layout-selection/v1", "fixed_catalog_layouts"))
         result = tuple(EpisodeSpec(f"{self.task}/arx_x5/eval-seed{native_seed}/layout{i}", self.task, seed, self.instruction,
             {"native_eval_seed": native_seed, "simulator_initial_seed": simulator_seed, "reset_seed": i, "layout_id": i,
              "layout_inventory_sha256": self.pinned_snapshot()["classify_layout_inventory_sha256"],
-             "native_horizon": self.native_horizon,
+             "native_horizon": self.native_horizon, "environment_step_cap": self.native_horizon,
              "runtime_manifest_sha256": self.runtime_manifest_sha256,
-             "panel": self.panel, "panel_id": self.panel_name,
-             # A matching case count does not reproduce the upstream evaluator's
-             # replacement of unstable layouts. Describe selection facts instead
-             # of treating the catalog's panel name as a parity certificate.
-             "case_selection_schema": "robodojo.fixed-layout-selection/v2",
+             "evaluation_mode": self.evaluation_mode, "selection_id": self.selection_id,
+             # A matching case count is not a parity certificate: upstream also
+             # replaces layouts after PhysX-broken or other in-episode errors.
+             "case_selection_schema": schema,
              "configured_layout_count": len(self.layout_ids),
              "native_reference_episode_count": self.task_spec["upstream_configured_episodes"],
-             "selection_kind": "fixed_catalog_layouts",
+             "selection_kind": kind,
+             **(self.stability_provenance or {}),  # max: manifest {sha256, pinned} and screening counts
              "invalid_case_handling": "retain_error_without_replacement",
              "official_full_protocol": False,
              "robot_feedback_schema": self.robot_feedback,
              "control_alignment": CONTROL_ALIGNMENT,
              "target_quaternion_tolerance": TARGET_QUATERNION_TOLERANCE}) for i in self.layout_ids)
-        return result if limit is None else result[:limit]
+        return result
 
     def open_episode(self, episode: EpisodeSpec) -> ReferenceEEFEpisode:
         if episode not in self.episodes():

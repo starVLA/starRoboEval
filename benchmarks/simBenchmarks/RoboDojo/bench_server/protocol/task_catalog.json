@@ -1,6 +1,6 @@
 {
-  "schema_version": "starvla-rsi.robodojo-task-catalog/v1",
-  "interface_protocol": "robodojo-direct-v2-rgb-proprio28-eef16-robot-feedback-v1",
+  "schema_version": "starvla-rsi.robodojo.task-catalog/v1",
+  "interface_protocol": "rgb-proprio28-eef16",
   "tasks": {
     "classify_objects": {
       "enabled": true,
@@ -13,17 +13,17 @@
       "layout_binding": {
         "inventory_count": 55,
         "id": "reference-eef-classify-ee67",
-        "snapshot_sha256": "30c6815aee7a2d3f4b27d1a104849cd2f2eba7f2c5bcca1b2f520a719da0958f"
+        "snapshot_sha256": "0aa5f026a8bdf97ce7cea04246c916c51e251052172ffe6fdf3b39d5b17a2962"
       },
-      "panels": {
+      "evaluation_modes": {
         "fast": {
           "id": "classify_objects-standard-first5",
           "layout_ids": [0, 1, 2, 3, 4],
           "attempts_per_layout": 1
         },
-        "full": {
-          "id": "classify_objects-native-eval50",
-          "layout_ids": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49],
+        "max": {
+          "id": "classify_objects-native-first50-reset-stable",
+          "reset_stable_count": 50,
           "attempts_per_layout": 1
         }
       }

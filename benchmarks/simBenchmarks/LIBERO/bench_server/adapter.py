@@ -23,33 +23,20 @@ from benchkit.contracts import (
     Transition,
 )
 from benchkit.errors import CompatibilityError, ProtocolError
-from benchkit.registry import register_benchmark
 
 LIBERO_REVISION = "8f1084e3132a39270c3a13ebe37270a43ece2a01"
-FIRST_PASS_SEED = 20260907
-SETTLE_STEPS = 10
+SEED = 20260907
+EVALUATION_MODES = ("fast", "max", "example")  # fast: blog subset; example: first fast episode
+FAST_INITIAL_STATES = 5  # fast: released initial states 0-4 of every task
+SETTLE_STEPS = 10  # OpenVLA/StarVLA num_steps_wait, paired with the catalog horizons; see EVALUATION_PROTOCOL.md.
 CAMERAS = ("agentview", "robot0_eye_in_hand")
-TASK_NAMES = (
-    "LIVING_ROOM_SCENE2_put_both_the_alphabet_soup_and_the_tomato_sauce_in_the_basket",
-    "LIVING_ROOM_SCENE2_put_both_the_cream_cheese_box_and_the_butter_in_the_basket",
-    "KITCHEN_SCENE3_turn_on_the_stove_and_put_the_moka_pot_on_it",
-    "KITCHEN_SCENE4_put_the_black_bowl_in_the_bottom_drawer_of_the_cabinet_and_close_it",
-    "LIVING_ROOM_SCENE5_put_the_white_mug_on_the_left_plate_and_put_the_yellow_and_white_mug_on_the_right_plate",
-)
-INSTRUCTIONS = (
-    "put both the alphabet soup and the tomato sauce in the basket",
-    "put both the cream cheese box and the butter in the basket",
-    "turn on the stove and put the moka pot on it",
-    "put the black bowl in the bottom drawer of the cabinet and close it",
-    "put the white mug on the left plate and put the yellow and white mug on the right plate",
-)
 
 
 def task_catalog() -> dict[str, dict[str, Any]]:
     """Load the packaged native task identities without importing a simulator."""
     path = resources.files("benchmarks.simBenchmarks.LIBERO.bench_server.protocol").joinpath("libero_catalog.json")
     payload = json.loads(path.read_text(encoding="utf-8"))
-    if (payload.get("schema_version") != "starvla-rsi.libero-task-catalog/v1"
+    if (payload.get("schema_version") != "starvla-rsi.libero.task-catalog/v1"
             or payload.get("upstream_revision") != LIBERO_REVISION):
         raise CompatibilityError("LIBERO catalog schema or source revision differs")
     expected_counts = {"libero_spatial": 10, "libero_object": 10, "libero_goal": 10,
@@ -64,9 +51,6 @@ def task_catalog() -> dict[str, dict[str, Any]]:
                 or len(row["tasks"]) != count
                 or [task["native_id"] for task in row["tasks"]] != list(range(count))):
             raise CompatibilityError(f"LIBERO catalog task count/order differs for {name}")
-    if (tuple(row["native_name"] for row in result["libero_10"]["tasks"][:5]) != TASK_NAMES
-            or tuple(row["instruction"] for row in result["libero_10"]["tasks"][:5]) != INSTRUCTIONS):
-        raise CompatibilityError("LIBERO catalog differs from historical first-five identities")
     return result
 
 
@@ -188,9 +172,9 @@ class LiberoEpisode:
             raise CompatibilityError("pinned LIBERO task initial-state count differs from the catalog")
         initial_state_index = self.episode.metadata["initial_state_index"]
         if (type(initial_state_index) is not int
-                or initial_state_index not in self.benchmark.initial_state_indices
+                or initial_state_index not in self.benchmark.task_states[task_id]
                 or not 0 <= initial_state_index < len(initial_states)):
-            raise CompatibilityError("selected LIBERO initial-state index is outside the frozen panel")
+            raise CompatibilityError("selected LIBERO initial-state index is outside the resolved schedule")
         selected_state = initial_states[initial_state_index]
         controller = robosuite.load_controller_config(default_controller="OSC_POSE")
         if (
@@ -202,7 +186,7 @@ class LiberoEpisode:
             raise CompatibilityError("native OSC_POSE action scaling differs from the declared contract")
         provenance = {
             "upstream_revision": LIBERO_REVISION,
-            "suite": suite_name, "selection_scope": self.benchmark.scope,
+            "suite": suite_name,
             "task_order_index": 0, "task_id": task_id,
             "task_name": task.name, "initial_state_index": initial_state_index,
             "available_initial_states": len(initial_states), "reset_seed": self.episode.seed,
@@ -312,83 +296,46 @@ class LiberoBenchmarkAdapter:
     """Fixed task/state cells, once each; no sampling or success retries."""
 
     def __init__(
-        self, task_ids: Sequence[int] | None = None, *,
-        suite: str = "libero_10", scope: str = "development",
-        initial_state_indices: Sequence[int] | None = None,
+        self, *, suite: str = "libero_10", evaluation_mode: str = "fast",
         proprioception: bool = False, render_gpu_device_id: int = 0,
-        budget_mode: str = "horizon", max_policy_calls: int | None = None,
-        replan_interval: int | None = None,
     ) -> None:
+        if evaluation_mode not in EVALUATION_MODES:
+            raise ValueError(f"evaluation_mode must be one of {', '.join(EVALUATION_MODES)}; got {evaluation_mode!r}")
         catalog = task_catalog()
         if not isinstance(suite, str) or suite not in catalog:
             raise ValueError("suite must be one of the five packaged LIBERO suites")
-        if scope not in ("development", "task_coverage"):
-            raise ValueError("scope must be development or task_coverage")
-        if scope == "development" and suite != "libero_10":
-            raise ValueError("historical development scope only supports libero_10; select task_coverage explicitly")
-        self.suite, self.scope = suite, scope
+        self.suite = suite
         self.suite_catalog = catalog[suite]
-        count = 5 if scope == "development" else self.suite_catalog["task_count"]
-        if task_ids is None:
-            task_ids = (0, 1) if scope == "development" else tuple(range(count))
-        if (
-            not isinstance(task_ids, (list, tuple)) or not task_ids
-            or any(type(index) is not int or index not in range(count) for index in task_ids)
-            or len(set(task_ids)) != len(task_ids)
-            or list(task_ids) != sorted(task_ids)
-        ):
-            raise ValueError(f"task_ids must be a unique, increasing subset of native indices 0..{count - 1}")
-        explicit_state_panel = initial_state_indices is not None
-        if explicit_state_panel:
-            if scope != "task_coverage":
-                raise ValueError("explicit initial_state_indices require scope=task_coverage")
-            if (not isinstance(initial_state_indices, (list, tuple)) or not initial_state_indices
-                    or any(type(index) is not int or index < 0 for index in initial_state_indices)
-                    or len(set(initial_state_indices)) != len(initial_state_indices)
-                    or list(initial_state_indices) != sorted(initial_state_indices)):
-                raise ValueError("initial_state_indices must be a nonempty unique, increasing list of nonnegative integers")
-            for task_id in task_ids:
-                released_count = self.suite_catalog["tasks"][task_id]["released_initial_state_count"]
-                if type(released_count) is not int or released_count <= 0:
-                    raise CompatibilityError("catalog released initial-state count must be a positive integer")
-                if initial_state_indices[-1] >= released_count:
-                    raise ValueError(f"initial_state_indices exceed task {task_id}'s {released_count} released states")
-        self.initial_state_indices = tuple(initial_state_indices) if explicit_state_panel else (0,)
+        self.evaluation_mode = evaluation_mode
+        task_ids = tuple(range(self.suite_catalog["task_count"]))
+        for task_id in task_ids:
+            released_count = self.suite_catalog["tasks"][task_id]["released_initial_state_count"]
+            if type(released_count) is not int or released_count < FAST_INITIAL_STATES:
+                raise CompatibilityError("catalog released initial-state count must cover the fast states")
+        # fast/example: released states 0-4; max: every released state of each task.
+        self.task_states = {task_id: tuple(range(
+            self.suite_catalog["tasks"][task_id]["released_initial_state_count"] if evaluation_mode == "max"
+            else FAST_INITIAL_STATES)) for task_id in task_ids}
+        if evaluation_mode == "example":
+            task_ids = task_ids[:1]
+            self.task_states = {task_ids[0]: (0,)}
         if not isinstance(proprioception, bool):
             raise TypeError("proprioception must be boolean")
         if type(render_gpu_device_id) is not int or render_gpu_device_id < 0:
             raise ValueError("render_gpu_device_id must be a nonnegative integer")
-        if budget_mode not in ("horizon", "decisions"):
-            raise ValueError("budget_mode must be horizon or decisions")
-        if budget_mode == "decisions":
-            if any(type(value) is not int or value <= 0 for value in (max_policy_calls, replan_interval)):
-                raise ValueError("decision budgets require positive integer max_policy_calls and replan_interval")
-        elif max_policy_calls is not None or replan_interval is not None:
-            raise ValueError("adapter decision limits require budget_mode=decisions; use runner limits for horizon mode")
         self.task_ids = tuple(task_ids)
         self.proprioception = proprioception
         self.render_gpu_device_id = render_gpu_device_id
         self.native_horizon = self.suite_catalog["reference_horizon"]
-        self.budget_mode = budget_mode
-        self.max_policy_calls = max_policy_calls
-        self.replan_interval = replan_interval
-        self.environment_step_cap = (max_policy_calls * replan_interval
-                                     if budget_mode == "decisions" else self.native_horizon)
+        self.environment_step_cap = self.native_horizon
         self.evaluation_horizon = self.environment_step_cap
         # Fixed initialization steps are not policy decisions. Keep the engine
         # horizon clear of the complete predeclared action budget as well.
         self.native_engine_horizon = max(1000, self.environment_step_cap + SETTLE_STEPS)
-        selection = "first2" if set(self.task_ids) <= {0, 1} else "first5"
-        protocol = (f"libero10-{selection}-development" if scope == "development"
-                    else f"libero-task-coverage/{suite}")
-        if explicit_state_panel:
-            protocol = f"libero-initial-state-panel/{suite}"
-        budget_track = f"/decision-{max_policy_calls}-prefix-{replan_interval}" if budget_mode == "decisions" else ""
         self.descriptor = BenchmarkDescriptor(
-            name="libero", version=("0.3.0" if explicit_state_panel else
-                                    "0.1.0" if scope == "development" else "0.2.0"),
-            protocol_version=protocol + "/" + ("rgb-qpos" if proprioception else "rgb")
-            + budget_track + ("/v2" if explicit_state_panel else "/v1"),
+            name="libero", version="0.4.0",
+            protocol_version=(f"libero-{LIBERO_REVISION[:7]}/{suite}-initial-state-panel"
+                              f"/{'rgb-qpos' if proprioception else 'rgb'}/{evaluation_mode}/v1"),
             source_revision=LIBERO_REVISION,
         )
         self.observation_spec = ObservationSpec(
@@ -408,8 +355,6 @@ class LiberoBenchmarkAdapter:
 
     def budget_metadata(self) -> dict[str, JsonValue]:
         return {
-            "budget_mode": self.budget_mode,
-            "max_policy_calls": self.max_policy_calls, "replan_interval": self.replan_interval,
             "environment_step_cap": self.environment_step_cap,
             "native_horizon": self.native_horizon,
             "native_horizon_source": ("retained_starvla_libero10_evaluator_reference" if self.suite == "libero_10"
@@ -418,31 +363,30 @@ class LiberoBenchmarkAdapter:
         }
 
     def episodes(self, seed: int, limit: int | None = None) -> Sequence[EpisodeSpec]:
-        if type(seed) is not int or seed != FIRST_PASS_SEED:
-            raise ValueError(f"frozen LIBERO selection requires seed={FIRST_PASS_SEED}")
-        episode_count = len(self.task_ids) * len(self.initial_state_indices)
+        if type(seed) is not int or seed != SEED:
+            raise ValueError(f"frozen LIBERO selection requires seed={SEED}")
+        episode_count = sum(len(states) for states in self.task_states.values())
         if limit is not None and (type(limit) is not int or not 1 <= limit <= episode_count):
             raise ValueError("episode limit must select a nonempty task/state prefix without repeating a cell")
         return [EpisodeSpec(
-            id=f"{('libero10' if self.scope == 'development' else self.suite)}-task{task_id:02d}-init{state_index:02d}",
+            id=f"{self.suite}-task{task_id:02d}-init{state_index:02d}",
             task=f"{self.suite}/task-{task_id}",
             seed=seed, instruction=self.suite_catalog["tasks"][task_id]["instruction"],
             metadata={"suite": self.suite, "task_id": task_id,
                       "task_name": self.suite_catalog["tasks"][task_id]["native_name"],
                       "task_order_index": 0, "initial_state_index": state_index, "attempt": 1,
+                      "evaluation_mode": self.evaluation_mode,
                       **self.budget_metadata(), "settle_steps": SETTLE_STEPS},
-        ) for task_id in self.task_ids for state_index in self.initial_state_indices][:limit]
+        ) for task_id in self.task_ids for state_index in self.task_states[task_id]][:limit]
 
     def open_episode(self, episode: EpisodeSpec) -> LiberoEpisode:
-        if episode not in self.episodes(FIRST_PASS_SEED):
+        if episode not in self.episodes(SEED):
             raise ProtocolError("episode differs from the frozen LIBERO selection")
         return LiberoEpisode(self, episode)
 
 
-@register_benchmark("libero")
 def make_libero(parameters: Mapping[str, JsonValue]) -> LiberoBenchmarkAdapter:
-    unknown = set(parameters) - {"task_ids", "suite", "scope", "proprioception", "render_gpu_device_id",
-                                 "budget_mode", "max_policy_calls", "replan_interval", "initial_state_indices"}
+    unknown = set(parameters) - {"suite", "evaluation_mode", "proprioception", "render_gpu_device_id"}
     if unknown:
         raise ValueError(f"unknown LIBERO parameters: {sorted(unknown)}")
     return LiberoBenchmarkAdapter(**parameters)

@@ -11,11 +11,12 @@ decisions do not belong here.
 - `contracts.py` / `interfaces.py`: public observation, action and lifecycle types.
 - `methods.py`: protocol-first method composition and per-component usage declarations.
 - `recording.py`: default-on optional interaction/client retention preferences and SDK sink.
-- `registry.py`: explicit lazy extension registration; no eager native SDK imports.
+- `registry.py`: the shared diagnostic policies selectable with `--policy`.
 - `sim_server/`: the only shared SIM communication implementation; not a compatibility alias.
 - `catalog/`: packaged benchmark declarations and their loader/validator.
-- `cli.py`: shared catalog/diagnostic commands; participant entrypoints can use
-  the service protocol directly.
+- `cli.py`: shared catalog/diagnostic commands. `run` takes its benchmark only
+  from a running service (`--sim-server`); `smoke` starts the synthetic service
+  and runs through it; `probe` checks one service's connect-level readiness. Participant entrypoints can use the service protocol directly.
 - `model_profiles.py`: reads self-describing `configs/profile.json` files and
   validates configuration/factories; actual factories remain under
   `AgentPolicies/<profile>/`.
@@ -39,18 +40,18 @@ python -m benchkit catalog --check
 python -m benchkit list
 ```
 
-The former regression runner, ownership checks and test fixtures are no longer
-included in the active source tree; their matching versions remain in Git history.
-`make check` validates current catalog data. This check is distinct
-from native simulator, model or hardware validation; removing historical fixtures
-does not establish that any new implementation has passed them.
+`list` shows the diagnostic policies; `rsi-bench list` and `catalog` show the
+benchmarks. Test and check files stay local and untracked. `make check`
+validates current catalog data, and `make smoke` runs the dependency-free
+self-check through the synthetic service. Neither
+replaces native simulator, model or hardware validation.
 
 The console entrypoint remains `starvla-eval`. Removed flat modules and the
 `benchkit.runner` bridge have no compatibility shims. All live decision-loop
 callers import `AgentPolicies.gpt6_astra.tools.runner` directly. Old records
 remain data with their original bytes; live code does not read their source
 bundles. This directory migration does not start evaluations or complete native
-full presets.
+max presets.
 
 For ordinary closed results use `benchkit.reports.basic_result`; it does not
 require events, media or source snapshots. `interaction_history` reads the

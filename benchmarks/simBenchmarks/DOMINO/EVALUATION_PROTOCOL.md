@@ -43,8 +43,8 @@ is an integration restriction, not DOMINO's task definition. See
 
 - `demo_clean_dynamic`, aloha-agilex, dynamic level 1, coefficient 0.1;
   background/clutter randomization disabled.
-- One predeclared native seed from a trusted private, hash-bound fixed
-  episode manifest, one policy attempt. Default selected seed: 100000.
+- Predeclared accepted entries of a trusted private, hash-bound fixed episode
+  manifest, one policy attempt each (modes below).
 - Missing entries or failed dynamic initialization are errors, never triggers
   for resampling or automatic retries.
 - Expert screening is separately authorized **private environment preparation**,
@@ -54,11 +54,50 @@ is an integration restriction, not DOMINO's task definition. See
 All manifest data stays private; the service does not generate replacement
 motion or turn dynamics off.
 
-The service's `native_seed` must identify an existing manifest entry. It is a
-uint32 identifier used by native initialization, not a layout selector; the
-launch seed is a separate recorded field. No dynamic-level, layout, variant or
-multi-seed overrides are exposed. Each deployment selects one task/manifest
-entry.
+The manifest lists native accepted entries in candidate-seed order (from
+100000, expert-screened during preparation). `evaluation_mode` selects entries
+by one-based ordinal; omitted means `fast`:
+
+| Mode | Manifest entries | Episodes | Cap per episode |
+| --- | --- | ---: | ---: |
+| `fast` (default) | 1, 2, 3, 4, 5 | 5 | 400 |
+| `max` | 1–100, the complete native accepted set for `click_bell` / `demo_clean_dynamic` | 100 | 400 |
+| `example` | 1 | 1 | 400 |
+
+`max` reproduces the native per-(task, config) count: `eval_policy.py` sets
+`test_num = 100` at eval seed 0. At startup the service refuses a `max` launch
+unless the hash-bound manifest is the complete native screening record:
+
+- metadata `format_version` 1, `git_commit` equal to the pinned revision,
+  `task_name` `click_bell`, `task_config` `demo_clean_dynamic`, embodiment
+  `aloha-agilex`, `cli_seed` 0, `st_seed` 100000, `test_num` 100, dynamic level
+  1 and coefficient 0.1;
+- exactly 100 accepted entries with unique ascending integer seeds, each with
+  its `dynamic_motion_info` payload;
+- every rejected seed logged with a native reason (`unstable`, `exception`,
+  `expert_check_fail`, `dynamic_validation_fail`), and accepted plus rejected
+  seeds forming one contiguous walk from 100000 to the 100th acceptance.
+
+Upstream itself only warns about a short manifest and then evaluates fewer
+episodes; the service refuses it instead. Rejections are preparation
+provenance, recorded with the reset, never policy results. The service never
+prepares, searches or edits the manifest. The preparation procedure is in
+[environment setup](environment/README.md#private-fixed-episode-preparation-gate);
+it has not yet been performed for this deployment. `fast` and `example` read
+entries from the same kind of manifest and only need their entries present.
+
+The benchmark-scope `max` set is the union of such deployments over the 35
+tasks × {`demo_clean_dynamic`, `demo_random_dynamic`}, 100 accepted episodes
+each (7,000 episodes). Only `click_bell` / `demo_clean_dynamic` is deployable
+now. Whether published DOMINO results also count dynamic levels 2–3 is
+UNVERIFIED; both pinned dynamic configs use level 1.
+
+Episode IDs are `click_bell-manifest-entry{ordinal:03d}-episode000`. The reset
+reads the entry's native seed and motion payload; the launch seed is a separate
+recorded field. No dynamic-level, layout or variant overrides are exposed. One
+process claims one episode, so launch each with `--episode-id`. The protocol
+identity names the mode before its version, e.g.
+`domino-9c94f2d/click-bell-fixed-manifest/qpos14-rgb-commanded-state/fast/v1`.
 
 Language uses the native task's fixed `full_description`, not randomized
 episode-specific seen/unseen wording. This language selection differs explicitly
@@ -78,11 +117,15 @@ from the upstream model launcher's episode-specific instruction sampling.
 State channel names use `commanded_target_` and explicitly declare commanded
 provenance. No service motion/joint-range guard is added: dimension/type/finiteness
 checks are mandatory, while native controller constraints stay native. Optional
-movement guards belong to agents. Physics ticks, started native targets, ACKs
+movement guards belong to agents. The action spec therefore declares no
+`low`/`high`: the native qpos path publishes no action bounds, and any service
+range would be a non-native guard. NaN or infinite values are rejected as
+`non_finite` before execution; finite out-of-range targets reach native
+`take_action` unchanged. Physics ticks, started native targets, ACKs
 and model decisions are recorded separately. Initialization/settling ticks are
 not currently instrumented; do not report them as zero or model controls.
 
-The current `sm120-agent-grouping-v2` interface declares no mandatory action
+The current interface declares no mandatory action
 prefix and does not require a model call after each target. The agent chooses
 grouping; the service acknowledges each target separately and applies native
 termination and the 400-target limit before accepting another. Native TOPP,

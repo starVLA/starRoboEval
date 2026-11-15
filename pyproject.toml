@@ -102,7 +102,7 @@ exclude = [
 "benchmarks.simBenchmarks.MetaWorld.bench_server.protocol" = ["task_catalog.json"]
 "benchmarks.simBenchmarks.MetaWorld.environment" = ["package_pin.json"]
 "benchmarks.simBenchmarks.Robotwin.environment" = ["native_snapshot.json", "runtime_snapshot.json", "oidn_2_3_3_snapshot.json"]
-"benchmarks.simBenchmarks.calvin.bench_server.protocol" = ["selected_sequence.json", "eval_sequences.json"]
+"benchmarks.simBenchmarks.calvin.bench_server.protocol" = ["single_task_panel.json", "long_horizon_sequences.json"]
 "benchmarks.simBenchmarks.calvin.environment" = ["runtime_snapshot.json", "requirements-rgb-setup.txt"]
 "AgentPolicies.gpt6_astra" = ["configs/*.json", "configs/*.txt"]
 

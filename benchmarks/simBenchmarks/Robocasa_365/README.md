@@ -46,30 +46,30 @@ tasks therefore calls for 2500 scenarios. See the
 
 ## Current Bench Server integration
 
-The service uses native PandaOmron control and scoring, but currently samples
-only one scenario per selected task at launch seed **20260907**. It does not
-expose the native repeated-scenario sampler, pretraining split or arbitrary
-layout/style selection. See [service support](../SERVICE_SUPPORT.md).
+The service uses native PandaOmron control and scoring on the target split with
+launch seed **20260907**. `fast` repeats one seeded scenario per target task;
+`max` runs 50 seeded scenarios per task, scenario `k` with seed 20260907 + `k`.
+It does not expose the pretraining split or layout/style selection. See
+[service support](../SERVICE_SUPPORT.md).
 
-| `task_scope` | Selectable task indices |
-| --- | --- |
-| `pilot` | `0=OpenDrawer`, `1=NavigateKitchen` |
-| `target50` | 0–49 in the target catalog |
+| `evaluation_mode` | Selection | Episodes | Cap |
+| --- | --- | ---: | --- |
+| `fast` (default) | 50 target tasks × attempts 1–5 on the same seeded scenario | 250 | Task reference horizon, 450–4350 |
+| `max` | 50 target tasks × scenarios 0–49, seed 20260907 + scenario | 2500 | Task reference horizon, 450–4350 |
+| `example` | Task 0 (CloseBlenderLid), attempt 1 | 1 | 900 |
 
-`task_ids` is an increasing, unique subset of the chosen scope's indices. Indices
-are scope-specific: NavigateKitchen is 1 in `pilot` and 4 in `target50`;
-OpenDrawer is 0 and 6 respectively.
+`render_track` (`native-v1` default, `egl-owner-restore-v1` or
+`egl-owner-material-clamp-v1`) selects rendering, not cases. `fast` is
+attempt-major: attempt 1 covers tasks 0–49 in [catalog](bench_server/protocol/robocasa365_target50.json)
+order, then attempt 2, and so on. `max` is scenario-major in the same way, with
+IDs `robocasa365-target50-task{TT}-scenario{KK}`. `--episodes N` runs its first
+N episodes, and `--episode-id` selects individual cases within the chosen mode.
 
-The service currently exposes neither a layout/style override nor a seed panel:
-each selected task gets one sample at the fixed seed. A larger `--episodes`
-value cannot create repetitions beyond the selected task list. Additional
-scenarios require an explicit extension of the sampling interface.
-
-Set `task_ids` explicitly when changing scope. Omitting it selects indices
-`[0,1]` in either scope; setting `task_scope="target50"` alone does not select
-all 50 tasks. For example, `task_scope="target50", task_ids=[4,6]` selects
-NavigateKitchen and OpenDrawer. Launch with `--episodes 2` for those two cases;
-the same two IDs under the default scope would be invalid.
+Upstream's evaluation script resets its 50 scenarios per task without a seed.
+`max` is a deterministic stand-in: the native sampler still draws each
+kitchen and object placement from the per-scenario seed, and the adapter never
+forces them. Only ten target kitchens exist, so scenarios repeat kitchens. See
+the [protocol](EVALUATION_PROTOCOL.md#max-mode-scenarios).
 
 ## Service robot interface and scoring
 
@@ -79,8 +79,7 @@ the same two IDs under the default scope would be invalid.
 | Action | 12 values: base-frame end-effector translation/rotation deltas, binary gripper, base velocity, torso delta and binary base mode |
 | Control | Native hybrid mobile-base controller at 20 Hz; one action per service step |
 | Success | Native `info.success`, checked against sparse native reward; stop at first native success |
-| Native-reference budget | `budget_mode="horizon"`: task-specific reference horizons, 450–4350 controls across target50 |
-| Separate development budget | `budget_mode="decisions"`: declared calls D ≤ 200 and prefix K ≤ 5, with cap D × K |
+| Execution budget | Task-specific native reference horizons, 450–4350 controls across target50 |
 
 The **12-dimensional action** uses these zero-based slices:
 
@@ -99,9 +98,8 @@ the protocol specifies the exact accepted command bounds.
 
 The native engine has horizon 1000 with `ignore_done=True`; this is distinct from
 the task reference horizon. OpenDrawer's reference is 750 and NavigateKitchen's
-is 450. The decision-budget track can shorten or extend those references and
-must be reported separately. It retains a coupled budget contract; it is not a
-universal rule for how often an agent must reason.
+is 450. The service enforces each task's reference horizon; how often an agent
+reasons and how many controls it sends per decision belong to the method.
 
 Only the declared language and camera images reach the agent. Object state,
 reset details and native scoring stay on the evaluator side. Native controller
@@ -112,11 +110,9 @@ grouping belong to the participant method.
 
 Complete [environment setup](environment/README.md), then copy
 [server.example.json](server.example.json) to an operator-owned file. Select the
-GPU, task scope/IDs, rendering track and budget before launch. The supplied
-example selects NavigateKitchen under `pilot`, the explicit
-`egl-owner-material-clamp-v1` visual track, and D=200/K=5 (1000 controls).
-To use its **450-control native reference**, change `budget_mode` to `horizon`
-and remove `max_policy_calls` and `replan_interval` from that copy.
+GPU, evaluation mode and rendering track before launch. The supplied example
+uses the fast mode with the explicit `egl-owner-material-clamp-v1` visual track.
+Each episode stops at its own task's native reference horizon.
 
 Supply `RSI_SIM_SERVER_TOKEN` privately to the server and trusted evaluator as
 described in the [connection guide](../SERVER_PROTOCOL.md#launch-and-connect).
@@ -139,7 +135,7 @@ must not be replayed.
 
 ## Results
 
-Report the selected task scope/IDs, seed, rendering and budget tracks, native
+Report the evaluation mode, selected cases, seed, rendering track and budget, native
 outcomes, actual decisions and controls, and errors. Keep agent configuration,
 usage and optional interaction/media records with the participant's results;
 see [result and recording guidance](../../../docs/evaluation.md#inspect-and-report).

@@ -44,24 +44,11 @@ GPU; do not mix rendering tracks in one process.
 ## Native readiness
 
 Run the [geometry-only lifecycle checks](RENDERING.md#geometry-only-validation)
-first. The following separate diagnostic performs native reset, one neutral
-action and media capture, with zero policy decisions:
-
-```sh
-python -B -m benchmarks.simBenchmarks.Robocasa_365.environment.diagnose \
-  --output /absolute/new-robocasa365-diagnostic \
-  --task OpenDrawer --seed 20260907 --gpu 0 \
-  --render-track egl-owner-material-clamp-v1
-```
-
-Inspect all three cameras and decode their videos. A fixed, nonadaptive
-controller-direction diagnostic is also available:
-
-```sh
-python -B -m benchmarks.simBenchmarks.Robocasa_365.environment.adapter_diagnose \
-  --output /absolute/new-robocasa365-direction-check --gpu 0 \
-  --render-track egl-owner-material-clamp-v1
-```
+first. Then check native reset and three-camera RGB through the service with the
+shared [readiness probe](../../SERVER_PROTOCOL.md#readiness-probe), using a
+dedicated `example` launch with the intended `render_track`. It claims and
+resets one episode, with no model calls or actions, and reports each camera's
+reset image shape.
 
 These are infrastructure checks, not participant capability attempts. Keep
 their outputs separate from scored evaluations.

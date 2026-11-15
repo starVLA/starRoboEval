@@ -23,11 +23,10 @@ require participants to adopt the reference repository's agent implementation.
 The accepted submitted quaternion is retained unchanged in action records;
 conversion to a rotation uses SciPy's quaternion interpretation, as upstream
 does. This is not repair of a target rejected by its declared tolerance.
-The v2 fixed DLS clips in float64 and casts the resulting command to float32,
-exactly as the reference does. It does not apply v1's extra one-ULP inward
-adjustment or revalidate converted joint targets against the old RGB/joint14
-decimal bounds. Native soft-limit intersection and per-control DLS bounds
-still apply before that documented numerical cast.
+The fixed DLS clips in float64 and casts the resulting command to float32,
+exactly as the reference does, without an inward one-ULP adjustment or a
+revalidation of converted joint targets. Native soft-limit intersection and
+per-control DLS bounds still apply before that documented numerical cast.
 
 ## Reject a command without ending the episode
 

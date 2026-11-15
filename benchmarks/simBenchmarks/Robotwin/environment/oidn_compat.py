@@ -24,7 +24,7 @@ from benchmarks.simBenchmarks.Robotwin.environment.deployment import digest
 
 TRACK = "oidn_2_3_3_cuda_v1"
 SNAPSHOT = Path(__file__).with_name("oidn_2_3_3_snapshot.json")
-SNAPSHOT_SHA256 = "71fa178236c878e0b2218a1cffe4f3570cbeae8466e1c2d95db49697e5c3be20"
+SNAPSHOT_SHA256 = "eeba6582e55741106684a4481951a8354148a43e17b22a1d35595a0428a14c13"
 LOADER_NOTICE = b"# RSI compatibility overlay: OIDN loader paths only, 2.0.1 to 2.3.3.\n"
 RECORD = "sapien-3.0.0b1.dist-info/RECORD"
 RECEIPT = "rsi-oidn-compatibility.json"
