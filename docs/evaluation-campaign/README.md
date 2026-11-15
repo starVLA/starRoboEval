@@ -83,8 +83,8 @@ RoboDojo 的 `classify_objects` 使用任务目录中预定义的五个 fast lay
 
 ```sh
 python -m pip install -e .
-python -B -m benchkit.sim_server.cli list
-python -B -m benchkit.sim_server.cli serve --benchmark simpler_env --help
+python -B -m benchkit list
+python -B -m benchkit serve --benchmark simpler_env --help
 ```
 
 这些命令不安装原生模拟器和资产，也不代替许可确认。随后：
@@ -130,7 +130,7 @@ python -B -m benchkit.sim_server.cli serve --benchmark simpler_env --help
 RSI_RUN_ID=google_robot_pick_horizontal_coke_can-horizontal-can-picking-native-v2-panel5-new
 RSI_RUN_ROOT="$PWD/AgentPolicies/gpt6_astra/results/simpler_env/raw/$RSI_RUN_ID"
 
-python -B -m benchkit.sim_server.cli serve --benchmark simpler_env \
+python -B -m benchkit serve --benchmark simpler_env \
   --parameters /absolute/path/to/simpler-server.json \
   --seed 0 --episodes 5 --port 8765 \
   --output-dir "$RSI_RUN_ROOT/server"

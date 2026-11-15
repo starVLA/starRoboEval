@@ -42,7 +42,7 @@ exactly one task/backend.
 
 ## Reset definitions and timing
 
-[simple_released_tasks.json](simple_released_tasks.json) pins registration entrypoints, task/robot UIDs, source hashes, backend, native horizon metadata, released instruction, DR0 metadata-file hash, which pins every released DR0 row, and exact serialized DR0 episode-0 environment-configuration hash. DR1/DR2 metadata files are not pinned; the worker records their observed hashes as unpinned. The worker verifies the selected runtime class, task/backend, horizon, reset and instruction against this inventory and [environment/upstream.json](../../environment/upstream.json).
+[simple_released_tasks.json](simple_released_tasks.json) pins registration entrypoints, task/robot UIDs, source hashes, backend, native horizon metadata, released instruction, DR0 metadata-file hash, which pins every released DR0 row, and exact serialized DR0 episode-0 environment-configuration hash. DR1/DR2 metadata files are pinned in [environment/upstream.json](../../environment/upstream.json). The worker verifies the selected runtime class, task/backend, horizon, reset and instruction against this inventory and [environment/upstream.json](../../environment/upstream.json).
 
 Backend selection follows the native environment/robot pair, not task-name suffix inference. `LocoManipulationEnv` with `g1_wholebody` uses AMO; `SonicLocoManipEnv` with `g1_sonic` uses SONIC. AMO executes ten 2 ms physics steps and SONIC four 5 ms steps per public 50 Hz control.
 

@@ -1,4 +1,4 @@
-"""Command-line entry point for catalog inspection and evaluation runs."""
+"""rsi-bench: the one command line for benchmark services, catalog, diagnostics and runs."""
 
 from __future__ import annotations
 
@@ -15,10 +15,11 @@ import sys
 from pathlib import Path
 from typing import Any, Iterator, Sequence
 
-from benchkit.catalog import load_catalog, validate_repository_catalog
 from benchkit.errors import InfrastructureError
-from benchkit.registry import create_policy, policy_names
-from AgentPolicies.gpt6_astra.tools.runner import EvaluationRunner, RunRequest
+from benchkit.sim_server.cli import SERVICE_COMMANDS, add_service_commands, run_service_command
+
+# Service commands run inside the benchmark service process, so the catalog,
+# diagnostic policies and driver are imported only by the commands that use them.
 
 SMOKE_BENCHMARK = "smoke-reach"  # descriptor.name of the synthetic service
 
@@ -37,18 +38,19 @@ def _repository_root() -> Path:
     return Path(__file__).resolve().parents[1]
 
 
-def build_parser() -> argparse.ArgumentParser:
-    """Create the CLI parser without importing simulator dependencies."""
-    parser = argparse.ArgumentParser(prog="starvla-eval", description="StarVLA-RSI embodied-agent evaluation")
+def build_parser() -> tuple[argparse.ArgumentParser, Any]:
+    """Create the parser and its subcommands without importing simulator dependencies."""
+    parser = argparse.ArgumentParser(prog="rsi-bench", allow_abbrev=False,
+                                     description="StarVLA-RSI benchmark services and evaluation tools")
     subparsers = parser.add_subparsers(dest="command", required=True)
+    add_service_commands(subparsers)  # list, serve, gateway, remote-run
 
     catalog_parser = subparsers.add_parser("catalog", help="list benchmark integration targets and status")
     catalog_parser.add_argument("--json", action="store_true", help="emit machine-readable JSON")
     catalog_parser.add_argument("--check", action="store_true", help="validate directories and protocol files")
 
-    list_parser = subparsers.add_parser(
-        "list", help="list the diagnostic policies for run --policy; rsi-bench list shows benchmark services")
-    list_parser.add_argument("--json", action="store_true")
+    policies_parser = subparsers.add_parser("policies", help="list the diagnostic policies for run --policy")
+    policies_parser.add_argument("--json", action="store_true")
 
     preflight_parser = subparsers.add_parser(
         "preflight-policy", help="check model-owned local runtime readiness without inference or a benchmark")
@@ -59,7 +61,7 @@ def build_parser() -> argparse.ArgumentParser:
         "run", help="run one diagnostic policy against a running benchmark service (rsi-bench serve)")
     run_parser.add_argument("--sim-server", required=True, help="evaluator-only http://127.0.0.1:port SIM endpoint")
     run_parser.add_argument("--benchmark", required=True, help="must equal the service's descriptor.name")
-    run_parser.add_argument("--policy", required=True, help="diagnostic policy name; see list")
+    run_parser.add_argument("--policy", required=True, help="diagnostic policy name; see policies")
     run_parser.add_argument("--sim-server-token-env", default="RSI_SIM_SERVER_TOKEN")
     run_parser.add_argument("--sim-server-timeout", type=float, default=1200.0)
     run_parser.add_argument("--policy-args", type=_json_object, default={})
@@ -87,10 +89,12 @@ def build_parser() -> argparse.ArgumentParser:
     smoke_parser.add_argument("--output-dir", type=Path, default=Path("results/rsi-smoke"))
     smoke_parser.add_argument("--episodes", type=int, default=3)
     smoke_parser.add_argument("--seed", type=int, default=0)
-    return parser
+    return parser, subparsers
 
 
 def _print_catalog(as_json: bool) -> None:
+    from benchkit.catalog import load_catalog
+
     entries = load_catalog()
     if as_json:
         print(json.dumps([entry.__dict__ | {"tags": list(entry.tags)} for entry in entries], indent=2))
@@ -102,6 +106,8 @@ def _print_catalog(as_json: bool) -> None:
 
 def _run(args: argparse.Namespace, endpoint: str, token: str) -> Path:
     """Connect to the benchmark service, then run the selected policy through the runner."""
+    from benchkit.diagnostics.registry import create_policy
+    from benchkit.driver.runner import EvaluationRunner, RunRequest
     from benchkit.sim_server.client import SimServerBenchmarkAdapter
 
     request = RunRequest(
@@ -163,7 +169,7 @@ def _smoke_service(output_dir: Path, seed: int, episodes: int) -> Iterator[tuple
 def _preflight(args: argparse.Namespace) -> int:
     """A model-only command: no run directory, benchmark import or request."""
     from benchkit.errors import PolicyPreflightError
-    from benchkit.model_profiles import preflight_profile
+    from benchkit.driver.model_profiles import preflight_profile
 
     code = None
     try:
@@ -179,8 +185,12 @@ def _preflight(args: argparse.Namespace) -> int:
 
 def main(argv: Sequence[str] | None = None) -> int:
     """Execute one CLI command and return a process status code."""
-    parser = build_parser()
-    args = parser.parse_args(argv)
+    parser, subparsers = build_parser()
+    args, remaining = parser.parse_known_args(argv)
+    if args.command in SERVICE_COMMANDS:
+        return run_service_command(subparsers, args, remaining)
+    if remaining:
+        parser.error("unrecognized arguments: " + " ".join(remaining))
     try:
         if args.command == "preflight-policy":
             return _preflight(args)
@@ -194,6 +204,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         if args.command == "catalog":
             _print_catalog(args.json)
             if args.check:
+                from benchkit.catalog import validate_repository_catalog
                 errors = validate_repository_catalog(_repository_root())
                 if errors:
                     for error in errors:
@@ -201,12 +212,12 @@ def main(argv: Sequence[str] | None = None) -> int:
                     return 1
                 print("catalog layout: OK", file=sys.stderr)
             return 0
-        if args.command == "list":
+        if args.command == "policies":
+            from benchkit.diagnostics.registry import policy_names
             if args.json:
                 print(json.dumps({"policies": policy_names()}, indent=2))
             else:
                 print(f"policies: {', '.join(policy_names())}")
-                print("benchmarks run as services: see rsi-bench list and starvla-eval catalog")
             return 0
         if args.command == "smoke":
             args.benchmark = SMOKE_BENCHMARK

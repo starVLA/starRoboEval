@@ -103,7 +103,7 @@ one sequential lane. A lane stops at its first engineering error (nonzero exit,
 unverified cleanup, or no opened episode); ordinary failures are results.
 `--case-file` fixes an explicit case order. The first start writes `plan.json`
 (profile, panel and the planned case IDs, before `--limit`); it is the
-denominator of a [publication](../README.md), and a rerun
+denominator of a [publication](../reports/README.md#publication), and a rerun
 that would plan other cases is refused. Rerunning with the same output
 directory skips completed cases and leases the others again, keeping each
 earlier attempt directory; an unreadable or inconsistent `completion.json`

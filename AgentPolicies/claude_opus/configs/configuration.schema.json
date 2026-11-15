@@ -1,0 +1,155 @@
+{
+  "schema_version": "starvla-rsi.configuration-schema/v2",
+  "profile_id": "claude_opus",
+  "runtime_preflight": true,
+  "fields": {
+    "schema_version": {
+      "type": "string",
+      "const": "starvla-rsi.model-config/v1"
+    },
+    "profile_id": {
+      "type": "string",
+      "const": "claude_opus"
+    },
+    "transport": {
+      "type": "string",
+      "const": "anthropic-messages/v1"
+    },
+    "model": {
+      "type": "string",
+      "const": "claude-opus-5-5"
+    },
+    "provider": {
+      "type": "string",
+      "const": "anthropic"
+    },
+    "effort": {
+      "type": "string",
+      "enum": ["low", "medium", "high", "xhigh", "max"]
+    },
+    "thinking": {
+      "type": "string",
+      "const": "adaptive"
+    },
+    "max_tokens": {
+      "type": "integer",
+      "minimum": 1024,
+      "maximum": 128000
+    },
+    "history": {
+      "type": "string",
+      "const": "persistent_same_episode_conversation"
+    },
+    "timeout_s": {
+      "type": "number",
+      "minimum": 0.001,
+      "maximum": 900
+    },
+    "max_chunk_length": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 32
+    },
+    "ordinary_give_up": {
+      "type": "boolean",
+      "const": false
+    },
+    "safety_stop": {
+      "type": "boolean"
+    },
+    "stagnation_review": {
+      "type": "boolean"
+    },
+    "allow_task_completion": {
+      "type": "boolean"
+    },
+    "stagnation_window": {
+      "type": "integer",
+      "minimum": 2,
+      "maximum": 32
+    },
+    "max_image_pixels": {
+      "type": "integer",
+      "const": 4194304
+    },
+    "image_max_edge": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 4096
+    },
+    "max_response_bytes": {
+      "type": "integer",
+      "const": 65536
+    },
+    "execution_history_decisions": {
+      "type": "integer",
+      "const": 8
+    },
+    "feedback_projection": {
+      "type": "string",
+      "const": "acknowledged_counters_and_actions_plus_declared_robot_state"
+    },
+    "initial_state_reference": {
+      "type": "string",
+      "const": "first_public_observation_not_action"
+    },
+    "context_editing": {
+      "type": "string",
+      "const": "clear_tool_uses_20250919"
+    },
+    "context_trigger_input_tokens": {
+      "type": "integer",
+      "minimum": 1000,
+      "maximum": 1000000
+    },
+    "context_keep_tool_uses": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 64
+    },
+    "context_clear_at_least_input_tokens": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 1000000
+    },
+    "context_clear_tool_inputs": {
+      "type": "boolean"
+    },
+    "prompt_caching": {
+      "type": "string",
+      "const": "system_breakpoint_plus_automatic_tail"
+    },
+    "completed_turn_continuations": {
+      "type": "integer",
+      "const": 2
+    },
+    "network_continuations": {
+      "type": "integer",
+      "const": 20
+    },
+    "network_backoff_s": {
+      "type": "integer",
+      "const": 10
+    },
+    "terminal_delivery": {
+      "type": "string",
+      "const": "cancel_without_continuation"
+    }
+  },
+  "factory_parameters": [
+    "prompt",
+    "effort",
+    "max_tokens",
+    "timeout_s",
+    "max_chunk_length",
+    "image_max_edge",
+    "safety_stop",
+    "stagnation_review",
+    "allow_task_completion",
+    "stagnation_window",
+    "context_trigger_input_tokens",
+    "context_keep_tool_uses",
+    "context_clear_at_least_input_tokens",
+    "context_clear_tool_inputs"
+  ]
+}

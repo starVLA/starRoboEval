@@ -1,4 +1,4 @@
-"""Atomic writers and runtime provenance for evaluation artifacts."""
+"""Atomic writers, no-follow reads and runtime provenance for evaluation artifacts."""
 
 from __future__ import annotations
 
@@ -72,6 +72,25 @@ def append_jsonl(path: Path, payload: Mapping[str, JsonValue]) -> None:
         handle.write("\n")
         handle.flush()
         os.fsync(handle.fileno())
+
+
+def open_no_follow(root: Path, relative: Path) -> int:
+    """Open a file below root through directory descriptors, never following symlinks.
+
+    A path-only O_NOFOLLOW on the final file does not protect its parent paths
+    if a directory is replaced by a symlink between a scan and the read.
+    """
+    directory_flags = os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW
+    descriptor = os.open(root, directory_flags)
+    try:
+        for part in relative.parts[:-1]:
+            child = os.open(part, directory_flags, dir_fd=descriptor)
+            os.close(descriptor)
+            descriptor = child
+        return os.open(relative.name, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK,
+                       dir_fd=descriptor)
+    finally:
+        os.close(descriptor)
 
 
 def _git_diff_digest(repository: Path, scope: str, *, max_bytes: int = 32 * 1024 * 1024,

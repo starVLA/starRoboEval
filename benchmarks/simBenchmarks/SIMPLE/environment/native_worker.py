@@ -198,7 +198,7 @@ class NativeRuntime:
         level_dir = f"dr-level-{self.dr_level}"
         data = Path(request["eval_root"]) / "simple-eval" / self.task_id / level_dir / "meta"
         reset_metadata = check_pinned_hash(data / "episodes.jsonl",
-            pins["reset_metadata_sha256"][self.task_id].get(level_dir))  # DR1/DR2: no pin yet
+            pins["reset_metadata_sha256"][self.task_id].get(level_dir))  # every level is pinned
         if self.dr_level == 0:  # the inventory binds DR0 only
             require_hash(data / "episodes.jsonl", config["reset_metadata_sha256"])
         require_hash(self.root / config["native_source"], config["native_source_sha256"])

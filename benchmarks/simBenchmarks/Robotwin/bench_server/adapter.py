@@ -15,8 +15,10 @@ from benchmarks.simBenchmarks.Robotwin.environment import runtime
 CAMERAS = ("head_camera", "left_camera", "right_camera")
 IMAGE_SHAPE = (240, 320, 3)
 NATIVE_HORIZON = 400
-PROTOCOL = "robotwin/{selection}/qpos14-rgb320-state14/{mode}/v1"  # no upstream Git pin; content inventory only
-COMPAT_PROTOCOL = "robotwin/{selection}/qpos14-rgb320-state14-oidn233/{mode}/v1"
+# No upstream Git pin: the pin segment is the native content inventory digest, shortened like a revision.
+PIN = f"robotwin-{runtime.NATIVE_INVENTORY_SHA256[:7]}"
+PROTOCOL = PIN + "/{selection}/qpos14-rgb320-state14/{mode}/v1"
+COMPAT_PROTOCOL = PIN + "/{selection}/qpos14-rgb320-state14-oidn233/{mode}/v1"
 EVALUATION_MODES = ("fast", "max", "example")  # fast: blog subset; example: first fast episode
 SELECTIONS = {"fast": "clean-fixed-seed", "example": "clean-fixed-seed",
               "max": "clean-expert-accepted-seeds"}  # max: expert-screened manifest seeds

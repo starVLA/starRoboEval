@@ -14,7 +14,7 @@ import sys
 import uuid
 
 from benchkit.contracts import ActionChunk, PolicyDecision, PolicyDescriptor
-from benchkit.model_profiles import validate_configuration
+from benchkit.driver.model_profiles import validate_configuration
 from benchkit.validation import validate_action_vector
 from AgentPolicies.gpt6_astra.tools.json_io import compact_json, reject_constant, strict_object, write_json
 from AgentPolicies.gpt6_astra.tools.persistent_runtime import TRANSPORT, PersistentRuntime, reject_action
@@ -300,7 +300,7 @@ class CodexNativePolicy(PersistentRuntime):
         return packet, attachments
 
 
-# The profile's factory (configs/profile.json); benchkit.model_profiles.create_policy calls it.
+# The profile's factory (configs/profile.json); benchkit.driver.model_profiles.create_policy calls it.
 def create_policy(*, config, schema, identity, prompt, **overrides):
     """Build the policy from the profile configuration and the given overrides, checked against the schema."""
     overrides = {key: value for key, value in overrides.items() if value is not None}  # None: option not given

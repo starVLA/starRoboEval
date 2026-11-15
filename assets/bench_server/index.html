@@ -532,10 +532,10 @@
 
         <pre><code>rsi-bench list
 rsi-bench serve --benchmark robodojo --help
-# 源码运行：python -m benchkit.sim_server.cli ...</code></pre>
+# 源码运行：python -m benchkit ...</code></pre>
         <p class="small">13 个仿真 Benchmark 已完成开发态服务集成，各自的任务覆盖与原生验收进度见<a href="../../benchmarks/simBenchmarks/SERVICE_SUPPORT.md">支持矩阵</a>。统一入口委托所选服务启动，任务、观测、动作和预算仍各自定义。</p>
         <p class="small">模型 Actor 与持有服务凭据的 trusted driver 分开；决策循环归 agent，原生接口与评分归服务。统一入口只负责启动选择，不增加中央决策层或长驻调度进程。</p>
-        <p class="small">本版不提供中央案例调度：服务声明 schedule，trusted driver 领取并执行案例，重跑时跳过已有 <code>completion.json</code> 的 case。插件平台、中央调度与统一 CLI、跨 benchmark 总榜是后续目标。</p>
+        <p class="small">本版不提供中央案例调度：服务声明 schedule，trusted driver 领取并执行案例，重跑时跳过已有 <code>completion.json</code> 的 case。插件平台、中央调度和跨 benchmark 总榜是后续目标。</p>
         <div class="architecture" role="img" aria-label="Agent 与所选 benchmark 服务两个控制端；原生环境位于服务边界内">
           <div class="arch-labels">
             <article class="arch-card">
@@ -828,7 +828,7 @@ rsi-bench serve --benchmark robodojo \
 ├── sim_server/                # 统一选择 / 启动与共享通信、会话
 ├── reports/interaction_history.py # 交互时间线 HTML / JSON
 ├── reports/basic_result.py   # 不要求交互日志的基础结果
-├── methods.py + recording.py # 方法声明与可选记录
+├── driver/                   # 可选受信任 runner、记录、方法声明与 profile 加载
 ├── catalog/                  # benchmark 声明
 ├── diagnostics/              # 非能力评测的基础设施检查
 ├── source_snapshot.py        # 服务端部署源码快照

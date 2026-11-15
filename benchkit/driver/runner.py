@@ -67,10 +67,10 @@ from benchkit.errors import (
 )
 from benchkit.interfaces import BenchmarkAdapter, EpisodeSession, Policy
 from benchkit.reports.run_summary import summarize_run
-from benchkit.recording import (
+from benchkit.driver.recording import (
     InteractionRecorder, RecordingOptions, public_error_record,
 )
-from benchkit.methods import (
+from benchkit.driver.methods import (
     USAGE_ACCOUNTING_VERSION, method_from_policy, normalize_method,
     normalize_component_usage, sum_component_usage,
 )
@@ -368,7 +368,7 @@ class _EpisodeRun:
         self.error: dict[str, JsonValue] | None = None  # record of the exception that ended the episode
 
     # Reading step 4 of 6: one episode. Each policy call in _call_policy goes to
-    # policy.act; the policy is CodexNativePolicy in codex_native.py.
+    # policy.act, e.g. CodexNativePolicy in AgentPolicies/gpt6_astra/codex_native.py.
     def run(self) -> dict[str, JsonValue]:
         self._event("episode_start", episode=self.episode.to_dict())
         try:

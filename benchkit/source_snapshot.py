@@ -15,7 +15,7 @@ import stat
 from pathlib import Path
 from typing import Mapping, Sequence
 
-from benchkit.artifacts import atomic_write_json
+from benchkit.artifacts import atomic_write_json, open_no_follow
 from benchkit.contracts import JsonValue
 from benchkit.errors import InfrastructureError
 
@@ -30,7 +30,9 @@ MAX_FILES = 2048
 # SUPPLEMENTAL_FILES inventory.
 SERVICE_SOURCE_FILES = (
     "benchkit/__init__.py",
+    "benchkit/__main__.py",
     "benchkit/artifacts.py",
+    "benchkit/cli.py",
     "benchkit/contracts.py",
     "benchkit/errors.py",
     "benchkit/interfaces.py",
@@ -62,7 +64,7 @@ def service_source_files(root: Path, max_files: int) -> list[tuple[Path, tuple[i
     selected = []
     for relative in sorted(SERVICE_SOURCE_FILES):
         try:
-            with os.fdopen(_open_source_file(root, Path(relative)), "rb") as handle:
+            with os.fdopen(open_no_follow(root, Path(relative)), "rb") as handle:
                 details = os.fstat(handle.fileno())
                 if not stat.S_ISREG(details.st_mode):
                     raise SourceSnapshotError(f"source must be regular: {relative}")
@@ -86,25 +88,6 @@ def inventory_digest(files: Sequence[Mapping[str, JsonValue]]) -> str:
 
 def _identity(details: os.stat_result) -> tuple[int, ...]:
     return (details.st_dev, details.st_ino, details.st_size, details.st_mtime_ns, details.st_ctime_ns)
-
-
-def _open_source_file(root: Path, relative: Path) -> int:
-    """Open through directory descriptors, never following source symlinks.
-
-    A path-only O_NOFOLLOW on the final file does not protect its parent paths
-    if a directory is replaced by a symlink after the inventory scan.
-    """
-    directory_flags = os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW
-    descriptor = os.open(root, directory_flags)
-    try:
-        for part in relative.parts[:-1]:
-            child = os.open(part, directory_flags, dir_fd=descriptor)
-            os.close(descriptor)
-            descriptor = child
-        return os.open(relative.name, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK,
-                       dir_fd=descriptor)
-    finally:
-        os.close(descriptor)
 
 
 def capture_harness_source(run_dir: Path, *, max_file_bytes: int = MAX_FILE_BYTES,
@@ -140,7 +123,7 @@ def capture_harness_source(run_dir: Path, *, max_file_bytes: int = MAX_FILE_BYTE
             raise SourceSnapshotError("service runtime has no capturable source files")
         for path, initial_identity in selected:
             relative = path.relative_to(root).as_posix()
-            descriptor = _open_source_file(root, path.relative_to(root))
+            descriptor = open_no_follow(root, path.relative_to(root))
             with os.fdopen(descriptor, "rb") as handle:
                 before = os.fstat(handle.fileno())
                 if not stat.S_ISREG(before.st_mode) or _identity(before) != initial_identity:

@@ -1,4 +1,4 @@
-"""Select a benchmark-owned service without importing native runtimes or models."""
+"""rsi-bench service subcommands: select a benchmark-owned service without importing native runtimes or models."""
 from __future__ import annotations
 
 import argparse
@@ -32,11 +32,12 @@ class _SingleBenchmark(argparse.Action):
         setattr(namespace, self.dest, value)
 
 
-def main(argv=None) -> int:
-    parser = argparse.ArgumentParser(
-        prog="rsi-bench", allow_abbrev=False,
-        description="List or launch a benchmark service for your agent's trusted driver.")
-    commands = parser.add_subparsers(dest="command", required=True)
+# Service subcommands pass their remaining arguments through to the selected module.
+SERVICE_COMMANDS = ("list", "serve", "gateway", "remote-run")
+
+
+def add_service_commands(commands) -> None:
+    """Add the service subcommands to rsi-bench (benchkit/cli.py)."""
     commands.add_parser("list", allow_abbrev=False, help="list implemented development services")
     serve = commands.add_parser(
         "serve", add_help=False, allow_abbrev=False, help="launch one benchmark-owned service",
@@ -49,13 +50,16 @@ def main(argv=None) -> int:
                         help="bench host: serve catalog cases as per-case services (see gateway --help)")
     commands.add_parser("remote-run", add_help=False, allow_abbrev=False,
                         help="agent host: run catalog cases through a forwarded gateway (see remote-run --help)")
-    args, remaining = parser.parse_known_args(argv)
+
+
+def run_service_command(commands, args, remaining) -> int:
+    """Run one service subcommand; commands is the subparsers action holding them."""
     if args.command in ("gateway", "remote-run"):
         module = "gateway" if args.command == "gateway" else "remote_run"
         return import_module("benchkit.sim_server." + module).main(remaining)
     if args.command == "list":
         if remaining:
-            parser.error("unrecognized arguments: " + " ".join(remaining))
+            commands.choices["list"].error("unrecognized arguments: " + " ".join(remaining))
         print("Development services; listing does not verify native readiness or full-suite support.")
         print("Documentation paths are repository-relative; installed wheels may omit these documents.")
         for identity, module in SERVICE_MODULES.items():
@@ -63,6 +67,7 @@ def main(argv=None) -> int:
             print(f"{identity}\t{guide}")
         return 0
 
+    serve = commands.choices["serve"]
     # parse_known_args preserves benchmark-owned arguments. Do not let an
     # abbreviated selector accidentally reach a different service's parser.
     for value in remaining:
@@ -77,7 +82,3 @@ def main(argv=None) -> int:
     # Selected help follows the same path: the existing launcher prints its
     # actual options before token validation, construction or output creation.
     return import_module(SERVICE_MODULES[args.benchmark]).main(remaining)
-
-
-if __name__ == "__main__":
-    raise SystemExit(main())

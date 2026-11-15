@@ -12,7 +12,7 @@ import time
 
 from benchkit.contracts import ActionRejectionFeedback, EpisodeUsage, ExecutionFeedback, Usage
 from benchkit.errors import ActionRejected, PolicyCallError, PolicyError, PolicyPreflightError
-from benchkit.recording import RecordingOptions
+from benchkit.driver.recording import RecordingOptions
 from benchkit.validation import ValidationIssue
 from AgentPolicies.gpt6_astra.tools.codex_app_server import TransportTimeout
 from AgentPolicies.gpt6_astra.tools.codex_config import (
@@ -312,7 +312,7 @@ class PersistentRuntime:
             "size_bytes": len(payload), "sha256": hashlib.sha256(payload).hexdigest()}
 
     def _export_public(self):
-        from benchkit.source_snapshot import _open_source_file
+        from benchkit.artifacts import open_no_follow
         # Images if images are recorded; packet JSON if interactions and model_io are.
         selected = {path: record for path, record in self.public_files.items()
                     if ((path.endswith(".png") and self.recording.images)
@@ -335,7 +335,7 @@ class PersistentRuntime:
         destination = self.audit / "public_observations"
         destination.mkdir()  # fails if an export already exists
         for relative, expected in selected.items():
-            descriptor = _open_source_file(self.public, Path(relative))  # follows no symlink on the path
+            descriptor = open_no_follow(self.public, Path(relative))  # follows no symlink on the path
             with os.fdopen(descriptor, "rb") as stream:
                 before = os.fstat(stream.fileno())
                 if not stat.S_ISREG(before.st_mode) or before.st_size != expected["size_bytes"]:

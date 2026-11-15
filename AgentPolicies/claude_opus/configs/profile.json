@@ -1,0 +1,15 @@
+{
+  "schema_version": "starvla-rsi.model-profile/v2",
+  "id": "claude_opus",
+  "display_name": "Native Claude Opus Policy",
+  "factory": "AgentPolicies.claude_opus.messages_native:create_policy",
+  "config": "configs/messages_native_config.json",
+  "configuration_schema": "configs/configuration.schema.json",
+  "prompt": "configs/messages_native_prompt.txt",
+  "policy": {
+    "name": "claude-opus-messages-native",
+    "kind": "direct-model",
+    "model": "claude-opus-5-5",
+    "provider": "anthropic"
+  }
+}

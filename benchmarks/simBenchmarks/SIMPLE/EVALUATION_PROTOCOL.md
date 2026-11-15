@@ -21,7 +21,7 @@ reports ten trials per task at each of three progressively varied distributions:
 | DR2 | DR1 plus target-object initial positions |
 
 For the 12 task packages referenced by this integration, the
-[released metadata](https://huggingface.co/datasets/USC-PSI-Lab/psi-data/tree/e78fb93cc28912a3031a10b8656d32d7f0a2b867/simple-eval)
+[released metadata](https://huggingface.co/datasets/USC-PSI-Lab/psi-data/tree/d473c674ee480cafaaa6045f68aa57713c9ba7ca/simple-eval)
 contains ten explicit episode indices 0–9 per level: **30 configurations per
 task, 360 across those 12 tasks**.
 Episode metadata fixes the reset configuration; a seed is not a replacement for
@@ -63,9 +63,8 @@ the 12 tasks takes 12 servers.
 
 Each level reads `<eval_root>/simple-eval/<task>/dr-level-<N>/meta/episodes.jsonl`.
 The released configurations embed `dr_level: 0` at every level, so the
-directory identifies the level. The worker compares the DR0 file with its pin.
-DR1 and DR2 files have no pin yet: the worker records their observed SHA-256
-with `pin: unpinned` in `native_provenance.json` and continues.
+directory identifies the level. The worker compares each level's file with its pin, taken from the linked
+revision, and records the result in `native_provenance.json`.
 
 ## Native timing
 

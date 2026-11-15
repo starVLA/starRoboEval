@@ -185,7 +185,7 @@ make check smoke PYTHON=python3
 
 ## 8. 发布前检查
 
-- 公共主线是选择 benchmark → agent 接入 → 查看交互和结果。`rsi-bench list` 列服务，`rsi-bench serve --benchmark <id> --help` 显示对应启动参数；源码运行可用 `python -m benchkit.sim_server.cli`。不是新增中央决策层，也不统一不同机器人的动作空间。
+- 公共主线是选择 benchmark → agent 接入 → 查看交互和结果。`rsi-bench list` 列服务，`rsi-bench serve --benchmark <id> --help` 显示对应启动参数；源码运行可用 `python -m benchkit`。不是新增中央决策层，也不统一不同机器人的动作空间。
 - 交互记录可选、默认启用，不是参评或发布门槛；[basic_result](../benchkit/reports/basic_result.py) 无事件／源码快照也能导出结果。客户端关闭保存不等于原生 server 停止录像；参见 [记录能力](recording.md)。
 - 当前默认长期视觉产物是 server 保存的原生视频，client 保存清单与位置引用，不自动下载第二份。帧图像在运行中仍可供模型使用；服务闭合并通过视频文件完整性与数量检查后才移除可清理帧，缺失视频时保留帧，清理失败时保留剩余帧并记录已移除项。服务 `--retain-frame-images` 和客户端 `--copy-server-media` 是分别配置的显式选项。
 - 公共文档不依赖 `project_readmes/`、个人绝对路径、SSH 别名或未说明的手工补丁。

@@ -44,8 +44,12 @@ and profile-registry integration are optional. The existing
   `gpt6-astra-codex-native`, preserving persistent Direct control and its
   optional completion and repeated-command settings;
   no alternate active methods or method-selection step.
-- `gpt6_astra/tools/runner.py`: reusable execution loop, also used by the
-  general CLI. Each profile keeps its own behavior settings.
+- [`claude_opus/`](claude_opus/README.md): one Messages API client,
+  `claude-opus-messages-native`, with the same persistent Direct control,
+  observation packet and stop settings, through one `robot_act` tool and
+  server-side context editing; it shares no code with `gpt6_astra/`.
+- `benchkit/driver/runner.py` (outside this directory): the shared execution loop that
+  every profile's `run.py` and the general CLI use. Each profile keeps its own behavior settings.
 
 The [Bench Server protocol skill](../docs/bench-server-protocol/SKILL.md)
 provides development-time integration guidance and a copyable single-case driver
@@ -61,7 +65,7 @@ a simulator handle, private scoring/state or change native task conditions.
 [`benchkit/`](../benchkit/README.md) provides shared communication, result, audit and reporting tools;
 it is not a mandatory control middle layer. Benchmark servers, adapters,
 environment tools, tasks and protocols belong under [`benchmarks/`](../benchmarks/simBenchmarks/README.md).
-Generic profile validation belongs to `benchkit/model_profiles.py`,
+Generic profile validation belongs to `benchkit/driver/model_profiles.py`,
 while actual model factories remain here.
 The server-only [`gpt6_astra/run.py`](gpt6_astra/run.py) entrypoint uses a trusted
 driver to retain fixed-schedule/admin/record access, distinct from the model

@@ -6,7 +6,7 @@ interface used by real methods. It performs no model inference and does not
 plan actions from observations. Its descriptor labels every run
 `infrastructure_validation_only`.
 
-Select it with `starvla-eval run --sim-server URL --policy constant`; action
+Select it with `rsi-bench run --sim-server URL --policy constant`; action
 validation, chunk length and execution budgets are unchanged. Using this policy with a native adapter can
 move the robot or simulator, so only run it as an explicitly authorized
 diagnostic with valid actions and environment safety checks. It is not a task
@@ -17,7 +17,8 @@ no `AgentPolicies.diagnostics` compatibility shim in the current source.
 
 `smoke.py` holds the synthetic reach world that `python -m benchkit.sim_server`
 serves and the scripted policy (`--policy scripted`) that `make smoke` runs
-against it through that service.
+against it through that service. `registry.py` maps the `--policy` names to
+the fixtures: `constant` to `constant.py` and `scripted` to `smoke.py`.
 
 `robot_state_hold.py` is an explicit one-control SIM-only sensor/target wiring
 check. The operator must first confirm that the identically named public sensor

@@ -12,18 +12,54 @@
   "hssd_repair_manifest_sha256": "9e27ce8e52c0db0857af5cb6da4d6d6b66797ba0b2b8fac0b6e004d902e119af",
   "released_task_inventory_sha256": "caf5d14a6a49f45941f6ea4bdf4a43e8adc460432ec947ab2b46d6e690c2383b",
   "reset_metadata_sha256": {
-    "G1WholebodyBendPickMP-v0": {"dr-level-0": "521bc985fa88569984b06f00ef36493fc56e89599eff0d4f6db16240efc7ceb6"},
-    "G1WholebodyCloseDoorTeleop-v0": {"dr-level-0": "9e34e27018b422015aedfb631de5f44b25caeeadca3476ba8a58912afaab55aa"},
-    "G1WholebodyHandoverTeleop-v0": {"dr-level-0": "bf07c8ba8d99c0d9fa6ee95aee8c9ce988a02c6dd530996e37836c618eb12be8"},
-    "G1WholebodyLocomotionPickBetweenTablesTeleop-v0": {"dr-level-0": "ac6a3d7f64a7a3db55321ab3d1a3371ff043cabc9b09b0d57c5a53c542fd9cf2"},
-    "G1WholebodyOpenFaucetTeleop-v0": {"dr-level-0": "55afcc3dd3e20e9c425ef8b27c7e72d7177b10bde93e8ebf91d854f50627ceac"},
-    "G1WholebodyOpenOvenTeleop-v0": {"dr-level-0": "7f3c6cb1927d42dffcc4bee84820955188a8b9d6f1a5e5f3ac8449c84a817b6f"},
-    "G1WholebodyOpenTrashCanTeleop-v0": {"dr-level-0": "4cdec278a7f7cbc8331c80ad7e4114e243fe56385561d51c566e565497d8c2f6"},
-    "G1WholebodyPickAndPlaceAndHugContainerTeleop-v0": {"dr-level-0": "28efc92e4cbc725439b4cddd2184adc38d04c953d69e42bb64a56cbcc6ee715d"},
-    "G1WholebodyPushOfficeChairTeleop-v0": {"dr-level-0": "4941031a52896870e6d7924ad04ae695b4cee273a62111ea4c8d92589e2406bb"},
-    "G1WholebodyTabletopGraspMP-v0": {"dr-level-0": "877ebb68eb13795ef82499f2b71cc508a036f3ff26ebff07f56fe510df87e173"},
-    "G1WholebodyXMoveBendPickTeleop-v0": {"dr-level-0": "e0467ce60e1b4dddd97e62fc1790cc644e937c469861e3d9acda91f43fdaeaf0"},
-    "G1WholebodyXMovePickTeleop-v0": {"dr-level-0": "9d00683983dbdc967551bcc792ec32cd25df4b3e705f577458feb5810b1930e3"}
+    "G1WholebodyBendPickMP-v0": {
+      "dr-level-0": "521bc985fa88569984b06f00ef36493fc56e89599eff0d4f6db16240efc7ceb6",
+      "dr-level-1": "d0df0d3df180e67ee80d7553b94aeafccbff2c889d513f692f4b4947aee0fb46",
+      "dr-level-2": "483b872dfa7bac3baa6f84df27ba20a91a5b626c8fbb3e898f2281a9bd6adc54"},
+    "G1WholebodyCloseDoorTeleop-v0": {
+      "dr-level-0": "9e34e27018b422015aedfb631de5f44b25caeeadca3476ba8a58912afaab55aa",
+      "dr-level-1": "0b8b5bf0b1ab4a0b1e285ab52b25513b79efff4afa73845479d124cd60e61f66",
+      "dr-level-2": "8f3b19669e5094dd70d908236a27a249f49e460de8d480026870136cf1c360ba"},
+    "G1WholebodyHandoverTeleop-v0": {
+      "dr-level-0": "bf07c8ba8d99c0d9fa6ee95aee8c9ce988a02c6dd530996e37836c618eb12be8",
+      "dr-level-1": "522f562f465c24df285edf2643b2d952f44e5fd82530bcff42c9815fd86629fe",
+      "dr-level-2": "0f62ea3003adbbd20b5b7489e5fcc24aad404a4fe3cdfb500efe99ed8701c0cd"},
+    "G1WholebodyLocomotionPickBetweenTablesTeleop-v0": {
+      "dr-level-0": "ac6a3d7f64a7a3db55321ab3d1a3371ff043cabc9b09b0d57c5a53c542fd9cf2",
+      "dr-level-1": "8ab31d73152ae8577581e30ecae06e1c88bc5416ab73075fac9324b7a4c7c312",
+      "dr-level-2": "60bbc35be1b6a5b380d196b9f1b65ae793efff252fdbad2342d5dcefa3c1397f"},
+    "G1WholebodyOpenFaucetTeleop-v0": {
+      "dr-level-0": "55afcc3dd3e20e9c425ef8b27c7e72d7177b10bde93e8ebf91d854f50627ceac",
+      "dr-level-1": "f40da60048f23488650adb70846e81049a5c62f96fb7b03857660ab6a16eb692",
+      "dr-level-2": "add7b9321b26a7c6adb89f0466ed3a58b64a8628802e9812942003e2e2914ebb"},
+    "G1WholebodyOpenOvenTeleop-v0": {
+      "dr-level-0": "7f3c6cb1927d42dffcc4bee84820955188a8b9d6f1a5e5f3ac8449c84a817b6f",
+      "dr-level-1": "92d227968416b1a40c0e355b2369946e79d1ddcba98b7d47ca217e1e73bca95b",
+      "dr-level-2": "fc455c5a88758cc0d5b60e6dedc2300a12d0f26b00593f2b2c25922a1dd185ab"},
+    "G1WholebodyOpenTrashCanTeleop-v0": {
+      "dr-level-0": "4cdec278a7f7cbc8331c80ad7e4114e243fe56385561d51c566e565497d8c2f6",
+      "dr-level-1": "4c8f44ae3afc2d06df77d67db63c8834e2f002a5783c84e24a70c09cd7e2f7c9",
+      "dr-level-2": "9e58518a792bf998d9643af33a96f2e537ca4febc88e9437ff2bcf78a8db723e"},
+    "G1WholebodyPickAndPlaceAndHugContainerTeleop-v0": {
+      "dr-level-0": "28efc92e4cbc725439b4cddd2184adc38d04c953d69e42bb64a56cbcc6ee715d",
+      "dr-level-1": "f0d7b8219dccc43aed2177a02c72a92697e473d8c12e33b883c02250d2d87c4b",
+      "dr-level-2": "36ee80cfb6f2b445451c1e31c80252f285a991819e6a5b6b68fc6354a1880554"},
+    "G1WholebodyPushOfficeChairTeleop-v0": {
+      "dr-level-0": "4941031a52896870e6d7924ad04ae695b4cee273a62111ea4c8d92589e2406bb",
+      "dr-level-1": "d0ebac1373d6b38956fde5a0fa679d88e3036c4bf6dadd70f307fb4f28b50fe9",
+      "dr-level-2": "f4f44e333e87ff010a7b45289205f2edc6c388c4c2b62c0f6380b4fe26b6219d"},
+    "G1WholebodyTabletopGraspMP-v0": {
+      "dr-level-0": "877ebb68eb13795ef82499f2b71cc508a036f3ff26ebff07f56fe510df87e173",
+      "dr-level-1": "e7df99209006bea009d4868046559f6c9e26fcb5c396d9527cafec8bff64f985",
+      "dr-level-2": "b1de529dbd93d784ada233f519c9acc1fe64194791b8c63c3ab5d78de7467eeb"},
+    "G1WholebodyXMoveBendPickTeleop-v0": {
+      "dr-level-0": "e0467ce60e1b4dddd97e62fc1790cc644e937c469861e3d9acda91f43fdaeaf0",
+      "dr-level-1": "87edc5adb03a3f87bb74cd5e3e613f4d92b6154aab58868012983417a5ade426",
+      "dr-level-2": "afc0bcb899c0981a8e69a98aebf19bd20f3cdbb3b31a57e746a963c9453e7fc5"},
+    "G1WholebodyXMovePickTeleop-v0": {
+      "dr-level-0": "9d00683983dbdc967551bcc792ec32cd25df4b3e705f577458feb5810b1930e3",
+      "dr-level-1": "6e3c981e46157e635e57e440ca096f722be67b5f703d636313b65aede0407e5e",
+      "dr-level-2": "155d397303641ed1ec7cbae05b9376411e22a4a9778026009f5107c78d3ad32b"}
   },
   "python_relative_default": ".venv/bin/python",
   "versions": {"python": "3.10.21", "isaacsim": "4.5.0.0", "mujoco": "3.3.6", "torch": "2.7.0+cu128", "numpy": "1.26.4"},

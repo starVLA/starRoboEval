@@ -85,7 +85,7 @@ dependencies separate from the service's Python 3.10+ environment.
 
 ```sh
 # Set RSI_SIM_SERVER_TOKEN privately for the trusted evaluator and server.
-python -B -m benchkit.sim_server.cli serve --benchmark vln_ce \
+python -B -m benchkit serve --benchmark vln_ce \
   --parameters /absolute/vlnce-server.json --seed 0 \
   --port 8765 --output-dir /absolute/new-run/server
 ```

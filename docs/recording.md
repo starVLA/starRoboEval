@@ -163,4 +163,4 @@ trajectory timeline from the ledger in every mode; without model IO it shows
 decisions without notes or structured output. It currently does not merge
 `agent_interactions.jsonl` or copy media. The result publication
 (`benchkit.reports.publication`) is described in the
-[benchkit README](../benchkit/README.md).
+[reports README](../benchkit/reports/README.md).

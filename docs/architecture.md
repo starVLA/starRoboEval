@@ -31,7 +31,7 @@ treatment of historical results and ignored local files.
 `rsi-bench list` shows the 14 implemented development service routes.
 `rsi-bench serve --benchmark <id> ...` selects one and delegates to its existing
 `server.main(argv)`. The source-checkout equivalent is
-`python -m benchkit.sim_server.cli`. The selector is a launch convenience, not a
+`python -m benchkit`. The selector is a launch convenience, not a
 new decision loop, proxy or persistent coordinator. Generic list/help needs no
 simulator; selected-service help shows that wrapper's real launch options.
 `python -m benchkit.sim_server` serves only the synthetic smoke world.
@@ -42,8 +42,8 @@ The selected adapter owns sensors, action semantics, task panel and scoring.
 VLN-CE provides an R2R RGB navigation service; hardware is not listed as an available service route. An implemented
 route does not prove asset readiness or full native validation.
 
-`EvaluationRunner` is not the server layer. The reusable runner lives on the
-**agent side**; benchmark services execute
+`EvaluationRunner` is not the server layer. The reusable runner is an optional
+**agent-side** trusted driver in `benchkit/driver/runner.py`; benchmark services execute
 given actions and return declared observations. Shared report tools sit beside
 this control path.
 
@@ -101,11 +101,11 @@ the same observation-to-decision interface. Idle service time does not schedule
 native control. Lost step acknowledgments never trigger automatic replay.
 
 The model-owned `AgentPolicies/gpt6_astra/run.py` entrypoint requires `--sim-server`
-and uses the reusable loop in `AgentPolicies/gpt6_astra/tools/runner.py`. It has no local
+and uses the reusable loop in `benchkit/driver/runner.py`. It has no local
 native fallback. This trusted driver is distinct from the model actor: the
 administrative client includes schedules, metrics and result export, and must
 not be passed to an untrusted policy process. The general CLI
-(`starvla-eval run`) also connects only through `--sim-server`. The service records its deployment source snapshot; the
+(`rsi-bench run`) also connects only through `--sim-server`. The service records its deployment source snapshot; the
 client records its git revision and dirty flag, without claiming loaded-memory,
 asset or provider attestation.
 
@@ -175,16 +175,16 @@ infrastructure diagnostic a participant model.
 ### Reusable execution and output tools
 
 `benchkit/contracts.py` and `interfaces.py` define the public types.
-`registry.py` names the shared diagnostic policies for `--policy`; benchmarks
+`benchkit/diagnostics/registry.py` names the shared diagnostic policies for `--policy`; benchmarks
 come only from their services.
-`AgentPolicies/gpt6_astra/tools/runner.py` validates compatibility and executes the
-agent's bounded action prefixes for the model driver and general CLI. It uses recording tools without moving
-the decision loop into `benchkit`. Native validation and end conditions remain
+`benchkit/driver/runner.py` validates compatibility and executes the agent's bounded
+action prefixes for every model driver and the general CLI. It calls `Policy.act`
+for decisions; the decisions themselves stay in each `AgentPolicies/<profile>/`. Native validation and end conditions remain
 authoritative on the server. `benchkit/sim_server/` is the single shared transport
 implementation, imported directly by both ends; there is no forwarding service
-package under `benchmarks`. Import the optional runner directly from
-`AgentPolicies.gpt6_astra.tools.runner`; the former benchkit runner bridge is removed.
-`model_profiles.py` reads self-describing `configs/profile.json` files, validates
+package under `benchmarks`. Import the optional runner from
+`benchkit.driver.runner`; there is no forwarding module under `AgentPolicies`.
+`benchkit/driver/model_profiles.py` reads self-describing `configs/profile.json` files, validates
 their configuration and factories, and records the profile ID; it does not
 implement a provider.
 

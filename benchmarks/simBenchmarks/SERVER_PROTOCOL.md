@@ -89,7 +89,7 @@ rsi-bench list
 rsi-bench serve --benchmark simpler_env --help
 ```
 
-Source-checkout equivalent: `python -B -m benchkit.sim_server.cli`. Its explicit
+Source-checkout equivalent: `python -B -m benchkit`. Its explicit
 service table delegates to the selected benchmark's `server.main(argv)`; it does not
 replace its factory, schedule constraints or source/asset capture. Generic help
 and listing import no benchmark modules. Selecting a service for help loads its

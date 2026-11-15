@@ -11,11 +11,12 @@ The current source uses these top-level packages:
 Update imports, deployment scripts and module invocations for **new runs**:
 
 ```sh
-python -m benchkit.sim_server.cli list
+python -m benchkit list
 python -m benchmarks.simBenchmarks.RoboDojo.server --help
 ```
 
-The installed commands `rsi-bench` and `starvla-eval` keep their names. Reinstall
+The one installed command is `rsi-bench`; `starvla-eval` is merged into it, and
+its `list` of diagnostic policies is now `rsi-bench policies`. Reinstall
 the package after updating the checkout (`pip install -e .` for development).
 There are no forwarding packages at the old import paths. Benchmark identifiers,
 wire protocols, native action semantics, scoring and execution budgets do not

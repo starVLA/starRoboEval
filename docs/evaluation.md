@@ -31,7 +31,7 @@ rsi-bench serve --benchmark simpler_env \
   --output-dir /absolute/new-run/server
 ```
 
-Without a console-script installation, use `python -B -m benchkit.sim_server.cli`
+Without a console-script installation, use `python -B -m benchkit`
 instead of `rsi-bench`. The token is supplied privately through
 `RSI_SIM_SERVER_TOKEN`, never through the model prompt. See the
 [wire protocol](../benchmarks/simBenchmarks/SERVER_PROTOCOL.md) for authentication
@@ -91,9 +91,9 @@ An independent driver can implement the [wire protocol](../benchmarks/simBenchma
 without a reference model profile or Python `Policy`.
 Keep claims, metrics, finalization and credentials on the trusted side; project
 only protocol-allowed inputs to the actor. See [method integration](agent-methods.md).
-The optional `benchkit run --sim-server` command uses the same agent-side runner,
+The optional `rsi-bench run --sim-server` command uses the same agent-side runner,
 not a separate benchmark-control implementation. It requires `--sim-server` and
-takes a diagnostic `--policy` (see `benchkit list`), not a model profile; run a
+takes a diagnostic `--policy` (see `rsi-bench policies`), not a model profile; run a
 model profile such as `gpt6_astra` with its own driver.
 
 Check a running service's readiness without a policy:

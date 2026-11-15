@@ -13,7 +13,7 @@ from pathlib import Path
 
 from benchkit.contracts import ActionChunk, PolicyDecision, PolicyDescriptor, Usage
 from benchkit.errors import PolicyError
-from AgentPolicies.gpt6_astra.tools.runner import EvaluationRunner, RunRequest
+from benchkit.driver.runner import EvaluationRunner, RunRequest
 from benchkit.sim_server.client import SimServerBenchmarkAdapter
 
 

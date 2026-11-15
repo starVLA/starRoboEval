@@ -21,7 +21,7 @@ from typing import Any
 
 PROFILE_SCHEMA = "starvla-rsi.model-profile/v2"
 _CONFIGURATION_SCHEMA = "starvla-rsi.configuration-schema/v2"
-_ROOT = Path(__file__).absolute().parents[1]
+_ROOT = Path(__file__).absolute().parents[2]
 # Config keys that bind a run to its declared policy; never overridable.
 _IDENTITY_CONFIG_KEYS = frozenset({"schema_version", "profile_id", "transport", "provider", "model"})
 _CREDENTIAL_FIELDS = frozenset({"api_key", "apikey", "authorization", "credentials", "credential",

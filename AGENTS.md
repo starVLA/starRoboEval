@@ -71,8 +71,8 @@ counted as policy failures.
 
 The primary control architecture has two ends, not a mandatory harness middle
 layer. Model-specific trusted evaluation entrypoints belong under
-`AgentPolicies/<profile>/`. The reusable `runner.py` lives under
-`AgentPolicies/gpt6_astra/tools/`; the general CLI reuses it. Old paths do not
+`AgentPolicies/<profile>/`. The reusable trusted driver is
+`benchkit/driver/runner.py`, shared by every profile and the general CLI. Old paths do not
 retain forwarding modules.
 Benchmark adapters, native runtime/asset helpers,
 task inventories and evaluation plans belong beside their protocols under
@@ -81,7 +81,7 @@ task inventories and evaluation plans belong beside their protocols under
 not model decisions or native task semantics. `benchkit/` also supplies result/data
 formats, recording, service source capture, audits and reporting tools. Report
 tools belong in `benchkit/reports` and benchmark metadata in `benchkit/catalog`.
-Import the optional runner directly from `AgentPolicies.gpt6_astra.tools.runner`.
+Import the optional runner from `benchkit.driver.runner`.
 Benchmark code owns task selection and native success; the model owns decisions.
 Preserve the uncertain-ACK/no-replay rule when extending scheduling.
 Plugin discovery, a comprehensive unified CLI and cross-benchmark leaderboards
@@ -98,9 +98,10 @@ diagnostics; no model inference or task-solving strategy belongs there.
 Connect-level readiness uses the shared `benchkit probe`; native-only readiness
 tools that bypass the service remain under the benchmark's `environment/`.
 
-Model-specific policy code/configuration and evaluation results belong under
-`AgentPolicies/<model-profile>/`; reusable execution utilities belong under
-`AgentPolicies/gpt6_astra/tools/`, with preferences declared by each profile.
+Model-specific policy code/configuration, execution utilities and evaluation
+results belong under `AgentPolicies/<model-profile>/`. Each profile keeps its own
+`tools/` and never imports another profile's code; shared evaluator code lives in
+`benchkit/`.
 New reports, coverage lists and videos use the model's `results/<benchmark>/`
 namespace. Historical anonymous trials remain data, not verified named-model
 scores. Preserve original run records and result bytes; relocation indexes and

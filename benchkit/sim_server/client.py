@@ -45,7 +45,7 @@ _VIDEO_SUFFIXES = frozenset({".mp4", ".webm", ".mkv", ".avi", ".mov"})
 
 def _retain_artifact(path, options):
     """Select client copies; native generation and the server inventory stay intact."""
-    from benchkit.recording import RecordingOptions
+    from benchkit.driver.recording import RecordingOptions
     options = options or RecordingOptions()
     name = PurePosixPath(path).name
     suffix = PurePosixPath(path).suffix.lower()
@@ -335,7 +335,7 @@ class RemoteEpisode:
         The mandatory evaluator-private receipt preserves the full inventory;
         selective copies do not satisfy an audit requiring all original bytes.
         """
-        from benchkit.recording import RecordingOptions
+        from benchkit.driver.recording import RecordingOptions
         if (self._recording is not None or self._artifact_dir is not None
                 or self._reset_attempted or self._finish_attempted):
             raise _failure("recording_configuration_already_set")
@@ -426,7 +426,7 @@ class RemoteEpisode:
             if result["session_id"] != self._session_id:
                 raise ValueError("session mismatch")
             files, mapping = self._inventory(result)
-            from benchkit.recording import RecordingOptions
+            from benchkit.driver.recording import RecordingOptions
             options = self._recording or RecordingOptions()
             selected = [file for file in files if _retain_artifact(file["path"], options)]
             selected_paths = {file["path"] for file in selected}

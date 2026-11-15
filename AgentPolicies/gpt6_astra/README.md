@@ -21,7 +21,6 @@ gpt6_astra/
 │   ├── profile.json               # Client identity and factory registration
 │   └── configuration.schema.json  # Parameter types and allowed overrides
 ├── tools/
-│   ├── runner.py                  # Reusable execution loop and accounting
 │   ├── persistent_runtime.py      # Conversation, execution feedback and recovery
 │   ├── public_observation.py      # Public observations and image processing
 │   ├── stagnation_review.py       # Optional repeated-command reminder
@@ -34,13 +33,13 @@ gpt6_astra/
 └── AGENTS.md                      # Development boundary
 ```
 
-The general CLI also reuses `tools/runner.py`; stopping preferences remain
-specific to each profile.
+The execution loop is the shared `benchkit/driver/runner.py`, also used by the general
+CLI; stopping preferences remain specific to each profile.
 
 Reading order, following one evaluation from the top:
 
 1. `run.py`: `main()` calls `run()`, which builds the policy, connects to the service and starts the runner.
-2. `tools/runner.py`: `EvaluationRunner.run` writes the run; `_EpisodeRun.run` plays one episode.
+2. `benchkit/driver/runner.py`: `EvaluationRunner.run` writes the run; `_EpisodeRun.run` plays one episode.
 3. `codex_native.py`: `CodexNativePolicy` defines what the model sees and how its reply becomes a decision.
 4. `tools/persistent_runtime.py`: `PersistentRuntime.act` carries one call through the Codex conversation.
 

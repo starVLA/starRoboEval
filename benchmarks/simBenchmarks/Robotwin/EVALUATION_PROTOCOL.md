@@ -130,9 +130,11 @@ configuration; only `lift_pot` and `click_bell` under `demo_clean` are
 deployable now.
 
 The protocol identity names the selection and the mode before its version:
-`robotwin/clean-fixed-seed/qpos14-rgb320-state14/fast/v1` (and `/example/v1`),
-`robotwin/clean-expert-accepted-seeds/qpos14-rgb320-state14/max/v1`
-(`...-state14-oidn233/<mode>/v1` for the OIDN 2.3.3 renderer track).
+`robotwin-ab5a73b/clean-fixed-seed/qpos14-rgb320-state14/fast/v1` (and `/example/v1`),
+`robotwin-ab5a73b/clean-expert-accepted-seeds/qpos14-rgb320-state14/max/v1`
+(`...-state14-oidn233/<mode>/v1` for the OIDN 2.3.3 renderer track). The archive
+has no Git revision, so `ab5a73b` is the start of its content inventory SHA-256
+(below).
 
 ## Service source and renderer requirements
 

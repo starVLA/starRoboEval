@@ -29,7 +29,7 @@ per level** in its reference comparisons:
 
 Released evaluation packages store explicit episode configurations. A task,
 DR level and episode index select a case; a new runtime seed alone is not
-another released episode. The [official evaluation data](https://huggingface.co/datasets/USC-PSI-Lab/psi-data/tree/e78fb93cc28912a3031a10b8656d32d7f0a2b867/simple-eval)
+another released episode. The [official evaluation data](https://huggingface.co/datasets/USC-PSI-Lab/psi-data/tree/d473c674ee480cafaaa6045f68aa57713c9ba7ca/simple-eval)
 contains indices 0–9 at each level for the 12 tasks in the service task table:
 30 configurations per task.
 
@@ -55,8 +55,8 @@ native success threshold (0.2–0.9), as the upstream evaluators do; see
 
 Each server runs exactly one task, so all 12 tasks need 12 servers, one per
 `task_names` entry; `task_names` narrows within the chosen mode. An omitted
-`task_names` selects BendPickMP, the first task in the table. The DR0 reset
-files are hash-pinned; DR1 and DR2 files are recorded as unpinned.
+`task_names` selects BendPickMP, the first task in the table. The reset
+files of all three DR levels are hash-pinned to the linked data revision.
 
 ## Observations and 36-dimensional actions
 

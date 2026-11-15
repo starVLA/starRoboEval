@@ -39,8 +39,9 @@ latency and cost when available; do not invent unknown values. There is no new
 universal reasoning/token/decision budget. Existing method-specific timeouts,
 feedback-loop caps and protocol-specific limits remain explicit configuration,
 not silently disabled. In particular the current
-[`gpt6-astra-codex-native` client](../AgentPolicies/gpt6_astra/README.md) requires
-a finite decision-call cap to bound invalid-action feedback.
+[`gpt6-astra-codex-native`](../AgentPolicies/gpt6_astra/README.md) and
+[`claude-opus-messages-native`](../AgentPolicies/claude_opus/README.md) clients
+require a finite decision-call cap to bound invalid-action feedback.
 
 ## Connect using the protocol
 
@@ -56,7 +57,7 @@ a finite decision-call cap to bound invalid-action feedback.
    interaction history is optional, default enabled where supported.
 
 Any language or framework can implement this protocol. The Python remote client,
-`Policy` interface and `AgentPolicies/gpt6_astra/tools/runner.py` are optional SDK
+`Policy` interface and `benchkit/driver/runner.py` are optional SDK
 conveniences. They are not prerequisites for participating. A new method does not
 require a copy of the simulator or a new benchmark server.
 

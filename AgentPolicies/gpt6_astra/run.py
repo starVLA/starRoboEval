@@ -14,11 +14,11 @@ import os
 from pathlib import Path
 
 from benchkit.errors import CompatibilityError, PolicyPreflightError, ProtocolError
-from benchkit.methods import normalize_method
-from benchkit.model_profiles import create_policy, preflight_policy
-from benchkit.recording import add_recording_arguments, recording_from_arguments
+from benchkit.driver.methods import normalize_method
+from benchkit.driver.model_profiles import create_policy, preflight_policy
+from benchkit.driver.recording import add_recording_arguments, recording_from_arguments
 from benchkit.sim_server.client import SimServerBenchmarkAdapter
-from AgentPolicies.gpt6_astra.tools.runner import EvaluationRunner, RunRequest
+from benchkit.driver.runner import EvaluationRunner, RunRequest
 
 PROFILE = "gpt6_astra"  # benchkit loads AgentPolicies/gpt6_astra/configs/profile.json
 REPOSITORY = Path(__file__).absolute().parents[2]  # repository root; the manifest records its git revision
@@ -67,7 +67,7 @@ def build_parser():
 
 
 # Reading step 2 of 6: build the policy, connect to the service, then hand over to
-# EvaluationRunner.run in tools/runner.py.
+# EvaluationRunner.run in benchkit/driver/runner.py.
 def run(args):
     recording = recording_from_arguments(args)  # which interactions, images and artifacts are kept
     method = _read_method(args.method_file)

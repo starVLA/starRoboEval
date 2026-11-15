@@ -129,7 +129,7 @@ def task_contract(task: str, *, evaluation_mode: str = "fast", proprioception: b
             "native_success_threshold": NATIVE_SUCCESS_THRESHOLDS[task],  # native reward >= threshold
             "track": descriptor.protocol_version, "task_inventory_sha256": INVENTORY_SHA256,
             "native_task_uid": config["task_uid"], "native_backend": backend,
-            # The DR0 file hash pins every released row; DR1/DR2 files are hashed as unpinned at reset.
+            # The DR0 file hash pins every released row; upstream.json pins the DR1/DR2 files too.
             "reset_metadata_sha256": config["reset_metadata_sha256"] if level == 0 else None})
         for level, indices in MODE_SELECTION[evaluation_mode] for index in indices)
     return descriptor, episodes, action_spec, observation_spec

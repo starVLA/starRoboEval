@@ -14,8 +14,8 @@ import time
 from benchkit.artifacts import append_jsonl, atomic_write_json, utc_now
 from benchkit.contracts import Usage, ensure_jsonable
 from benchkit.errors import ActionRejected, ProtocolError
-from benchkit.methods import normalize_method, normalize_usage, normalize_component_usage, sum_component_usage
-from benchkit.recording import InteractionRecorder, RecordingOptions
+from benchkit.driver.methods import normalize_method, normalize_usage, normalize_component_usage, sum_component_usage
+from benchkit.driver.recording import InteractionRecorder, RecordingOptions
 from benchkit.reports.run_summary import summarize_run
 
 

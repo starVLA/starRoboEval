@@ -69,7 +69,7 @@ seed, method declaration and unused output path have already been supplied by th
 trusted entrypoint. It is not a standalone evaluation preset:
 
 ```python
-from benchkit.recording import RecordingOptions
+from benchkit.driver.recording import RecordingOptions
 from benchkit.sim_server.client import SimServerBenchmarkAdapter
 from AgentPolicies.my_method.tools.protocol_driver import run_one
 from AgentPolicies.my_method.actor_bridge import decide

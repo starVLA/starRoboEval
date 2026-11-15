@@ -17,7 +17,7 @@ import re
 import tempfile
 
 from benchkit.audits.closed_run import ClosedFiles, counter, require
-from benchkit.methods import (USAGE_FIELDS, normalize_method, normalize_usage,
+from benchkit.driver.methods import (USAGE_FIELDS, normalize_method, normalize_usage,
                              normalize_component_usage, sum_component_usage)
 
 SCHEMA = "starvla-rsi.basic-result/v1"

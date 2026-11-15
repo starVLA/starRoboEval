@@ -42,7 +42,7 @@ For dependency-free infrastructure checks (no native robot or model request):
 
 ```sh
 python -B -m benchkit catalog --check
-python -B -m benchkit list
+python -B -m benchkit policies
 python -B -m benchkit smoke --episodes 3 --seed 7
 ```
 
@@ -70,7 +70,7 @@ benchkit/                              shared communication and result/output to
   sim_server/                         service selector, transport and session lifecycle
   reports/interaction_history.py       closed-run interaction HTML / JSON export
   reports/basic_result.py              outcome view without required interaction logs
-  methods.py / recording.py            method declarations and optional record helpers
+  driver/                             optional trusted runner, records, methods and profile loading
   catalog/                            benchmark metadata, not native adapters
   diagnostics/                        non-capability infrastructure diagnostics
 benchmarks/
@@ -80,8 +80,8 @@ benchmarks/
 AgentPolicies/
   <method-profile>/                    policy, model composition, prompts and dependencies
     run.py                             model-owned trusted evaluation entrypoint, where implemented
+    tools/                             the profile's own runtime helpers, not shared across profiles
     results/<benchmark>/               local evaluation outputs; Git-ignored
-  gpt6_astra/tools/                    reusable runner and runtime helpers
 docs/                                 public design and usage guides
   bench-server-protocol/
     SKILL.md                           agent driver integration workflow

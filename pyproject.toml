@@ -32,14 +32,14 @@ classifiers = [
 dependencies = []
 
 [project.scripts]
-starvla-eval = "benchkit.cli:main"
-rsi-bench = "benchkit.sim_server.cli:main"
+rsi-bench = "benchkit.cli:main"
 
 [project.optional-dependencies]
 dev = ["ruff>=0.2.2"]
 sim-client = ["numpy"]
 gpt6-astra = ["numpy", "Pillow"]
 gpt6-astra-codex = ["numpy", "Pillow"]
+claude-opus = ["anthropic>=0.125,<1", "numpy", "Pillow"]
 
 [tool.setuptools.packages.find]
 where = ["."]
@@ -47,6 +47,7 @@ include = [
     "benchkit", "benchkit.*",
     "AgentPolicies", "AgentPolicies.gpt6_astra",
     "AgentPolicies.gpt6_astra.tools",
+    "AgentPolicies.claude_opus", "AgentPolicies.claude_opus.tools",
     "benchmarks", "benchmarks.simBenchmarks",
     "benchmarks.simBenchmarks.SimplerEnv", "benchmarks.simBenchmarks.SimplerEnv.environment",
     "benchmarks.simBenchmarks.SimplerEnv.bench_server", "benchmarks.simBenchmarks.SimplerEnv.bench_server.protocol",
@@ -105,6 +106,7 @@ exclude = [
 "benchmarks.simBenchmarks.calvin.bench_server.protocol" = ["single_task_panel.json", "long_horizon_sequences.json"]
 "benchmarks.simBenchmarks.calvin.environment" = ["runtime_snapshot.json", "requirements-rgb-setup.txt"]
 "AgentPolicies.gpt6_astra" = ["configs/*.json", "configs/*.txt"]
+"AgentPolicies.claude_opus" = ["configs/*.json", "configs/*.txt"]
 
 [tool.ruff]
 line-length = 121
