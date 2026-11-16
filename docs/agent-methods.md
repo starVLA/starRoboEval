@@ -1,10 +1,67 @@
-# Evaluate an agent method
+# Add and evaluate an agentic policy
 
-The unit of evaluation is a complete method: its general-purpose models,
+An agentic policy is evaluated as a complete method: its general-purpose models,
 prompts, memory, tools, planning and action-generation behavior. Single-model,
 fixed-prompt policies remain useful baselines. Publish comparisons within a
 benchmark and protocol, with method differences explicit; this repository does
 not yet define a cross-benchmark aggregate leaderboard.
+
+## Add your policy
+
+Create `AgentPolicies/<your_method>/` and keep the method's implementation,
+configuration, dependencies and usage instructions together. The directory names
+the method; it can use one model or several general-purpose models. Adding a
+method normally leaves benchmark services and shared evaluation code unchanged.
+
+A Python method can use this layout. Keep only the optional folders it needs:
+
+```text
+AgentPolicies/my_agent/
+├── README.md       # Dependencies, configuration and launch command
+├── __init__.py
+├── run.py          # Trusted entrypoint connecting to a benchmark service
+├── policy.py       # Observation-to-action decision logic
+├── configs/        # Method configuration and prompts
+├── tools/          # Optional method helpers
+└── results/        # Local outputs by benchmark; Git-ignored
+```
+
+Install the method's dependencies, then invoke its own entrypoint from the
+repository root, such as `python -m AgentPolicies.my_agent.run`. Its README must
+document the required service endpoint, credential setup, case selection and
+output arguments. The existing [agentic policies](../AgentPolicies/README.md#existing-clients)
+provide working entrypoints for their own methods.
+
+Choose the integration that fits your method:
+
+- **Shared Python runner:** implement the [Policy interface](../benchkit/interfaces.py),
+  construct your policy in `run.py`, and connect with
+  [SimServerBenchmarkAdapter](../benchkit/sim_server/client.py).
+  Call [EvaluationRunner](../benchkit/driver/runner.py) with the policy, client and
+  an explicit `RunRequest` for the selected schedule and budgets. The runner
+  handles execution, closure, counters and result files.
+- **Your own driver:** implement the [service protocol](../benchmarks/simBenchmarks/SERVER_PROTOCOL.md)
+  and [closed result format](result-format.md) in your chosen language or framework.
+  Your method owns its decision loop and accounting.
+
+### Optional profile loading
+
+The Python profile loader reads `AgentPolicies/<id>/configs/profile.json` directly;
+there is no central model list to edit. To use it, declare a factory within your
+method's namespace, plus its config, configuration schema and prompt files.
+Follow the [profile format](../benchkit/driver/model_profiles.py) and use a lowercase
+identifier such as `my_agent`. Instantiating your policy directly does not require
+these profile files.
+
+Use your method's entrypoint to run evaluations. `rsi-bench run --policy` selects
+infrastructure diagnostics; it does not launch arbitrary agentic policies.
+`rsi-bench preflight-policy --model-profile <id>` supports profiles that implement the
+optional readiness check.
+
+Source-checkout use needs no packaging registration. To include a new Python
+method in the repository's built wheel, also add its packages and configuration
+files to [pyproject.toml](../pyproject.toml), which currently lists the supplied
+profiles explicitly. Keep installation requirements in the method's README.
 
 ## Two control ends
 
@@ -15,9 +72,8 @@ not yet define a cross-benchmark aggregate leaderboard.
 - `benchkit/`: shared transport, case leasing, data formats, optional recorders and reports;
   not a mandatory third process or a central model proxy.
 
-Scheduling organizes selected cases, not the agent's thoughts or actions.
-Central campaign scheduling is not part of this version. See
-[workflow choices](evaluation.md#choose-a-workflow).
+Case selection and scheduling remain separate from policy decisions. See the
+[evaluation workflow](evaluation.md#choose-a-workflow).
 
 Direct control constrains environment access and robot execution, not internal
 reasoning. A method may use several declared general-purpose models and tools
@@ -27,12 +83,11 @@ or a server-side task solver. Fixed robot-only/native low-level execution remain
 benchmark-owned. Tool/network availability and cross-episode memory restrictions
 must still follow the selected protocol and declared deployment configuration.
 
-Check the selected track before comparing methods. Some existing benchmark
-documents, notably SimplerEnv's single-request track, still specify
-narrower interaction or evidence conditions. The open-method framework does not
-retroactively relax those conditions or relabel their results. Reconciling that
-track requires an explicit version decision before an agentic-method comparison;
-it is not achieved by changing a prompt or this general guide.
+Check the selected track before comparing methods. For example,
+[SimplerEnv](../benchmarks/simBenchmarks/SimplerEnv/EVALUATION_PROTOCOL.md#agent-method-setting)
+supports `interaction_mode="agent_method"` for multiple model calls and local
+tools within a decision. Its default `single_response` setting has a different
+request limit. Select and record the intended setting before evaluation.
 
 Use benchmark-native execution conditions. Report inference requests, tokens,
 latency and cost when available; do not invent unknown values. There is no new
@@ -45,31 +100,24 @@ require a finite decision-call cap to bound invalid-action feedback.
 
 ## Connect using the protocol
 
-1. Install the benchmark's documented native environment and assets. Choose the
-   protocol and fixed schedule, then launch `rsi-bench serve --benchmark <id> ...`.
-2. Implement the [authenticated JSON protocol](../benchmarks/simBenchmarks/SERVER_PROTOCOL.md)
-   in your trusted driver. `describe` supplies the actual observation/action
-   contract. Claim each selected episode once; obey sequencing, native budgets,
+1. Obtain an existing service endpoint, private credential and declared case
+   selection from its operator. If you also operate the service, follow the
+   benchmark's setup guide and launch it with `rsi-bench serve --benchmark <id> ...`.
+   Connecting a policy does not require installing the simulator on the agent host.
+2. Connect from your trusted driver using the shared client or the
+   [authenticated JSON protocol](../benchmarks/simBenchmarks/SERVER_PROTOCOL.md).
+   `describe` supplies the actual observation/action contract.
+   Claim each selected episode once; obey sequencing, native budgets,
    termination and uncertain-ACK/no-replay rules.
 3. Expose only declared observations and robot actions to the actor. Do not give
    it the administrative client, credentials, private metrics or native handles.
 4. Close/finalize every attempt and emit essential result records. Detailed
    interaction history is optional, default enabled where supported.
 
-Any language or framework can implement this protocol. The Python remote client,
-`Policy` interface and `benchkit/driver/runner.py` are optional SDK
-conveniences. They are not prerequisites for participating. A new method does not
-require a copy of the simulator or a new benchmark server.
-
-For development-time integration guidance, use the
-[Bench Server protocol skill](bench-server-protocol/SKILL.md).
-It provides the workflow and a copyable single-case driver template, rather than
-an `AgentPolicies` runtime package. The template owns a loop without the profile
-registry or Python `Policy` and writes basic-result-compatible records. Copy it
-into your method namespace when adapting it; it bundles no actor or registered model.
-It deliberately accepts only a complete single-case service schedule with horizon
-mode and prefix one. These are template boundaries, not general protocol limits
-or support for a RoboDojo panel. No native/model result is claimed.
+The [Bench Server protocol skill](bench-server-protocol/SKILL.md) provides optional
+implementation notes and a single-case educational driver. Review and adapt that
+example before using it; it implements a narrower execution and accounting path
+than the shared runner.
 
 ### Administrative access is not an actor tool
 
@@ -154,8 +202,9 @@ clamping it; see [result format](result-format.md#episode-result).
 
 ## Results are independent of detailed logging
 
-Read [recording and basic results](recording.md) for minimal/standard modes and
-the closed-result contract. An external driver may emit that JSON layout without
+Read [recording options](recording.md) for minimal/standard modes and
+[result format](result-format.md) for the closed-result contract.
+An external driver may emit that JSON layout without
 importing the Python runner. Source hashes and deep audits remain optional
 internal support, not public eligibility requirements. Failures, errors and the
 preselected denominator must still be retained. Do not attribute all method

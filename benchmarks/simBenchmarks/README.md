@@ -1,9 +1,10 @@
 # Simulation benchmarks
 
-This directory defines benchmark-owned environments, task selections, robot
-interfaces and native scoring. Each implemented integration exposes a Bench
-Server that any compatible agent method can use. It does not select a model,
-prompt, planner or decision strategy.
+This directory contains the simulation benchmark integrations for
+[starRoboEval](../../README.md). Each integration owns its environment, task
+selection, robot interfaces and native scoring, and exposes a benchmark service
+for compatible agent methods. Models, prompts, planning and action decisions
+belong to the agent method.
 
 The common service standardizes communication and lifecycle, not the robot's
 capabilities: manipulation, humanoid control and navigation keep their own

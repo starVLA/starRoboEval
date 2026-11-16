@@ -6,10 +6,11 @@ The driver must still use the [benchmark service protocol](../benchmarks/simBenc
 claims, native execution, scoring and no-replay rules are unchanged. Model actors
 must not receive the administrative client or private scoring data.
 
-This is the existing `starvla-rsi.eval/v1` client-run contract, with optional
-method and recording declarations. A conforming file is a **reported result**,
-not independent proof of native execution or model/provider identity. The basic
-exporter checks closed-record consistency; full integrity audits are separate.
+This is the existing `starvla-rsi.eval/v1` client-run contract. The manifest
+requires a method object; detailed recording declarations are optional. A
+conforming file is a **reported result**, not independent proof of native
+execution or model/provider identity. The basic exporter checks closed-record
+consistency; full integrity audits are separate.
 
 ## Files
 
@@ -43,11 +44,13 @@ Required fields and their meanings:
 | `run_id` | Nonempty run identity, also used by the summary |
 | `benchmark` | `name`, `version`, `protocol_version`, `source_revision`; copy recorded service declarations, do not infer from today's checkout |
 | `policy` | At least a declared `name`; legacy `kind`, `model`, `provider`, `version` may also be present |
+| `method` | A `starvla-rsi.method/v1` object identifying the method and its declared model components; see below |
+| `method_origin` | `participant_declaration` for an explicit method declaration, or `policy_descriptor_projection` when derived from a policy descriptor |
 | `action_spec` | Service-declared `mode`, positive `size`, `names`, optional `low`/`high`, `control_hz`, `frame`, `rotation`, `gripper` |
 | `observation_spec` | Service-declared `cameras`, `state_names`, `modalities`, `privileged: false`, optional `control_feedback_schema` |
 | `protocol` | Selected `episode_ids`, positive `max_steps`, `max_policy_calls` (positive integer or null), `replan_interval` (positive integer or null), `fail_fast` (boolean); retain actual budget/track declarations. A run may add the service's `service_environment_step_cap` (positive integer or null) and `max_steps_overridden` (boolean: no service cap, or `max_steps` differs from it), and likewise `service_max_policy_calls` (positive integer or null) and `max_policy_calls_overridden` (boolean: `max_policy_calls` differs from it) |
 
-Optional public method declaration:
+Example public method declaration inside `manifest.json`:
 
 ```json
 {
@@ -74,8 +77,10 @@ Credential-named fields and absolute paths are rejected, but validation is not
 general secret detection: review before publication.
 
 The reference runner projects `PolicyDescriptor` identity when no method file
-is supplied, using `method_origin: policy_descriptor_projection`. Arbitrary
-policy parameters are not copied. The report labels that configuration as not
+is supplied, using `method_origin: policy_descriptor_projection`. Supplying a
+method file is optional; the resulting manifest always contains `method`, and
+an independent driver must write it too. Arbitrary policy parameters are not
+copied. The report labels that configuration as not
 supplied, rather than claiming an empty object is a complete method definition.
 
 For multi-call method accounting, the reference runner records
@@ -104,6 +109,7 @@ One synthetic example, with no inference usage claimed:
   "reward_sum": 0.0,
   "usage": {"calls": null, "input_tokens": null, "output_tokens": null,
             "cached_input_tokens": null, "estimated_cost_usd": null, "latency_s": null},
+  "component_usage": {},
   "usage_reported_complete": null,
   "usage_inconsistent_fields": null,
   "metrics": {"success": false, "score": 40},
@@ -156,11 +162,14 @@ Without the hook both are null, there is no such event, and `usage` is the
 per-call sum. Per-call usage therefore need not add up to episode usage, and
 `component_usage` is not reconciled.
 
-Optional `component_usage` maps declared model component IDs to the same six
-usage fields. Missing components/fields are unknown, never zero or a share of
-aggregate usage. The reference runner sums per-field values with unknown
-propagation. `latency_s` is reported usage latency, while `duration_s` is episode
-wall time; parallel models can have different latency and wall-time totals.
+Per-component reporting is optional. The episode's `component_usage` maps
+declared model component IDs to the same six usage fields. The reference runner
+writes this object; the basic exporter also accepts an omitted or null episode
+field. Missing components/fields, including those in the empty example above,
+are unknown, never zero or a share of aggregate usage. The reference runner sums
+per-field values with unknown propagation. `latency_s` is reported usage latency,
+while `duration_s` is episode wall time; parallel models can have different
+latency and wall-time totals.
 
 Optional `recording` uses the reference settings:
 
@@ -185,12 +194,17 @@ deleted or retried.
 `summary.json` repeats `run_id`, `benchmark` (name), `policy` (name), and totals
 for `attempted`, `completed`, `errors`, `successes`, `policy_calls`,
 `rejected_actions`, and the six-field aggregate `usage` object.
-`usage_incomplete_episodes` counts episodes with `usage_reported_complete: false`
-or a nonempty `usage_inconsistent_fields`; while it is above zero the usage
-totals are not final. Optional `component_usage` must agree with episode totals.
-Unknown propagates when summing usage. When both are known, cached input tokens cannot exceed input
-tokens. Optional `success_rate`, `attempt_success_rate`, `selected_success_rate`
-and `completion_rate` must agree with the recorded counts; boolean rates are invalid.
+The required `usage_incomplete_episodes` counts episodes with
+`usage_reported_complete: false` or a nonempty `usage_inconsistent_fields`;
+while it is above zero the usage totals are not final. The summary's
+`component_usage` object is also required, even when per-component measurements
+are unavailable. Use `{}` when no model components are declared; missing
+component measurements remain unknown. After normalization, it must agree with
+the per-component episode totals.
+Unknown propagates when summing usage. When both are known, cached input tokens
+cannot exceed input tokens. Optional `success_rate`, `attempt_success_rate`,
+`selected_success_rate` and `completion_rate` must agree with the recorded counts;
+boolean rates are invalid.
 
 The basic report prominently shows **successes / selected cases**
 (`selected_success_rate`), retaining errors and unattempted selected cases in

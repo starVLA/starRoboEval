@@ -1,0 +1,55 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1500" height="420" viewBox="0 0 1500 420" role="img" aria-labelledby="title desc">
+  <title id="title">From your agent to native benchmark results</title>
+  <desc id="desc">Three numbered workflow stages: choose a benchmark and its selected tasks, sensors and actions; connect an agent method using the optional shared Python runner or its own protocol driver; review native outcomes, execution records and measured inference usage. The stages describe onboarding, not three required runtime processes.</desc>
+  <defs>
+    <marker id="next" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M0 0 L10 5 L0 10Z" fill="#536681"/>
+    </marker>
+    <style>
+      text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif; fill: #17283e; }
+      .heading { font-size: 28px; font-weight: 700; }
+      .body { font-size: 24px; }
+      .small { font-size: 21px; fill: #536681; }
+      .code { font-family: Menlo, Consolas, monospace; font-size: 21px; }
+      .number { font-size: 23px; font-weight: 700; fill: #177d91; text-anchor: middle; }
+      .arrow { fill: none; stroke: #536681; stroke-width: 2.5; marker-end: url(#next); }
+    </style>
+  </defs>
+
+  <rect width="1500" height="420" fill="#f5f7fb"/>
+  <rect x="40" y="30" width="5" height="44" rx="2.5" fill="#177d91"/>
+  <text x="62" y="62" font-size="34" font-weight="700">From your agent to native benchmark results</text>
+
+  <rect x="40" y="106" width="440" height="254" rx="18" fill="white" stroke="#9bbce2" stroke-width="2"/>
+  <circle cx="79" cy="149" r="22" fill="#edf4ff"/>
+  <text x="79" y="157" class="number">1</text>
+  <text x="115" y="159" class="heading">Choose a benchmark</text>
+  <text x="68" y="212" class="body">Select tasks and cases</text>
+  <text x="68" y="250" class="body">Inspect declared sensors</text>
+  <text x="68" y="283" class="body">and robot actions</text>
+  <text x="68" y="331" class="small">Declared evaluation conditions</text>
+
+  <path class="arrow" d="M490 234H518"/>
+
+  <rect x="530" y="106" width="440" height="254" rx="18" fill="white" stroke="#9bbce2" stroke-width="2"/>
+  <circle cx="569" cy="149" r="22" fill="#edf4ff"/>
+  <text x="569" y="157" class="number">2</text>
+  <text x="605" y="159" class="heading">Connect your method</text>
+  <text x="558" y="212" class="code">AgentPolicies/&lt;method&gt;/</text>
+  <text x="558" y="248" class="small">Models · planning · memory · tools</text>
+  <text x="558" y="296" class="body" font-weight="600">Shared Python runner</text>
+  <text x="558" y="330" class="small">or your own protocol driver</text>
+
+  <path class="arrow" d="M980 234H1008"/>
+
+  <rect x="1020" y="106" width="440" height="254" rx="18" fill="white" stroke="#9bbeb2" stroke-width="2"/>
+  <circle cx="1059" cy="149" r="22" fill="#f0f7f6"/>
+  <text x="1059" y="157" class="number">3</text>
+  <text x="1095" y="159" class="heading">Review results</text>
+  <text x="1048" y="212" class="body">Native outcomes and errors</text>
+  <text x="1048" y="250" class="body">Execution records</text>
+  <text x="1048" y="288" class="body">Measured inference usage</text>
+  <text x="1048" y="331" class="code">results/&lt;benchmark&gt;/</text>
+
+  <text x="40" y="399" class="small">Your method owns the decisions. Each benchmark keeps its native evaluator.</text>
+</svg>

@@ -21,10 +21,8 @@ receives only declared observations and execution counters. The benchmark
 service alone owns native environments. See the [SIM service protocol](../benchmarks/simBenchmarks/SERVER_PROTOCOL.md).
 
 Current source roots are `benchmarks/`, `AgentPolicies/` and `benchkit/`.
-See [package migration](package-migration.md) for new launch paths and the
-treatment of historical results and ignored local files.
 
-![Select a benchmark service; inspect agent interactions beside the control path](assets/architecture.svg)
+![starRoboEval architecture: agent methods, benchmark services and evaluation records](../assets/architecture.svg)
 
 ## One entrypoint, benchmark-specific capabilities
 
@@ -85,8 +83,7 @@ task definitions and public feedback schemas. Native runtime code stays under
 `environment/`. Its catalog is benchmark protocol data, while deployment
 paths and the selected named panel are server configuration. See the
 [RoboDojo directory guide](../benchmarks/simBenchmarks/RoboDojo/README.md#directory-responsibilities).
-All implemented services use only `bench_server.adapter`; their old root
-adapter imports are removed. Separate protocol packages exist where definitions
+Service adapters live in `bench_server/adapter.py`. Separate protocol packages exist where definitions
 are needed, not as empty layers. Task catalogs are immutable protocol data,
 not assets or deployment paths; no task-specific server copy is required.
 Their actions remain benchmark-native. An agent driver must supply vectors in
@@ -100,9 +97,9 @@ and management/scoring methods are evaluator-private; policies retain exactly
 the same observation-to-decision interface. Idle service time does not schedule
 native control. Lost step acknowledgments never trigger automatic replay.
 
-The model-owned `AgentPolicies/gpt6_astra/run.py` entrypoint requires `--sim-server`
-and uses the reusable loop in `benchkit/driver/runner.py`. It has no local
-native fallback. This trusted driver is distinct from the model actor: the
+The supplied agentic policies have trusted entrypoints under `AgentPolicies/<profile>/`.
+These entrypoints require `--sim-server` and use the reusable loop in
+`benchkit/driver/runner.py`. This trusted driver is distinct from the model actor: the
 administrative client includes schedules, metrics and result export, and must
 not be passed to an untrusted policy process. The general CLI
 (`rsi-bench run`) also connects only through `--sim-server`. The service records its deployment source snapshot; the
@@ -197,8 +194,8 @@ output/provenance tool. Historical results keep their original paths and semanti
 Agent profiles own their configuration schema, model connection, prompts,
 memory, image preprocessing and action-generation loop. Shared tools can read
 their declarations without implementing the model. The supplied
-[reference client](../AgentPolicies/gpt6_astra/README.md) uses the service path;
-its commands and settings are documented in its own directory.
+[agentic policies](../AgentPolicies/README.md) use the service path;
+each profile documents its commands and settings in its own README.
 
 Model-call recovery, voluntary completion, optional motion guards and persistence
 preferences are method behavior. None can award native success, extend the
@@ -213,9 +210,10 @@ particular model implementation. Record the conditions actually used for each
 result rather than inferring them from a method or benchmark name.
 
 A profile can declare `runtime_preflight: true` in its configuration schema.
-Its optional `preflight_runtime()` capability checks local dependencies and
-credential presence without a benchmark, model request or action.
-`benchkit preflight-policy --model-profile <id>` dispatches this model-owned
+Its optional `preflight_runtime()` capability checks dependencies and credentials
+using the profile's readiness procedure, which may contact the provider.
+It does not start a benchmark episode or generate robot actions.
+`benchkit preflight-policy --model-profile <id>` dispatches this profile-owned
 check; benchkit does not contain provider-specific readiness logic.
 
 `benchkit/diagnostics/` contains explicitly non-capability fixed-action diagnostics.
@@ -312,14 +310,14 @@ checks record consistency: episode count and order, per-episode events and
 counters, summary sums and usage sums, with null meaning unknown. It does not
 verify source files. Interaction export validates closed event/result consistency.
 
-The client no longer copies harness or model source into run directories. Each
+The client records its revision and configuration in the run manifest. Each
 server deployment captures its own shared-service source snapshot
 (`harness_source/` in the service root, limited to `SERVICE_SOURCE_FILES`) plus
 the selected benchmark's supplemental files. It does not capture every
-benchmark or require GPT driver files. A source inventory describes
+benchmark or require agentic policy implementation files. A source inventory describes
 the bytes captured for that deployment, not today's checkout. Keep existing
 records and results unchanged as data; live code does not read their source
-bundles. See [package migration notes](package-migration.md).
+bundles.
 
 Model results use `AgentPolicies/<profile>/results/<benchmark>/`; the entire
 result tree stays local and Git-ignored, including reports, indices and media.
@@ -340,8 +338,7 @@ The [service support matrix](../benchmarks/simBenchmarks/SERVICE_SUPPORT.md)
 distinguishes implemented adapters from protocol drafts and their remaining
 native acceptance gates. Installation and portability constraints differ by
 benchmark and are documented at each entrypoint. Broader native task/reset
-selection and unified hardware adapters are incomplete. GPT6Astra is the only
-configured profile. Direct provider receipts are not independent
+selection and unified hardware adapters are incomplete. Direct provider receipts are not independent
 metering/identity attestation. OS-level isolation is planned for a later version.
 
 See [evaluation workflow](evaluation.md) and the

@@ -1,29 +1,43 @@
-# Benchmark and robot integration entrypoints
+# Benchmark integrations
 
-`benchmarks/` owns the task world and its public contract, not model training or
-policy implementations. Shared record and report tools live in [`benchkit/`](../benchkit/README.md);
-model behavior, prompts and results belong under [`AgentPolicies/`](../AgentPolicies/README.md).
+This directory contains the benchmark services used by
+[starRoboEval](../README.md). Each integration owns its task environment, robot
+interface, native execution and scoring.
 
-| Area | Purpose | Current execution status |
-| --- | --- | --- |
-| [simBenchmarks](simBenchmarks/README.md) | Native task/environment adapters, setup, inventories, selection plans and scoring contracts | Eleven benchmark families have development services; three remain drafts/deferred |
-| Git history and local `barks/` | Retired model-serving, old evaluation-loop and training references | Not part of the public runtime or package |
+## Simulation benchmarks
 
-Within an integrated simulation benchmark, adapters own native I/O and scoring,
-and `environment/` owns workers/assets/setup. All eleven implemented services group
-adaptation in `bench_server/`; separate task definitions, catalogs and available
-selection plans live in `bench_server/protocol/`. Do not create an empty protocol
-package where no separate definitions are needed. The top-level `server.py`
-remains the public launch entrypoint; old root adapters and `evaluation/`
-packages are removed without compatibility shims. Keep benchmark-specific auditing beside the benchmark; generic
-record/media auditing lives under `benchkit/`.
+The [simulation benchmark directory](simBenchmarks/README.md) includes
+**14 service integrations** covering manipulation, household tasks, whole-body
+control and navigation. Each benchmark guide describes its native setup and
+service usage; the [service support table](simBenchmarks/SERVICE_SUPPORT.md)
+lists available task selections and deployment requirements.
 
-Fast development plans attempt each selected case once. Native max schedules
-remain separate and must be implemented from verified upstream protocols, not
-by automatically retrying failures. Model planning, provider calls and voluntary
-give-up rules never belong in the native benchmark adapter.
+Use `rsi-bench list` to inspect the integrations and
+`rsi-bench serve --benchmark <id> ...` to launch a selected service.
+Real-robot services are a planned extension.
 
-Retained historical launchers may depend on the original StarVLA training/model
-repository and are not runnable merely because their files remain here. Do not
-execute a legacy launcher to claim the unified policy boundary was evaluated.
-Preserve original run records, results and native reference evidence.
+## Integration structure
+
+```text
+simBenchmarks/<Benchmark>/
+├── README.md                  # Setup, task scope and service usage
+├── EVALUATION_PROTOCOL.md     # Observations, actions, sampling and native scoring
+├── server.py                 # Service entrypoint
+├── server.example.json       # Deployment configuration, where provided
+├── bench_server/             # Service adapter and benchmark-specific contracts
+└── environment/              # Native runtime, assets and installation
+```
+
+Protocol packages and separate native workers are added where the integration
+needs them. Each benchmark retains its own sensors, action semantics, execution
+budgets and native evaluator.
+
+Agent implementations and their results belong in
+[`AgentPolicies/`](../AgentPolicies/README.md). Shared service transport,
+execution utilities and report tools live in [`benchkit/`](../benchkit/README.md).
+
+To add a benchmark, follow the
+[integration guide](../docs/benchmark-server-guide.md) and
+[service conventions](simBenchmarks/SERVICE_CONVENTIONS.md).
+To connect an agent to an existing service, follow the
+[agent integration guide](../docs/agent-methods.md#add-your-policy).

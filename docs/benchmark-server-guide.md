@@ -2,7 +2,9 @@
 
 这份指南面向新增或整理仿真 benchmark 的贡献者。目标不是把原生 Python API 原样暴露给模型，而是建立可复现、可审计的机器人交互边界：模型根据声明的观测生成动作，服务执行动作并保留原生评分。
 
-先看[架构图解](../assets/bench_server/index.html)，再按本文实施。线协议以 [SERVER_PROTOCOL.md](../benchmarks/simBenchmarks/SERVER_PROTOCOL.md) 为准，目录与验收要求以 [SERVICE_CONVENTIONS.md](../benchmarks/simBenchmarks/SERVICE_CONVENTIONS.md) 为准。本文不另建一套协议。
+如果已有可连接的服务，在 `AgentPolicies/<method>/` 中实现自己的策略与可信入口，按 [Add your policy](agent-methods.md#add-your-policy) 接入；无需新增 benchmark server 或安装服务端的原生模拟器。
+
+先看[架构说明](architecture.md)，再按本文实施。线协议以 [SERVER_PROTOCOL.md](../benchmarks/simBenchmarks/SERVER_PROTOCOL.md) 为准，目录与验收要求以 [SERVICE_CONVENTIONS.md](../benchmarks/simBenchmarks/SERVICE_CONVENTIONS.md) 为准。本文不另建一套协议。
 
 ## 1. 先明确边界
 
@@ -34,8 +36,9 @@ benchmarks/simBenchmarks/<Benchmark>/
 │   └── native_worker_client.py    # 需要独立原生进程时使用
 └── environment/                   # 原生运行、安装、版本与资产检查
 
-AgentPolicies/<agent>/             # 模型调用、prompt、记忆、决策循环
-└── results/<benchmark>/           # 该模型的报告与证据索引
+AgentPolicies/<method>/            # 模型调用、prompt、记忆、决策循环
+├── run.py                         # 方法自有的可信入口；文件名由方法选择
+└── results/<benchmark>/           # 该方法的报告与证据索引
 
 benchkit/sim_server/                # 共享传输、会话、序列与 artifact 机制
 benchkit/                           # 公共契约、记录、服务源码快照、审计和报告
@@ -44,10 +47,6 @@ benchkit/                           # 公共契约、记录、服务源码快照
 `bench_server/protocol/task_catalog.json` 这类文件是评测协议数据，不是训练数据，也不是资产安装配置。任务不需要各复制一个 server；同一接口的新任务扩展 catalog 和原生绑定即可。并非每个 benchmark 都必须有相同文件名或独立 worker，避免添加空层和兼容转发壳。
 
 模型侧的 trusted driver 持有服务凭据，负责把模型动作提交给服务、保存结果；模型 Actor 只接收公开观测和反馈。`benchkit/sim_server` 是两端复用的通信库，不是第三个决策服务。本版没有中央 campaign 调度。不能再复制一份通信实现到 `benchmarks/simBenchmarks/service/`。
-
-当前源码根目录是 `benchmarks/`、`AgentPolicies/`、`benchkit/`，不保留旧入口兼容壳。
-旧部署仍可能看见被 Git 忽略的缓存、视频或历史索引；这不代表旧源码入口仍然有效，
-也不应直接删除这些文件。参见[目录迁移说明](package-migration.md)。
 
 ## 3. 先核实原生协议，再写 adapter
 
@@ -62,14 +61,14 @@ benchkit/                           # 公共契约、记录、服务源码快照
 | 控制与终止 | 一次控制对应几个 physics ticks、控制频率、horizon 的实际单位、何时检查边界、原生成功/失败/截断条件。 |
 | 评分 | 原生 success 与部分分数的来源和更新时机，是否存在有副作用的评分调用，以及最终结果怎样保存。 |
 
-`fast` 是预先声明的小计划，每个选定 case 只尝试一次；保留失败，不按结果补抽。`max` 必须覆盖已核实的原生任务/变体/episode 矩阵。没有验证完整矩阵时，明确写“不支持 max”，不能只提高 horizon 就称为 max。
+`fast`、`max` 等现有选择键按各 benchmark 的协议解释，不能仅凭名称推断原生完整覆盖或协议等价。明确列出所选任务、变体、layout、episode 数和尝试次数；保留失败，不按结果补抽。只有核实完整原生矩阵及执行条件后，才能作相应覆盖声明，不能只提高 horizon 就称为完整评测。
 
 增加观测、改变动作含义或控制时序，需要明确的新协议身份、实现与验证。端口、GPU、资产路径等部署参数可以配置；一个 JSON selector 本身不能创造新协议。
 
 版本应分开记录：公共通信是 `starvla-rsi.sim-server/v1`；RoboDojo 当前机器人协议是
 `robodojo-ee67a14/classify-objects-fixed-layouts/rgb-proprio28-eef16/<mode>/v1`（fast/example），
-`max` 为 `robodojo-ee67a14/classify-objects-reset-stable-layouts/rgb-proprio28-eef16/max/v1`；模型侧当前方法是
-`gpt6-astra-codex-native`。它们分别描述通信、机器人能力和 agent 方法，并不需要同步升版。
+`max` 为 `robodojo-ee67a14/classify-objects-reset-stable-layouts/rgb-proprio28-eef16/max/v1`；
+agentic policy 独立声明自己的方法版本。它们分别描述通信、机器人能力和 agent 方法，并不需要同步升版。
 能接入同一服务不等于复现旧方法的成功率；也不要将 Dojo 的 EEF16 接口套用到 SIMPLE 等其他机器人。
 
 绝对关节目标接口还应检查机器人自身状态是否足够明确。原生观测里的某个
@@ -150,7 +149,7 @@ rsi-bench serve --benchmark robodojo \
   --output-dir /absolute/new-run/server
 ```
 
-token 要求 32–256 个 URL-safe 字符。先验证启动和 `describe` 无原生副作用，再使用模型目录下的 driver 连接服务；不要绕过 server 直接操作仿真做“等价测试”。具体 runner 参数见 [运行指南](evaluation.md) 和对应模型的说明，不复制 RoboDojo 的任务、预算或控制频率到其他 benchmark。
+token 要求 32–256 个 URL-safe 字符。服务操作者先验证启动和 `describe` 无原生副作用，再由参与者运行 `AgentPolicies/<method>/` 下自己的可信入口连接；不要绕过 server 直接操作仿真做“等价测试”。具体步骤见 [运行指南](evaluation.md) 和 [Add your policy](agent-methods.md#add-your-policy)，不复制 RoboDojo 的任务、预算或控制频率到其他 benchmark。`rsi-bench run` 仅运行诊断策略；可选的目录式 profile 声明不会自动提供统一模型运行命令。
 
 ## 7. 按证据层级验收
 
@@ -159,7 +158,8 @@ token 要求 32–256 个 URL-safe 字符。先验证启动和 `describe` 无原
 | 层级 | 最低检查 | 不代表什么 |
 | --- | --- | --- |
 | 离线契约与回归 | import 无副作用；参数与 schema；计划确定性；重复 claim/sequence；动作拒绝不执行；评分不泄露；close、故障、计数和 artifact 校验。 | 不代表 simulator、资产或模型能运行。 |
-| 原生短交互 | 经授权新开独立诊断 run，不调用模型或任务求解策略；通过 server 真实 reset、至少 1–2 次控制、检查 RGB/state、关闭并保留原生日志及媒体。 | 不代表任务成功或完整评测通过。 |
+| 连接就绪 | 在独立服务实例上运行共享 `benchkit probe`：describe、claim、reset、检查 RGB/state 并 close；不调用模型、不发送动作。 | 不代表控制执行、模型能力或任务成功。 |
+| 明确请求的控制诊断 | 另开独立诊断 run，通过 server 执行预先声明的控制，检查执行反馈并关闭；不调用模型或任务求解策略。 | 不替代正式评测，不计入 SR 分母。 |
 | 模型单例 | 预声明 task/case/seed、协议和预算，通过同一 server 完成一次尝试；保留成功、任务失败或基础设施错误。 | 不代表全 benchmark 的 SR。 |
 | 原生完整矩阵 | 核实任务、变体、种子、horizon、控制器、观测及评分条件，与原生 full schedule 对齐。 | 条件不同的结果不能直接声称复现参考 SR。 |
 
@@ -174,7 +174,13 @@ make check smoke PYTHON=python3
 不进入公开源码；新集成根据实际接口准备，并在稳定源码快照上执行。按实际执行过的检查报告结果，
 不能将脚本清理、目录存在或历史通过记录当作当前验收通过。
 
-清理与接入改动只做连接层验证：运行 `make check` 与 `make smoke`，再连接运行中的服务，确认 describe、claim、reset、step 可用；不为此运行完整评测。
+清理与接入改动只做连接层验证：运行 `make check` 与 `make smoke`，再通过共享 probe 连接运行中的独立诊断服务：
+
+```sh
+python -B -m benchkit probe --sim-server http://127.0.0.1:8765 --benchmark <descriptor.name>
+```
+
+该检查只做 describe、claim、reset、close，不发送 `step`。claim 是永久的，因此不能占用正式评测的服务实例。控制诊断需要明确请求，不因整理或接入自动启动，也不为此运行完整评测。
 
 不要因测试失败静默重跑正式 case。先保存闭合错误和原因，修复后在获准的新轮次中使用新 run ID；旧结果不覆盖。短交互测试也不能混入正式 SR 分母。
 

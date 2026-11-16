@@ -1,0 +1,99 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1800" height="1140" viewBox="0 0 1800 1140" role="img" aria-labelledby="title desc">
+  <title id="title">starRoboEval architecture</title>
+  <desc id="desc">An agent method communicates with a selected benchmark service. The agent owns its models, tools and decisions, and uses its own trusted driver or the optional shared runner. The service contains a Benchmark Runner for protocol handling and native API adaptation, plus the native benchmark environment and evaluator. Actions travel to the service; declared observations and execution acknowledgments return to the agent. Closed evaluation records and optional interaction history sit below the control path. Boxes represent responsibilities rather than required processes.</desc>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0 0 L10 5 L0 10Z" fill="#536681"/>
+    </marker>
+    <style>
+      text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif; fill: #17283e; }
+      .heading { font-size: 28px; font-weight: 700; }
+      .body { font-size: 22px; }
+      .small { font-size: 20px; fill: #536681; }
+      .label { font-size: 16px; font-weight: 600; letter-spacing: 1.4px; fill: #536681; }
+      .code { font-family: Menlo, Consolas, monospace; font-size: 18px; }
+      .arrow { fill: none; stroke: #536681; stroke-width: 2.5; marker-end: url(#arrow); }
+    </style>
+  </defs>
+
+  <rect width="1800" height="1140" fill="#f5f7fb"/>
+  <rect x="50" y="42" width="6" height="78" rx="3" fill="#177d91"/>
+  <text x="78" y="66" class="small">starRoboEval / EVALUATION AS A SERVICE</text>
+  <text x="78" y="111" font-size="39" font-weight="700">Agent decisions. Benchmark-native execution.</text>
+  <text x="78" y="150" class="small" style="font-size:23px">A shared service interface connects agent methods to robot environments and native evaluation.</text>
+
+  <!-- Launching selects a service; it is separate from the action loop. -->
+  <rect x="730" y="190" width="1020" height="112" rx="16" fill="#edf4ff" stroke="#9bbce2"/>
+  <text x="755" y="229" class="heading">Select a benchmark service</text>
+  <text x="755" y="269" class="code">rsi-bench serve --benchmark &lt;id&gt; ...</text>
+  <text x="1330" y="230" class="small">14 benchmark integrations</text>
+  <text x="1330" y="267" class="small">One launch interface</text>
+  <path class="arrow" d="M970 302V340"/>
+
+  <!-- Agent side: the method owns decisions and chooses its driver. -->
+  <rect x="50" y="340" width="470" height="430" rx="18" fill="white" stroke="#9bbce2" stroke-width="2"/>
+  <text x="78" y="378" class="label">AGENT-OWNED</text>
+  <text x="78" y="417" class="heading">Agent method</text>
+  <text x="78" y="454" class="code">AgentPolicies/&lt;method&gt;/</text>
+  <rect x="78" y="478" width="414" height="158" rx="12" fill="#edf4ff"/>
+  <text x="99" y="516" class="body" font-weight="600">Models, tools and reasoning</text>
+  <text x="99" y="551" class="small">Prompts, memory and planning</text>
+  <text x="99" y="585" class="small">Declared observations and feedback</text>
+  <text x="99" y="619" class="small">Action decisions belong to the agent</text>
+  <text x="78" y="679" class="body" font-weight="600">Trusted driver</text>
+  <text x="78" y="709" class="small" style="font-size:19px">Sessions, action sequencing and records</text>
+  <text x="78" y="739" class="small" style="font-size:19px">Own driver or optional benchkit runner</text>
+
+  <!-- Benchmark side: protocol adaptation and the native environment. -->
+  <rect x="730" y="340" width="1020" height="430" rx="18" fill="#fffaf1" stroke="#d7b277" stroke-width="2"/>
+  <text x="755" y="379" class="heading">Selected benchmark service</text>
+  <text x="755" y="414" class="code">benchmarks/simBenchmarks/&lt;benchmark&gt;/</text>
+
+  <rect x="755" y="438" width="430" height="284" rx="14" fill="white" stroke="#d7b277"/>
+  <text x="778" y="470" class="label">SERVICE / ADAPTER</text>
+  <text x="778" y="507" class="heading">Benchmark Runner</text>
+  <text x="778" y="539" class="small">Service and native API adapter</text>
+  <text x="778" y="575" class="code">server.py · bench_server/</text>
+  <text x="778" y="613" class="small">Case claims and episode lifecycle</text>
+  <text x="778" y="646" class="small">Observation and action contracts</text>
+  <text x="778" y="679" class="small">Action validation and native mapping</text>
+  <text x="778" y="707" class="small" style="font-size:17px">Declared observations and execution ACKs</text>
+
+  <rect x="1345" y="438" width="380" height="284" rx="14" fill="#f0f7f6" stroke="#9bbeb2"/>
+  <text x="1368" y="470" class="label">NATIVE IMPLEMENTATION</text>
+  <text x="1368" y="507" class="heading">Native benchmark</text>
+  <text x="1368" y="539" class="small">Environment and evaluator</text>
+  <text x="1368" y="575" class="small">Tasks, scenes and robots</text>
+  <text x="1368" y="609" class="small">Physics and rendering</text>
+  <text x="1368" y="643" class="small">Native low-level controllers</text>
+  <text x="1368" y="677" class="small">Native termination and scoring</text>
+  <text x="1368" y="707" class="small" style="font-size:17px">Hidden state stays outside the model</text>
+
+  <path class="arrow" d="M1185 572H1345"/>
+  <text x="1265" y="551" class="small" text-anchor="middle" style="font-size:17px">Native control</text>
+  <path class="arrow" d="M1345 643H1185"/>
+  <text x="1265" y="673" class="small" text-anchor="middle" style="font-size:16px">Observations</text>
+  <text x="1265" y="696" class="small" text-anchor="middle" style="font-size:16px">and results</text>
+  <text x="755" y="752" class="small" style="font-size:19px">Benchmark-specific sensors, action spaces, execution budgets and native scoring</text>
+
+  <!-- The service interface connects the two ends, without a middle decision process. -->
+  <path class="arrow" d="M520 520H730"/>
+  <text x="625" y="493" class="small" text-anchor="middle">Actions</text>
+  <text x="625" y="550" class="small" text-anchor="middle" style="font-size:17px">One per sequenced step</text>
+  <path class="arrow" d="M730 597H520"/>
+  <text x="625" y="631" class="small" text-anchor="middle" style="font-size:18px">Observations + ACK</text>
+  <text x="625" y="685" class="small" text-anchor="middle" style="font-size:18px">Shared transport</text>
+  <text x="625" y="714" class="code" text-anchor="middle" style="font-size:16px">benchkit/sim_server</text>
+
+  <!-- Reporting sits alongside the control path. -->
+  <path class="arrow" stroke-dasharray="6 5" d="M285 770V824"/>
+  <path class="arrow" stroke-dasharray="6 5" d="M1240 770V824"/>
+  <rect x="50" y="826" width="1700" height="172" rx="18" fill="white" stroke="#9bbeb2" stroke-width="2"/>
+  <text x="78" y="867" class="heading">Evaluation records and reports</text>
+  <text x="78" y="904" class="body">Task outcomes and errors · acknowledged controls · method configuration · measured usage</text>
+  <text x="78" y="940" class="code">AgentPolicies/&lt;method&gt;/results/&lt;benchmark&gt;/</text>
+  <text x="78" y="977" class="small">Optional interaction history and media connect model inputs, recorded decisions, actions and feedback.</text>
+
+  <text x="50" y="1048" class="small">benchkit/ provides shared transport, execution utilities and reporting libraries.</text>
+  <text x="50" y="1087" class="small">Boxes show responsibilities. The agent owns decisions; the benchmark owns native execution and scoring.</text>
+</svg>

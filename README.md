@@ -1,193 +1,177 @@
 <p align="center">
-  <img src="assets/logo.svg" alt="StarVLA-RSI" width="10%">
+  <img src="assets/logo.svg" alt="StarVLA" width="80">
 </p>
 
-# StarVLA-RSI
+# starRoboEval: A Unified Embodied Benchmark Integration for Agentic Robotics
+**Connect your agent to robot benchmarks through a common service interface.**
 
-Evaluate **agent methods** across embodied benchmarks in simulation and,
-eventually, real robots. Bring your own decision loop, prompts, memory, tools
-and one or more general-purpose models. Each benchmark service owns its robot
-interface, native execution budget and success criteria. Compare declared
-methods within the same benchmark/protocol, not an unexplained model-name score.
-RoboDojo is one integration, not a separate framework.
+starRoboEval brings **14 simulation benchmark integrations** into one evaluation
+workflow. Choose a benchmark, connect your agent method, and collect results
+from the benchmark's native evaluator. Each integration retains its own robot
+observations, action space, task conditions and scoring.
 
-This is an evaluation framework, not a model-training repository.
-Direct control limits environment access and the robot interface, not how the
-agent reasons internally. No VLA-assisted hybrid controller or fallback task
-policy is inserted between a method and its benchmark. Fixed-prompt, single-model
-policies remain useful controlled baselines, not the only permitted methods.
+[Core idea](#evaluation-as-a-service) · [Benchmarks](#choose-a-benchmark) · [Quick start](#quick-start) ·
+[Connect your agent](#connect-your-agent) · [Documentation](#documentation) ·
+[Evaluation article](#research-and-results)
 
-> Status: experimental. There are 14 simulation service entrypoints; supported
-> tasks and case selectors vary by benchmark. Unified real-robot
-> services are not implemented yet. Native simulators and licensed assets must
-> be installed separately.
+## Evaluation as a Service
+
+Robot benchmarks come with different simulators, assets, robot interfaces and
+evaluators. starRoboEval packages these behind services with a common
+communication and episode lifecycle protocol. The service manages the task
+environment, executes robot actions and collects native outcomes. Your agent
+method owns its models, prompts, planning, memory, tools and action decisions.
+
+- **Credible agentic evaluation.** A declared interface defines what the agent
+  can observe and execute. Simulator internals, reset controls and private
+  scores stay on the evaluator side, while the agent can plan and compute
+  using the information available to it.
+- **Sim / Real interaction alignment.** Interfaces describe robot observations,
+  controls and execution feedback, establishing a common boundary for future
+  hardware integrations. Real-robot services are a planned extension.
+- **Reusable evaluation infrastructure.** Connect different agent methods to
+  the same benchmark service. Shared communication, lifecycle and result tools
+  reduce repeated integration work while preserving benchmark-specific tasks,
+  robot interfaces and native scoring.
+
+![starRoboEval architecture: agent methods, benchmark services and evaluation records](assets/architecture.svg)
+
+The action loop connects the agent method to the benchmark service. Shared
+libraries provide transport, execution utilities and reporting; methods can use
+the supplied driver or implement the service protocol themselves. See the
+[architecture](docs/architecture.md) for component responsibilities and the
+[agent integration guide](docs/agent-methods.md#add-your-policy) for implementation details.
+
+## Choose a benchmark
+
+Explore **14 simulation benchmark integrations** spanning tabletop and bimanual
+manipulation, household tasks, humanoid control and navigation. Each benchmark
+name below links to its setup and service guide.
+
+The results show the **Native GPT-6-Astra Policy** on the evaluation selections
+reported in our article. Success is determined by each benchmark's native
+evaluator.
+
+| Benchmark | Evaluation selection | Success / cases | Success rate |
+| --- | --- | ---: | ---: |
+| [SimplerEnv](benchmarks/simBenchmarks/SimplerEnv/README.md) | 15 tasks × 5 episodes | 20 / 75 | **26.7%** |
+| [LIBERO](benchmarks/simBenchmarks/LIBERO/README.md) | 4 suites × 10 tasks × 5 initial states | 69 / 200 | **34.5%** |
+| [CALVIN](benchmarks/simBenchmarks/calvin/README.md) | 34 individual tasks × 5 episodes; budget: 240 controls | 140 / 170 | **82.4%** |
+| [MetaWorld](benchmarks/simBenchmarks/MetaWorld/README.md) | 50 tasks × 5 episodes | 178 / 250 | **71.2%** |
+| [RoboDojo](benchmarks/simBenchmarks/RoboDojo/README.md) | 42 tasks × 5 layouts | 42 / 210 | **20.0%** |
+| [RoboCasa365](benchmarks/simBenchmarks/Robocasa_365/README.md) | 50 atomic and composite tasks × 5 episodes | 57 / 250 | **22.8% overall** |
+| [RoboCasa Tabletop](benchmarks/simBenchmarks/Robocasa_tabletop/README.md) | 24 tasks × 2 episodes; budget: 1,000 controls | 6 / 48 | **12.5%** |
+| [RoboTwin](benchmarks/simBenchmarks/Robotwin/README.md) | 50 tasks × 5 episodes, clean scenes | 43 / 250 | **17.2%** |
+| [BEHAVIOR](benchmarks/simBenchmarks/Behavior/README.md) | 6 household tasks × 5 episodes | 3 / 30 | **10.0%** |
+| [SIMPLE](benchmarks/simBenchmarks/SIMPLE/README.md) | 12 whole-body tasks × 5 episodes | 28 / 60 | **46.7%** |
+| [VLA-Arena](benchmarks/simBenchmarks/VLA-Arena/README.md) | 170 tasks across L0–L2 × 5 episodes | 546 / 850 | **64.2%** |
+| [LIBERO-Plus](benchmarks/simBenchmarks/LIBERO-plus/README.md) | 40 tasks with 7 perturbation types | 598 / 1,396 | **42.8%** |
+| [DOMINO](benchmarks/simBenchmarks/DOMINO/README.md) | 35 tasks × 5 selected episodes | 41 / 175 | **23.4%** |
+| [VLN-CE](benchmarks/simBenchmarks/VLN-CE/README.md) | 373 R2R val_unseen episodes across 11 scenes | 314 / 373 | **84.2%** |
+
+RoboCasa365's atomic subset is **33.3%** (30/90); the table shows its overall
+selection. DOMINO uses all 175 selected cases, including four infrastructure
+interruptions. Each result retains its reported case selection and execution
+conditions.
+
+See the [detailed results (article draft)](https://github.com/starVLA/starvla.github.io/blob/preview/blog-migration-20261116/public/blogs/starRoboEval/scores.html)
+for task breakdowns and additional native metrics. The
+[service support table](benchmarks/simBenchmarks/SERVICE_SUPPORT.md) describes
+the selections and deployment requirements available in the current code.
 
 ## Quick start
 
-Use Python 3.10 or newer, from a repository checkout:
+**[Run your first evaluation with RoboCasa365 →](docs/quickstart.md)**
 
-```sh
-pip install -e .
-rsi-bench list
-rsi-bench serve --benchmark robodojo --help
+The walkthrough covers environment setup, starting a benchmark service,
+connecting the reference agent and opening the result report.
+
+## Connect your agent
+
+**Bring your own method, keep your decision loop, and evaluate through the
+same benchmark services.** Your method can combine general-purpose models,
+planning, memory and tools over the observations declared by the benchmark.
+It selects robot actions; the service executes them through native low-level
+controllers and evaluates the outcome.
+
+![Connect your agent: choose a benchmark, connect your method and review native results](assets/agent-integration.svg)
+
+Create **`AgentPolicies/<your_method>/`** for your implementation, configuration
+and README, or connect an existing agent from its own repository. Two integration
+paths are available:
+
+| Starting point | What you implement | What you reuse |
+| --- | --- | --- |
+| **A Python policy** | Your observation-to-action logic, method configuration and entrypoint | The optional shared runner for action sequencing, episode closure and result records |
+| **An existing agent or another language** | Your decision loop and a driver implementing the service protocol | The benchmark services, declared robot interfaces and native evaluators |
+
+The service describes its observations and action contract. Your trusted driver
+handles credentials and episode administration, sends the agent's actions and
+returns declared observations and execution feedback to it. Record the method
+settings and available inference usage alongside native results so experiments
+can be compared under explicit conditions.
+
+**[Add your method →](docs/agent-methods.md#add-your-policy)** ·
+[GPT-6-Astra reference client](AgentPolicies/gpt6_astra/README.md) ·
+[Claude reference client](AgentPolicies/claude_opus/README.md) ·
+[Service protocol](benchmarks/simBenchmarks/SERVER_PROTOCOL.md)
+
+## Research and results
+
+Our first evaluation asks **how far a general-purpose model can control robots
+with one generic agent setup and no benchmark-specific task-solving prompt**.
+The Native GPT-6-Astra Policy uses the service interfaces to act across the
+14 integrations above.
+
+The detailed results reveal more than a single success rate:
+
+- **Navigation across unseen scenes.** On the selected VLN-CE episodes, the
+  policy succeeds on **314/373** routes with **0.72 SPL** (success weighted by
+  path length), covering all 11 evaluation scenes.
+- **Atomic and composite kitchen tasks.** RoboCasa365 records **30/90** successes
+  on atomic tasks and **27/160** across the two composite task sets. These give
+  **33.3% atomic** and **22.8% overall** success.
+- **Task progress alongside completion.** BEHAVIOR records **10.0%** success and
+  **0.27 mean Q**, its native task-progress score on a 0–1 scale. The article
+  presents partial progress separately from success.
+
+The article also includes evaluation recordings, observation–action replays,
+published reference results and inference-cost summaries. These views connect
+the scores to what the agent saw, the actions it chose and the resources it used.
+
+**[Read the evaluation article (draft source) →](https://github.com/starVLA/starvla.github.io/blob/preview/blog-migration-20261116/public/blogs/starRoboEval/index.html)** ·
+[Browse detailed results](https://github.com/starVLA/starvla.github.io/blob/preview/blog-migration-20261116/public/blogs/starRoboEval/scores.html)
+
+## Documentation
+
+We provide guides for running evaluations, connecting agent methods and adding
+benchmarks. Start with the guide that matches what you want to do.
+
+| I want to… | Guide |
+| --- | --- |
+| Run a first evaluation | [RoboCasa365 quick start](docs/quickstart.md) |
+| Connect my agent | [Method integration](docs/agent-methods.md#add-your-policy) · [Reference clients](AgentPolicies/README.md) |
+| Understand the service design | [Architecture](docs/architecture.md) · [Communication protocol](benchmarks/simBenchmarks/SERVER_PROTOCOL.md) |
+| Select cases and run experiments | [Evaluation workflow](docs/evaluation.md) · [Task selection](benchmarks/simBenchmarks/TASK_COVERAGE.md) |
+| Inspect results and interaction records | [Reports](docs/evaluation.md#inspect-and-report) · [Recording](docs/recording.md) · [Result format](docs/result-format.md) |
+| Add a benchmark integration | [Integration guide](docs/benchmark-server-guide.md) · [Service conventions](benchmarks/simBenchmarks/SERVICE_CONVENTIONS.md) |
+
+## Citation
+
+If you use starRoboEval or its evaluation results, please cite our evaluation report:
+
+```bibtex
+@misc{starvla2026starroboeval,
+  author = {{StarVLA Community}},
+  title = {What Does {GPT-6-Astra} Score When Nothing Is Tailored to a Benchmark?},
+  year = {2026},
+  url = {https://starvla.github.io/blogs/starRoboEval/}
+}
 ```
 
-First [choose a benchmark and its tasks/cases](benchmarks/simBenchmarks/README.md).
-The selector delegates to the benchmark's existing server; it does not install
-its simulator or change its sensors, actions or task schedule. Follow that
-benchmark's setup guide, then launch with a fixed configuration, seed and fresh
-output directory. See [service startup and interaction history](docs/evaluation.md).
+## Attribution and license
 
-For dependency-free infrastructure checks (no native robot or model request):
-
-```sh
-python -B -m benchkit catalog --check
-python -B -m benchkit policies
-python -B -m benchkit smoke --episodes 3 --seed 7
-```
-
-The smoke check starts a dependency-free synthetic benchmark service on a local
-port and runs a scripted fixture through it; it is not a robot capability score.
-It writes the client run and the service records under `results/rsi-smoke/`. Install the environment
-described by the selected benchmark before attempting a native task.
-
-- [Declare and connect an agent method](docs/agent-methods.md)
-- [Agent driver integration skill and template](docs/bench-server-protocol/SKILL.md)
-- [Optional interaction recording and basic results](docs/recording.md)
-- [Run an evaluation](docs/evaluation.md)
-- [Architecture and ownership](docs/architecture.md)
-- [Bench Server visual introduction](assets/bench_server/index.html)
-- [Add a benchmark server](docs/benchmark-server-guide.md)
-- [Policy interaction protocol](benchmarks/simBenchmarks/POLICY_PROTOCOL.md)
-- [Simulator adapter interface](benchmarks/simBenchmarks/INTERFACE.md)
-- [Run SIMs as independent servers](benchmarks/simBenchmarks/SERVER_PROTOCOL.md)
-- [Build your own agent method](AgentPolicies/README.md#add-your-own-method)
-
-## Repository structure
-
-```text
-benchkit/                              shared communication and result/output tools
-  sim_server/                         service selector, transport and session lifecycle
-  reports/interaction_history.py       closed-run interaction HTML / JSON export
-  reports/basic_result.py              outcome view without required interaction logs
-  driver/                             optional trusted runner, records, methods and profile loading
-  catalog/                            benchmark metadata, not native adapters
-  diagnostics/                        non-capability infrastructure diagnostics
-benchmarks/
-  simBenchmarks/<benchmark>/           environment, tasks, adapter and native protocol
-    server.py                          benchmark-owned independent SIM entrypoint
-    bench_server/protocol/             task definitions and sample plans, where needed
-AgentPolicies/
-  <method-profile>/                    policy, model composition, prompts and dependencies
-    run.py                             model-owned trusted evaluation entrypoint, where implemented
-    tools/                             the profile's own runtime helpers, not shared across profiles
-    results/<benchmark>/               local evaluation outputs; Git-ignored
-docs/                                 public design and usage guides
-  bench-server-protocol/
-    SKILL.md                           agent driver integration workflow
-    driver.py                          optional single-case driver template
-```
-
-Directory-specific `README.md` files explain the code beside them. `docs/`
-contains shared architecture, usage guides and integration skills with their
-templates.
-
-The benchmark answers “what happens when this action executes?” The policy
-answers “what action should I take?” Its trusted driver communicates with the
-service through `benchkit/sim_server` and uses the other `benchkit` record/report tools. Planning and
-voluntary-stop preferences belong to the policy, not the native benchmark.
-The actor never receives the driver's administrative client or credentials.
-Use your own trusted driver or the supplied
-[reference client](AgentPolicies/gpt6_astra/README.md). Agent-specific commands,
-prompts, configuration and runtime dependencies are documented with that agent.
-
-Use the [workflow guide](docs/evaluation.md#choose-a-workflow) to choose a path.
-Automatic plugins, central scheduling, a comprehensive CLI and cross-benchmark
-rankings are planned extensions, not claims of current support.
-
-## Available integrations
-
-The [simulation benchmark overview](benchmarks/simBenchmarks/README.md#choose-a-benchmark)
-introduces each benchmark's native tasks, layouts, initial states and variations,
-with setup and protocol links. LIBERO evaluates language-conditioned manipulation,
-SIMPLE evaluates humanoid loco-manipulation, and RoboDojo covers multiple
-manipulation capabilities. They retain different robot interfaces and sample
-distributions.
-
-See [deployment requirements](benchmarks/simBenchmarks/SERVICE_SUPPORT.md) for
-current service coverage, assets and runtime restrictions. No task count or service entrypoint implies that its
-native environment is already installed.
-
-## Evaluation guarantees and limits
-
-- Freeze tasks, initial states, seeds, action/observation contracts, budgets and
-  model configuration before execution.
-- State selected tasks, layouts/initial states, seeds and attempts per case
-  explicitly. A seed is not necessarily a different layout; planned repetitions
-  are not retries chosen after failure.
-- Keep failures and errors in the evaluation records. Published summaries
-  report successes over the cases in the stated scope; missing or interrupted
-  samples are not shown separately.
-- Record policy calls, executed action decisions and control steps separately.
-  One action decision can execute several controls.
-- Use native success and scoring. Policies receive only declared observations,
-  not simulator object state, reward predicates or evaluator internals.
-- Interaction recording is optional and enabled by default. Disabling it does
-  not prevent participation or result publication; essential outcomes, method
-  configuration, denominators, counters and errors remain available.
-- Report inference usage when available, per model component when measured;
-  unknown usage stays unknown. No universal inference budget is imposed.
-- Keep useful recorded protocol, upstream revision, environment and asset
-  provenance. Each run records its client git revision, dirty flag, model profile
-  and effective configuration; the closed-run audit checks record consistency.
-- Preserve original events and results; never rewrite an outcome or silently
-  rerun a task to improve its presentation.
-
-Each [agent method](AgentPolicies/README.md) documents its own model connection,
-decision behavior, usage accounting and limitations. Reports identify the actual
-method and configuration used; a changed prompt or control strategy is not
-merely a model-name change. Unknown model attribution or usage remains unknown.
-
-## Development
-
-The core does not import native simulator SDKs. With Python 3.10 or later:
-
-```sh
-make check
-make smoke
-```
-
-`make check` validates the catalog. `make smoke` runs the dependency-free
-evaluation self-check through a local synthetic service, without native
-simulator or model calls. Cleanup and
-integration work is verified with these two commands plus a connect-level check
-through a running benchmark service. Test and check files stay local and
-untracked. Neither command establishes native evaluation or model capability. See the [integration guide](docs/benchmark-server-guide.md#7-按证据层级验收)
-for the implementation, independent-review and regression loop.
-
-To add a benchmark, implement [BenchmarkAdapter and EpisodeSession](benchkit/interfaces.py)
-under its `benchmarks/` directory, pin the native evaluator and provide explicit
-contracts and selection plans. To add a method, implement the service protocol
-in your trusted driver and declare its configuration/model composition. The
-Python `Policy` interface and reference loop are optional conveniences, not a
-required framework or language.
-See [AGENTS.md](AGENTS.md) for repository safety and contribution boundaries.
-
-Internal working notes under `project_readmes/` are local and Git-ignored.
-Public usage must not depend on them. All method evaluation outputs, including
-reports and indices, are local and Git-ignored, as are credentials and local
-environment artifacts. Publish selected result summaries in documentation or
-the website.
-
-The grouped [.gitignore](.gitignore) excludes generated artifacts, local
-check/test files and the runtime data described above.
-`git status --short --ignored` marks ignored paths with `!!`;
-`git check-ignore -v -- PATH` identifies the matching rule.
-Ignored files can remain on disk. Editors may show them dimmed rather than hide
-them; that display is independent of whether Git will track them.
-
-## Attribution
-
-Derived from [StarVLA](https://github.com/starVLA/starVLA), retaining its MIT
-license and citation metadata. Original model-training implementations remain
-in the upstream project and Git history, not the active evaluation surface here.
+Part of the [StarVLA](https://github.com/starVLA/starVLA) ecosystem and derived
+from its codebase. Released under the [MIT license](LICENSE).
+The [upstream StarVLA citation](https://github.com/starVLA/starVLA/blob/main/CITATION.cff)
+is separate from the starRoboEval evaluation report above.

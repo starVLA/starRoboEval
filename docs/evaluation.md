@@ -10,16 +10,21 @@ setup steps.
 
 | Purpose | Entry point | Current boundary |
 | --- | --- | --- |
-| Service-based evaluation | `rsi-bench serve` → your trusted agent driver → result report | Recommended integration path; native runtime stays behind the benchmark server |
+| Operate a benchmark service | `rsi-bench serve` | Prepare the native runtime, deployment and selected schedule |
+| Connect your agentic policy | Your entrypoint under `AgentPolicies/<method>/` → existing service → result report | Implement the method and trusted driver; use the service's declared interface |
 | Inspect closed results | `benchkit.reports.basic_result`, optional interaction history | Reads records; never runs, retries or changes a task |
 
-The public service path is: select the protocol/schedule and deployment → start
-the service → connect a method → inspect its results. The actor receives only
-declared observations and robot feedback, never the driver's administrative client.
+The service operator selects the protocol, schedule and deployment, then starts
+the service. A participant can connect to that existing service with their own
+driver; they do not need to install or launch its native simulator. The actor
+receives only declared observations and robot feedback, never the driver's administrative client.
 Shared `benchkit` communication and output tools are not another per-action process.
 Central multi-service scheduling is not implemented in this version.
 
 ## Select and launch a service
+
+This section is for the service operator. To connect to an already running
+service, continue to [Connect an agentic policy](#connect-an-agentic-policy).
 
 ```sh
 rsi-bench list
@@ -52,9 +57,9 @@ See [task selection](../benchmarks/simBenchmarks/TASK_COVERAGE.md).
 
 RoboDojo declares its schedules in
 [`bench_server/protocol/task_catalog.json`](../benchmarks/simBenchmarks/RoboDojo/bench_server/protocol/task_catalog.json).
-Its server configuration selects layouts 0–4 (`fast`) or the first 50
-reset-stable layouts of a reset-stability manifest (`max`) for
-`classify_objects`, each once. These are two sample counts for the same task.
+For `classify_objects`, its server configuration selects layouts 0–4 (`fast`)
+or the first 50 reset-stable layouts of a reset-stability manifest (`max`),
+each once. These are two sample counts for the same task.
 The catalog is protocol data; runtime
 assets belong to `environment/`, and deployment paths/GPU selection belong to
 the operator's server configuration. Use `rsi-bench serve --benchmark robodojo`;
@@ -63,27 +68,29 @@ the delegated benchmark-owned wrapper remains
 
 Inspect the service's declared schedule and the run manifest for the exact
 denominator. Native planned repetitions are samples, not retries triggered by failure.
+Keys such as `fast` and `max` retain their benchmark-specific meanings; `max`
+alone does not establish complete native coverage or protocol equivalence.
 
 If development budgets differ from native conditions, label that track explicitly.
 Do not treat different sample distributions or execution budgets as identical conditions.
 Policy persistence preferences are a separate model configuration.
 
-## Connect an agent method
+## Connect an agentic policy
 
-Select a complete agent method, not just a model label. The protocol-first path
-supports your own driver and decision loop; Python `Policy` is optional. Declare
-all model components/roles and configuration using the
-[method contract](agent-methods.md). The reference driver accepts `--method-file`.
+Create `AgentPolicies/<method>/` for your implementation, configuration and trusted
+entrypoint, then follow [Add your policy](agent-methods.md#add-your-policy).
+Run that entrypoint to connect to the service supplied by its operator. The
+protocol-first path supports your own driver and decision loop; Python `Policy`
+is optional. Declare all model components/roles and configuration using the
+[method contract](agent-methods.md). The supplied drivers accept `--method-file`.
 Additional inference/planning does not expand the robot or environment interface.
 
-Use your own compatible driver or the supplied
-[reference client](../AgentPolicies/gpt6_astra/README.md). Profile dependencies,
-credentials, inference settings and voluntary-stop behavior are documented with
-the selected agent, separately from benchmark installation. Select them before
-the attempt. A method's completion claim never substitutes for native success.
+The supplied [agentic policies](../AgentPolicies/README.md) are implementation
+references. Keep your method's dependencies, credentials, inference settings and
+voluntary-stop behavior in its own documentation, and select them before the
+attempt. A method's completion claim never substitutes for native success.
 
-Start the server following the selected benchmark's guide, then connect the
-chosen driver using the declared sensors, action space, schedule and budgets.
+Connect your driver using the declared sensors, action space, schedule and budgets.
 Changing the agent method does not change the benchmark interface. Never copy
 one robot's end-effector space or execution budget to another robot.
 
@@ -91,10 +98,10 @@ An independent driver can implement the [wire protocol](../benchmarks/simBenchma
 without a reference model profile or Python `Policy`.
 Keep claims, metrics, finalization and credentials on the trusted side; project
 only protocol-allowed inputs to the actor. See [method integration](agent-methods.md).
-The optional `rsi-bench run --sim-server` command uses the same agent-side runner,
-not a separate benchmark-control implementation. It requires `--sim-server` and
-takes a diagnostic `--policy` (see `rsi-bench policies`), not a model profile; run a
-model profile such as `gpt6_astra` with its own driver.
+The optional directory-based profile loader reads `configs/profile.json` for
+shared helpers. Adding that declaration does not create a unified model-run
+command; your method still owns its entrypoint. `rsi-bench run --sim-server`
+uses the shared runner with a diagnostic `--policy` only (see `rsi-bench policies`).
 
 Check a running service's readiness without a policy:
 
@@ -106,29 +113,25 @@ It describes the service, claims and resets one episode, closes it and prints a
 JSON summary; it sends no action. Probe a dedicated launch, because the claim is
 permanent. See the [readiness probe](../benchmarks/simBenchmarks/SERVER_PROTOCOL.md#readiness-probe).
 
-For local diagnostics without a benchmark or request:
+For a profile that declares runtime preflight, invoke its readiness procedure;
+for example:
 
 ```sh
 python -B -m benchkit preflight-policy --model-profile gpt6_astra
 ```
 
-It runs a profile's declared runtime preflight, checking dependencies and
-credential presence in the same Python environment, and reports a bounded
-status/error code only. It does not validate provider access, model permissions
-or network/native readiness.
+The checks are profile-specific and may contact the provider.
+They do not generate model output, start a benchmark episode or execute robot
+actions. Consult the selected policy's README for the exact checks and their limits.
 
 The [Bench Server protocol skill](bench-server-protocol/SKILL.md)
-provides development-time integration steps and a copyable single-case driver
-template, including its own loop and essential result records. It is not an
-`AgentPolicies` runtime package or registered profile. The template accepts only
-a complete single-case service schedule with horizon mode and prefix one; these
-are template boundaries, not protocol-wide limits. Use the benchmark-compatible
-method driver for full panels and other control contracts.
+is optional educational guidance with a small driver example. Adapt it to your
+method and the selected benchmark's contract; it is not a registered runtime policy.
 
 Calls, executed decisions, controls and native physics ticks are different
 counters. Invalid-action feedback, motion guards and model network continuation
 are versioned method/track behavior; consult the
-[client README](../AgentPolicies/gpt6_astra/README.md) and
+[selected policy's README](../AgentPolicies/README.md) and
 [action validation contract](../benchmarks/simBenchmarks/RoboDojo/ACTION_VALIDATION.md).
 No path automatically retries a physical action after an uncertain ACK.
 

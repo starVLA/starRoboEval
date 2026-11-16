@@ -10,7 +10,8 @@ observations, robot actions, native horizon or score.
 
 ## Reference driver settings
 
-Add these options to a normal `python -m AgentPolicies.gpt6_astra.run ...` command:
+Add these options to the selected agentic policy's driver command, for example
+`python -m AgentPolicies.gpt6_astra.run ...`:
 
 ```sh
 --recording-mode standard
@@ -39,8 +40,9 @@ video copying is disabled; `--no-record-videos` does not delete server videos.
 
 ## The trajectory ledger is always written
 
-Every mode writes `episodes/<id>/events.jsonl`, because the closed-run audit,
-usage totals and publication read it. The ledger holds `episode_start`,
+Every reference-driver mode writes `episodes/<id>/events.jsonl` for the closed-run
+audit and event-based reports. Basic result export does not require it. The
+ledger holds `episode_start`,
 the reset `observation`, `policy_call_start`, `policy_decision` (with usage, stop
 and chunk length), `action_chunk` (proposed actions), `environment_step`
 (executed action, reward, terminal flags and the public observation),
@@ -93,9 +95,12 @@ rewritten or cleaned retroactively. The client requires the server's
 
 Essential records remain: method/configuration, benchmark/protocol and selected
 cases, lifecycle, outcomes, termination/errors, counters and known usage. The
-reference runner also keeps its existing internal source/configuration snapshots;
-`minimal` is not a promise of only four files or zero storage. Full source
-freezing is not required by the basic result exporter.
+reference runner records the client Git revision, dirty flag and diff digest in
+the manifest. The supplied profiles add their profile ID, effective configuration
+and preset/prompt digests. Service source snapshots are captured separately by
+the benchmark service; client recording presets do not control them. `minimal`
+is not a promise of only four files or zero storage. Source snapshots are not
+required by the basic result exporter.
 
 ## What the switches do not promise
 
@@ -132,31 +137,17 @@ freezing is not required by the basic result exporter.
 
 ## Basic result without event logs
 
-```sh
-python -B -m benchkit.reports.basic_result \
-  --run-dir /absolute/closed-run/client \
-  --output-dir AgentPolicies/my_method/results/my_benchmark/report/my-run
-```
+Use the [basic result exporter](result-format.md#export) to produce a standalone
+`index.html` and `result.json` from essential closed records. It does not require
+events, media or source snapshots. An external driver can write the
+[JSON record contract](result-format.md) without importing or subclassing the
+reference runner.
 
-The output is a standalone `index.html` and `result.json`. It checks essential
-closed-record consistency without opening events or source snapshots. Select an
-optional finite scalar native metric with `--metric KEY`; native success and a
-partial task score are not interchangeable. Only allowlisted public fields are
-projected, not arbitrary native info, paths, receipts or raw exceptions.
-
-Keep the source run unchanged. The destination must be new and outside it. A
-record-consistent report does not prove native execution, provider identity or
-complete suite coverage. Its denominator is explicitly the client-selected
-schedule, not a guessed larger server/native panel.
-
-An external driver can write the [documented JSON record contract](result-format.md) as the reference
-runner; it need not import or subclass the runner. The exporter reads
-`manifest.json`, `status.json`, `episodes.jsonl`, `summary.json` and the matching
-per-episode `result.json` files. Schema, identity, count and outcome consistency
-are checked, including every attempted failure/error and unattempted suffix.
-See the exact [basic-result implementation](../benchkit/reports/basic_result.py)
-and the record contract above for required field types; unsupported layouts fail
-explicitly, not by guessing metadata.
+The exporter preserves attempted failures/errors and the unattempted selected
+suffix. Its denominator is the client-selected schedule; record consistency
+does not establish native execution, provider identity or full suite coverage.
+See the [evaluation workflow](evaluation.md#inspect-and-report) for reporting
+commands and the result contract for required fields and export checks.
 
 The `python -m benchkit.reports.interaction_history` exporter provides a
 trajectory timeline from the ledger in every mode; without model IO it shows
