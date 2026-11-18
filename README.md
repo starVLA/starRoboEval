@@ -74,7 +74,7 @@ selection. DOMINO uses all 175 selected cases, including four infrastructure
 interruptions. Each result retains its reported case selection and execution
 conditions.
 
-See the [detailed results (article draft)](https://github.com/starVLA/starvla.github.io/blob/preview/blog-migration-20261116/public/blogs/starRoboEval/scores.html)
+See the [detailed results](https://starvla.github.io/blogs/starRoboEval/scores.html)
 for task breakdowns and additional native metrics. The
 [service support table](benchmarks/simBenchmarks/SERVICE_SUPPORT.md) describes
 the selections and deployment requirements available in the current code.
@@ -139,8 +139,8 @@ The article also includes evaluation recordings, observation–action replays,
 published reference results and inference-cost summaries. These views connect
 the scores to what the agent saw, the actions it chose and the resources it used.
 
-**[Read the evaluation article (draft source) →](https://github.com/starVLA/starvla.github.io/blob/preview/blog-migration-20261116/public/blogs/starRoboEval/index.html)** ·
-[Browse detailed results](https://github.com/starVLA/starvla.github.io/blob/preview/blog-migration-20261116/public/blogs/starRoboEval/scores.html)
+**[Read the evaluation article →](https://starvla.github.io/blogs/starRoboEval/)** ·
+[Browse detailed results](https://starvla.github.io/blogs/starRoboEval/scores.html)
 
 ## Documentation
 
@@ -173,5 +173,5 @@ If you use starRoboEval or its evaluation results, please cite our evaluation re
 
 Part of the [StarVLA](https://github.com/starVLA/starVLA) ecosystem and derived
 from its codebase. Released under the [MIT license](LICENSE).
-The [upstream StarVLA citation](https://github.com/starVLA/starVLA/blob/main/CITATION.cff)
+The [upstream StarVLA citation](https://github.com/starVLA/starVLA#citation)
 is separate from the starRoboEval evaluation report above.
